@@ -15,7 +15,7 @@ import { app, BrowserWindow, shell, ipcMain } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
-import { resolveHtmlPath } from './util';
+import { resolveHtmlPath, UpsertKeyValue } from './util';
 
 export default class AppUpdater {
   constructor() {
@@ -106,6 +106,25 @@ const createWindow = async () => {
     event.preventDefault();
     shell.openExternal(url);
   });
+
+  mainWindow.webContents.session.webRequest.onBeforeSendHeaders(
+    (details, callback) => {
+      const { requestHeaders } = details;
+      UpsertKeyValue(requestHeaders, 'Access-Control-Allow-Origin', ['*']);
+      callback({ requestHeaders });
+    }
+  );
+
+  mainWindow.webContents.session.webRequest.onHeadersReceived(
+    (details, callback) => {
+      const { responseHeaders = {} } = details;
+      UpsertKeyValue(responseHeaders, 'Access-Control-Allow-Origin', ['*']);
+      UpsertKeyValue(responseHeaders, 'Access-Control-Allow-Headers', ['*']);
+      callback({
+        responseHeaders,
+      });
+    }
+  );
 
   // Remove this if your app does not use auto updates
   // eslint-disable-next-line

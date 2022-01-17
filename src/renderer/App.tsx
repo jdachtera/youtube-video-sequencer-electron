@@ -1,50 +1,24 @@
-import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
-import icon from '../../assets/icon.svg';
 import './App.css';
 
-const Hello = () => {
+import Player from './Player';
+import videojs from 'video.js';
+
+const abLoopPlugin = require('videojs-abloop');
+
+function App() {
+  abLoopPlugin(window, videojs);
   return (
-    <div>
-      <div className="Hello">
-        <img width="200px" alt="icon" src={icon} />
-      </div>
-      <h1>electron-react-boilerplate</h1>
-      <div className="Hello">
-        <a
-          href="https://electron-react-boilerplate.js.org/"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <button type="button">
-            <span role="img" aria-label="books">
-              📚
-            </span>
-            Read our docs
-          </button>
-        </a>
-        <a
-          href="https://github.com/sponsors/electron-react-boilerplate"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <button type="button">
-            <span role="img" aria-label="books">
-              🙏
-            </span>
-            Donate
-          </button>
-        </a>
-      </div>
+    <div className="App">
+      <Player
+        start_time={86.54}
+        end_time={93.5}
+        src="https://www.youtube.com/watch?v=GxZuq57_bYM"
+      />
+      <Player src="https://www.youtube.com/watch?v=E5Hnnf2M_VM" />
+      <Player src="https://www.youtube.com/watch?v=HkMNOlYcpHg" />
+      <Player src="https://www.youtube.com/watch?v=A0VYsiMtrNE" />
     </div>
   );
-};
-
-export default function App() {
-  return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Hello />} />
-      </Routes>
-    </Router>
-  );
 }
+
+export default App;

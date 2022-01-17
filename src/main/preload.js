@@ -1,4 +1,5 @@
 const { contextBridge, ipcRenderer } = require('electron');
+const ytdl = require('ytdl-core');
 
 contextBridge.exposeInMainWorld('electron', {
   ipcRenderer: {
@@ -19,5 +20,17 @@ contextBridge.exposeInMainWorld('electron', {
         ipcRenderer.once(channel, (event, ...args) => func(...args));
       }
     },
+  },
+});
+
+contextBridge.exposeInMainWorld('yt', {
+  getYouTubeVideoSource: async (url) => {
+    const result = await ytdl.getInfo(url);
+
+    const sourceUrl = result.formats.find((entry) =>
+      entry.mimeType.startsWith('audio/webm')
+    )?.url;
+
+    return sourceUrl;
   },
 });
