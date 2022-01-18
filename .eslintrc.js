@@ -6,6 +6,12 @@ module.exports = {
     'import/no-unresolved': 'error',
     // Since React 17 and typescript 4.1 you can safely disable the rule
     'react/react-in-jsx-scope': 'off',
+    'jsx-a11y/label-has-associated-control': 'off',
+    'jsx-a11y/click-events-have-key-events': 'off',
+    'jsx-a11y/no-noninteractive-element-interactions': 'off',
+    'react/destructuring-assignment': 'off',
+    'react/state-in-constructor': 'off',
+    'react/prop-types': 'off',
   },
   parserOptions: {
     ecmaVersion: 2020,

@@ -1,0 +1,44 @@
+import React, { useCallback } from 'react';
+import { Action } from './SequencerAction';
+
+export type Step = {
+  actions: Action[];
+};
+
+const SequencerStep: React.FC<{
+  step: Step;
+  isSelected: boolean;
+  isCurrent: boolean;
+  onClick: (step: Step) => void;
+  onDoubleClick: (step: Step) => void;
+}> = ({ step, isSelected, isCurrent, onClick, onDoubleClick }) => {
+  const handleClick = useCallback(() => {
+    onClick(step);
+  }, [step, onClick]);
+
+  const handleDoubleClick = useCallback(() => {
+    onDoubleClick(step);
+  }, [step, onDoubleClick]);
+
+  return (
+    <li
+      className={`sequencer-step ${
+        isSelected ? 'sequencer-step-selected' : ''
+      } ${isCurrent ? 'sequencer-step-current' : ''}
+      sequencer-step-${
+        // eslint-disable-next-line no-nested-ternary
+        step.actions.length
+          ? step.actions.find(({ type }) => type === 'PLAY')
+            ? 'play'
+            : 'active'
+          : 'inactive'
+      }`}
+      onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
+    >
+      &nbsp;
+    </li>
+  );
+};
+
+export default SequencerStep;
