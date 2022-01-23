@@ -24,7 +24,8 @@ const Sequencer: React.FC<{
   steps: Step[];
   currentStep?: Step;
   onChange: (steps: Step[]) => void;
-}> = React.memo(({ steps, currentStep, onChange }) => {
+  onToggleStep: (step: Step) => Action[];
+}> = React.memo(({ steps, currentStep, onChange, onToggleStep }) => {
   const [selectedStep, setSelectedStep] = useState<Step>();
 
   const handleUpdateActions = useCallback(
@@ -74,13 +75,9 @@ const Sequencer: React.FC<{
   const toggleStep = useCallback(
     (step: Step) => {
       setSelectedStep(step);
-      if (step.actions.length === 0) {
-        handleUpdateActions([createDefaultAction(steps)], step);
-      } else {
-        handleUpdateActions([], step);
-      }
+      handleUpdateActions(onToggleStep(step), step);
     },
-    [steps, setSelectedStep, handleUpdateActions]
+    [setSelectedStep, handleUpdateActions, onToggleStep]
   );
 
   return (
@@ -89,9 +86,10 @@ const Sequencer: React.FC<{
         {steps.map((step, stepIndex) => (
           <SequencerStep
             step={step}
+            // eslint-disable-next-line react/no-array-index-key
             key={`action-${stepIndex}`}
-            onClick={setSelectedStep}
-            onDoubleClick={toggleStep}
+            onAuxClick={setSelectedStep}
+            onClick={toggleStep}
             isSelected={step === selectedStep}
             isCurrent={step === currentStep}
           />
@@ -103,6 +101,7 @@ const Sequencer: React.FC<{
             {selectedStep.actions.map((action, actionIndex) => {
               return (
                 <SequencerAction
+                  // eslint-disable-next-line react/no-array-index-key
                   key={`action-${actionIndex}`}
                   action={action}
                   onChange={handleUpdateAction}

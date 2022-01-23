@@ -3,7 +3,7 @@ import { ChangeEvent, useCallback } from 'react';
 export type Action =
   | {
       type: 'PLAY';
-      start: number;
+      slice: number;
     }
   | {
       type: 'PAUSE';
@@ -23,12 +23,19 @@ const SequencerPlayAction: React.FC<{
 }> = ({ action, onChange }) => {
   const handleChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
-      onChange({ ...action, start: +event.target.value });
+      onChange({ ...action, slice: +event.target.value });
     },
     [action, onChange]
   );
 
-  return <input type="text" value={action.start} onChange={handleChange} />;
+  return (
+    <input
+      type="number"
+      step="1"
+      value={action.slice}
+      onChange={handleChange}
+    />
+  );
 };
 
 const SequencerSetPlaybackSpeedAction: React.FC<{
@@ -89,7 +96,7 @@ export function createNewAction(actionType: Action['type']): Action {
       return { type: 'PAUSE' };
     case 'PLAY':
     default:
-      return { type: 'PLAY', start: 0 };
+      return { type: 'PLAY', slice: 0 };
   }
 }
 

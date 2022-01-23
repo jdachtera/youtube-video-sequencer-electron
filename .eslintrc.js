@@ -11,6 +11,7 @@ module.exports = {
     'jsx-a11y/no-noninteractive-element-interactions': 'off',
     'react/destructuring-assignment': 'off',
     'react/state-in-constructor': 'off',
+    'react/require-default-props': 'off',
     'react/prop-types': 'off',
   },
   parserOptions: {

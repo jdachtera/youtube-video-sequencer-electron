@@ -9,9 +9,17 @@ const SequencerStep: React.FC<{
   step: Step;
   isSelected: boolean;
   isCurrent: boolean;
-  onClick: (step: Step) => void;
-  onDoubleClick: (step: Step) => void;
-}> = ({ step, isSelected, isCurrent, onClick, onDoubleClick }) => {
+  onClick?: (step: Step) => void;
+  onDoubleClick?: (step: Step) => void;
+  onAuxClick?: (step: Step) => void;
+}> = ({
+  step,
+  isSelected,
+  isCurrent,
+  onClick = () => {},
+  onDoubleClick = () => {},
+  onAuxClick = () => {},
+}) => {
   const handleClick = useCallback(() => {
     onClick(step);
   }, [step, onClick]);
@@ -19,6 +27,10 @@ const SequencerStep: React.FC<{
   const handleDoubleClick = useCallback(() => {
     onDoubleClick(step);
   }, [step, onDoubleClick]);
+
+  const handleAuxClick = useCallback(() => {
+    onAuxClick(step);
+  }, [step, onAuxClick]);
 
   return (
     <li
@@ -35,6 +47,7 @@ const SequencerStep: React.FC<{
       }`}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
+      onAuxClick={handleAuxClick}
     >
       &nbsp;
     </li>

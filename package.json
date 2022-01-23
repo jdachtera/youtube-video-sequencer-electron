@@ -170,6 +170,7 @@
     "@types/react-test-renderer": "^17.0.1",
     "@types/terser-webpack-plugin": "^5.0.4",
     "@types/video.js": "^7.3.29",
+    "@types/wavesurfer.js": "^5.2.2",
     "@types/webpack-env": "^1.16.3",
     "@typescript-eslint/eslint-plugin": "^5.8.1",
     "@typescript-eslint/parser": "^5.8.1",
@@ -236,9 +237,11 @@
     "react-router-dom": "^6.2.1",
     "regenerator-runtime": "^0.13.9",
     "tone": "^14.7.77",
+    "uuid": "^8.3.2",
     "video.js": "^7.17.0",
     "videojs-abloop": "^1.2.0",
     "videojs-youtube": "^2.6.1",
+    "wavesurfer.js": "^5.2.0",
     "ytdl-core": "^4.10.0"
   },
   "devEngines": {
