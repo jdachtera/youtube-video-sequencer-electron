@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import SequencerAction, { Action, createNewAction } from './SequencerAction';
 import SequencerStep, { Step } from './SequencerStep';
-import './Sequencer.css';
+import './Sequencer.scss';
 
 const createDefaultAction = (allSteps: Step[]): Action => {
   const firstStepWithPlayAction = allSteps.find((step) =>

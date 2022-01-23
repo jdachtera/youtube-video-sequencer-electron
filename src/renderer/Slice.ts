@@ -4,4 +4,5 @@ export type Slice = {
   end: number;
   playbackSpeed: number;
   reverse: boolean;
+  color: string;
 };
