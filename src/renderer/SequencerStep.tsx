@@ -34,9 +34,8 @@ const SequencerStep: React.FC<{
 
   return (
     <li
-      className={`sequencer-step ${
-        isSelected ? 'sequencer-step-selected' : ''
-      } ${isCurrent ? 'sequencer-step-current' : ''}
+      className={
+      `
       sequencer-step-${
         // eslint-disable-next-line no-nested-ternary
         step.actions.length
@@ -44,7 +43,10 @@ const SequencerStep: React.FC<{
             ? 'play'
             : 'active'
           : 'inactive'
-      }`}
+      }
+      sequencer-step ${isCurrent? 'sequencer-step-current' : ''} ${isSelected  ? 'sequencer-step-selected' : ''}
+      `
+      }
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       onAuxClick={handleAuxClick}

@@ -92,6 +92,7 @@ const Sequencer: React.FC<{
             onClick={toggleStep}
             isSelected={step === selectedStep}
             isCurrent={step === currentStep}
+            className={`step-${stepIndex}`}
           />
         ))}
       </ul>
