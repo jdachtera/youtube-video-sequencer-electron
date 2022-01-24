@@ -465,38 +465,52 @@ export default class VideoPlayer extends React.Component<
                 slice === this.state.selectedSlice ? 'slice-active' : ''
               } `}
               >
-                <span className="lcd">{slice.id}</span>
-                <FormattedTime timeInSeconds={slice.start} /> -{' '}
-                <FormattedTime timeInSeconds={slice.end} />
-                <input
-                  className="lcd"
-                  type="number"
-                  step="1"
-                  min="4"
-                  max="64"
-                  value={slice.patterns[this.state.currentPatternIndex].length}
-                  onChange={(event) =>
-                    this.updateSequenceLength(slice, event.target.valueAsNumber)
-                  }
-                  />
-                <button
-                  type="button"
-                  onClick={() => this.handleRemoveSlice(slice)}
-                  >
-                  Remove slice
-                </button>
-                <Sequencer
-                  steps={slice.patterns[this.state.currentPatternIndex]}
-                  currentStep={this.state.currentStep}
-                  onChange={(step) => this.updateSteps(slice, step)}
-                  onToggleStep={(step) => this.onToggleStep(step)}
-                  />
+              <div style={{display: 'flex', width: '100%'}}>
+                <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0px 0px 2px #222', borderBottomLeftRadius: '5px', borderTopLeftRadius: '5px'}}>
+                  <img src={ScrewHeadWithHole} width="35px" style={{ margin: '8px'}}/>  
+                  <img src={ScrewHeadWithHole} width="35px" style={{ margin: '8px'}}/>
+                </div>
+                <div style={{width: '100%', display: 'flex', alignItems: 'center', padding: '8px'}}>  
+                  <span className="lcd" style={{ margin: '8px', width: '300px'}}>{slice.id}</span>
+                  <FormattedTime timeInSeconds={slice.start} /> -{' '}
+                  <FormattedTime timeInSeconds={slice.end} />
+                  <input
+                    className="lcd"
+                    type="number"
+                    step="1"
+                    min="4"
+                    max="64"
+                    value={slice.patterns[this.state.currentPatternIndex].length}
+                    onChange={(event) =>
+                      this.updateSequenceLength(slice, event.target.valueAsNumber)
+                    }
+                    />
+                  <button
+                    type="button"
+                    onClick={() => this.handleRemoveSlice(slice)}
+                    >
+                    Remove slice
+                  </button>
+                  <div style={{marginLeft: 'auto'}}>
+                    <Sequencer
+                      steps={slice.patterns[this.state.currentPatternIndex]}
+                      currentStep={this.state.currentStep}
+                      onChange={(step) => this.updateSteps(slice, step)}
+                      onToggleStep={(step) => this.onToggleStep(step)}
+                      />
+                  </div>
+                </div>
+                  <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRight: '1px inset #222', borderBottom: '1px solid #333', boxShadow: '0px 0px 2px #222'}}>
+                    <img src={ScrewHeadWithHole} width="35px" style={{ margin: '8px'}}/>  
+                    <img src={ScrewHeadWithHole} width="35px" style={{ margin: '8px'}}/>
+                  </div>
+                </div>
               </li>
             ))}
           </ol>
         </div>
           </div>
-          <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRight: '1px inset #222', borderBottom: '1px outset #777', boxShadow: '0px 0px 2px #222'}}>
+          <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRight: '1px inset #222', borderBottom: '1px solid #333', boxShadow: '0px 0px 2px #333'}}>
             <img src={ScrewHeadWithHole} width="35px" style={{ margin: '8px'}}/>  
             <img src={ScrewHeadWithHole} width="35px" style={{ margin: '8px'}}/>
           </div>
