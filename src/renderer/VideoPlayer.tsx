@@ -115,11 +115,11 @@ export default class VideoPlayer extends React.Component<
       waveColor: '#aaa',
       progressColor: '#eee',
       cursorColor: '#4353FF',
-      barWidth: 2,
+      barWidth: 1,
       barRadius: 1,
       cursorWidth: 0,
       height: 100,
-      barGap: 3
+      barGap: 1
     });
 
     this.startObservingRegionChanges();
@@ -336,11 +336,12 @@ export default class VideoPlayer extends React.Component<
           <input
             onChange={this.setZoom}
             value={this.state.zoom}
-            type="range"
+            type="number"
             min="1"
             max="200"
+            step="10"
           />
-          
+
           <ol>
             {this.state.slices.map((slice) => (
               <li
