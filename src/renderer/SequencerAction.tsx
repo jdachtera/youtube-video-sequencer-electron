@@ -3,7 +3,7 @@ import { ChangeEvent, useCallback } from 'react';
 export type Action =
   | {
       type: 'PLAY';
-      slice: number;
+      velocity?: number;
     }
   | {
       type: 'PAUSE';
@@ -23,7 +23,7 @@ const SequencerPlayAction: React.FC<{
 }> = ({ action, onChange }) => {
   const handleChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
-      onChange({ ...action, slice: +event.target.value });
+      onChange({ ...action, velocity: +event.target.value });
     },
     [action, onChange]
   );
@@ -32,7 +32,7 @@ const SequencerPlayAction: React.FC<{
     <input
       type="number"
       step="1"
-      value={action.slice}
+      value={action.velocity}
       onChange={handleChange}
     />
   );

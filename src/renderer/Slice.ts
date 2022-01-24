@@ -1,3 +1,5 @@
+import { Step } from './SequencerStep';
+
 export type Slice = {
   id: string;
   start: number;
@@ -5,4 +7,5 @@ export type Slice = {
   playbackSpeed: number;
   reverse: boolean;
   color: string;
+  patterns: Step[][];
 };
