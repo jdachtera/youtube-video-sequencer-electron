@@ -410,7 +410,7 @@ export default class VideoPlayer extends React.Component<
   };
 
   scrollZoom = (event: WheelEvent) => {
-    const newZoom = Math.min(Math.max(this.state.zoom + event.deltaY, 1), 200);
+    const newZoom = Math.min(Math.max(this.state.zoom + event.deltaY, 10), 10000);
 
     if (this.state.zoom !== newZoom) {
       event.preventDefault();
@@ -451,7 +451,7 @@ export default class VideoPlayer extends React.Component<
             value={this.state.zoom}
             type="number"
             min="1"
-            max="200"
+            max="2000"
             step="10"
             />
 
