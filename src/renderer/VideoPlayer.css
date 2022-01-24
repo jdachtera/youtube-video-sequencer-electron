@@ -1,8 +1,0 @@
-.slice {
-  cursor: pointer;
-  user-select: none;
-}
-
-.slice-active {
-  background-color: lightgray;
-}

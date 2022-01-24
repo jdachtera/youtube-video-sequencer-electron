@@ -10,7 +10,7 @@ import { Action } from './SequencerAction';
 import { Step } from './SequencerStep';
 import { Slice } from './Slice';
 
-import './VideoPlayer.css';
+import './VideoPlayer.scss';
 
 declare const yt: { getYouTubeVideoSource: (url: string) => Promise<string> };
 
@@ -112,6 +112,14 @@ export default class VideoPlayer extends React.Component<
         this.regionsPlugin,
         TimelinePlugin.create({ container: this.timelineRef.current! }),
       ],
+      waveColor: '#aaa',
+      progressColor: '#eee',
+      cursorColor: '#4353FF',
+      barWidth: 1,
+      barRadius: 1,
+      cursorWidth: 0,
+      height: 100,
+      barGap: 1
     });
 
     this.startObservingRegionChanges();
@@ -145,6 +153,10 @@ export default class VideoPlayer extends React.Component<
   };
 
   handleRegionCreated = (region: Region) => {
+    let randR = Math.floor(Math.random() * (255 - 0 + 1) + 0);
+    let randG = Math.floor(Math.random() * (255 - 0 + 1) + 0);
+    let randB = Math.floor(Math.random() * (255 - 0 + 1) + 0);
+    let color = `rgba(${randR},${randG},${randB},0.8)`
     this.setState(
       (state) => {
         const slice: Slice = {
@@ -153,6 +165,7 @@ export default class VideoPlayer extends React.Component<
           end: region.end,
           playbackSpeed: 1,
           reverse: false,
+          color: color
         };
         return { slices: [...state.slices, slice] };
       },
@@ -315,7 +328,7 @@ export default class VideoPlayer extends React.Component<
           <div className="mb-2 w-full">
             <label className="mr-2 w-full">Youtube URL</label>
             <input
-              className="border w-2/3"
+              className="border w-2/3 lcd"
               type="text"
               onChange={this.setSrc}
               value={this.state.src}
@@ -327,22 +340,23 @@ export default class VideoPlayer extends React.Component<
           <input
             onChange={this.setZoom}
             value={this.state.zoom}
-            type="range"
+            type="number"
             min="1"
             max="200"
+            step="10"
           />
 
-          <h2>Slices:</h2>
           <ol>
             {this.state.slices.map((slice) => (
               <li
+                style={{background: slice.color}}
                 key={slice.id}
                 onClick={() => this.handleClickSlice(slice)}
                 className={`slice ${
                   slice === this.state.selectedSlice ? 'slice-active' : ''
                 } `}
               >
-                {slice.id}: <FormattedTime timeInSeconds={slice.start} /> -{' '}
+                <span className="lcd">{slice.id}</span><FormattedTime timeInSeconds={slice.start} /> -{' '}
                 <FormattedTime timeInSeconds={slice.end} />
                 <button
                   type="button"
