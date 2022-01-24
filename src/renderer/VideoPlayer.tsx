@@ -9,24 +9,13 @@ import PolyPlayer from './PolyPlayer';
 import Sequencer from './Sequencer';
 import { Action } from './SequencerAction';
 import { Step } from './SequencerStep';
-import { Slice } from './Slice';
+import VideoSlice, { Slice } from './Slice';
 
 import './VideoPlayer.scss';
 
 import ScrewHeadWithHole from '../../assets/svg/screw_head_with_hole.svg';
 
 declare const yt: { getYouTubeVideoSource: (url: string) => Promise<string> };
-
-const FormattedTime = ({ timeInSeconds }: { timeInSeconds: number }) => {
-  const minutes = Math.floor(timeInSeconds / 60);
-  const seconds = Math.round(timeInSeconds % 60);
-
-  return (
-    <>{`${minutes.toString().padStart(2, '0')}:${seconds
-      .toString()
-      .padStart(2, '0')}`}</>
-  );
-};
 
 export default class VideoPlayer extends React.Component<
   {
@@ -36,7 +25,7 @@ export default class VideoPlayer extends React.Component<
   },
   {
     currentTime: number;
-    currentStep?: Step;
+    currentSteps: Step[];
     currentPatternIndex: number;
     selectedSlice?: Slice;
     zoom: number;
@@ -47,7 +36,7 @@ export default class VideoPlayer extends React.Component<
   }
 > {
   state = {
-    currentStep: undefined,
+    currentSteps: [] as Step[],
     selectedSlice: undefined,
     currentPatternIndex: 0,
     currentTime: 0,
@@ -305,9 +294,17 @@ export default class VideoPlayer extends React.Component<
   };
 
   handleStep = (time: number, step: Step, slice: Slice) => {
-    this.setState({ currentStep: step });
-
     const sliceIndex = this.state.slices.findIndex(({ id }) => id === slice.id);
+
+    this.setState((state) => {
+      return {
+        currentSteps: [
+          ...state.currentSteps.slice(0, sliceIndex),
+          step,
+          ...state.currentSteps.slice(sliceIndex),
+        ],
+      };
+    });
 
     step.actions.forEach((action) => {
       this.handleAction(time, action, sliceIndex);
@@ -370,13 +367,6 @@ export default class VideoPlayer extends React.Component<
     }
   };
 
-  onToggleStep = (step: Step): Action[] => {
-    if (step.actions.length === 0) {
-      return [{ type: 'PLAY' }];
-    }
-    return [];
-  };
-
   handleClickSlice = (slice: Slice) => {
     this.setState({ selectedSlice: slice });
     const sliceIndex = this.state.slices.findIndex(({ id }) => id === slice.id);
@@ -424,95 +414,105 @@ export default class VideoPlayer extends React.Component<
   render = () => {
     return (
       <div className="border p-4 m-4">
-        <div style={{display: 'flex'}}>
-          <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRight: '1px inset #222', borderBottom: '1px outset #777', boxShadow: '0px 0px 2px #222'}}>
-            <img src={ScrewHeadWithHole} width="35px" style={{ margin: '8px'}}/>  
-            <img src={ScrewHeadWithHole} width="35px" style={{ margin: '8px'}}/>
-          </div>
-        <div style={{borderBottom: '1px solid #222', boxShadow: '0px 0px 3px #222', padding: '10px', width: '100%'}}>
-
-        <div>current Time: {this.state.currentTime}s</div>
-        <div>Length: {this.state.length}s</div>
-        <div className="flex flex-col w-full">
-          <div className="mb-2 w-full">
-            <label className="mr-2 w-full">Youtube URL</label>
-            <input
-              className="border w-2/3 lcd"
-              type="text"
-              onChange={this.setSrc}
-              value={this.state.src}
+        <div style={{ display: 'flex' }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              borderRight: '1px inset #222',
+              borderBottom: '1px outset #777',
+              boxShadow: '0px 0px 2px #222',
+            }}
+          >
+            <img
+              src={ScrewHeadWithHole}
+              width="35px"
+              style={{ margin: '8px' }}
+            />
+            <img
+              src={ScrewHeadWithHole}
+              width="35px"
+              style={{ margin: '8px' }}
             />
           </div>
+          <div
+            style={{
+              borderBottom: '1px solid #222',
+              boxShadow: '0px 0px 3px #222',
+              padding: '10px',
+              width: '100%',
+            }}
+          >
+            <div>current Time: {this.state.currentTime}s</div>
+            <div>Length: {this.state.length}s</div>
+            <div className="flex flex-col w-full">
+              <div className="mb-2 w-full">
+                <label className="mr-2 w-full">Youtube URL</label>
+                <input
+                  className="border w-2/3 lcd"
+                  type="text"
+                  onChange={this.setSrc}
+                  value={this.state.src}
+                />
+              </div>
 
-          <div ref={this.waveformRef} className="lcd" style={{margin: '2px' }}/>
-          <div ref={this.timelineRef} className="lcd" style={{margin: '2px' }} />
-          <input
-            onChange={this.handleZoomChanged}
-            value={this.state.zoom}
-            type="number"
-            min="1"
-            max="200"
-            step="10"
-            />
+              <div
+                ref={this.waveformRef}
+                className="lcd"
+                style={{ margin: '2px' }}
+              />
+              <div
+                ref={this.timelineRef}
+                className="lcd"
+                style={{ margin: '2px' }}
+              />
+              <input
+                onChange={this.handleZoomChanged}
+                value={this.state.zoom}
+                type="number"
+                min="1"
+                max="200"
+                step="10"
+              />
 
-          <ol>
-            {this.state.slices.map((slice) => (
-              <li
-              style={{ background: slice.color }}
-              key={slice.id}
-              onClick={() => this.handleClickSlice(slice)}
-              className={`slice ${
-                slice === this.state.selectedSlice ? 'slice-active' : ''
-              } `}
-              >
-              <div style={{display: 'flex', width: '100%'}}>
-                <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0px 0px 2px #222', borderBottomLeftRadius: '5px', borderTopLeftRadius: '5px'}}>
-                  <img src={ScrewHeadWithHole} width="35px" style={{ margin: '8px'}}/>  
-                  <img src={ScrewHeadWithHole} width="35px" style={{ margin: '8px'}}/>
-                </div>
-                <div style={{width: '100%', display: 'flex', alignItems: 'center', padding: '8px'}}>  
-                  <span className="lcd" style={{ margin: '8px', width: '300px'}}>{slice.id}</span>
-                  <FormattedTime timeInSeconds={slice.start} /> -{' '}
-                  <FormattedTime timeInSeconds={slice.end} />
-                  <input
-                    className="lcd"
-                    type="number"
-                    step="1"
-                    min="4"
-                    max="64"
-                    value={slice.patterns[this.state.currentPatternIndex].length}
-                    onChange={(event) =>
-                      this.updateSequenceLength(slice, event.target.valueAsNumber)
-                    }
-                    />
-                  <button
-                    type="button"
-                    onClick={() => this.handleRemoveSlice(slice)}
-                    >
-                    Remove slice
-                  </button>
-                  <div style={{marginLeft: 'auto'}}>
-                    <Sequencer
-                      steps={slice.patterns[this.state.currentPatternIndex]}
-                      currentStep={this.state.currentStep}
-                      onChange={(step) => this.updateSteps(slice, step)}
-                      onToggleStep={(step) => this.onToggleStep(step)}
-                      />
-                  </div>
-                </div>
-                  <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRight: '1px inset #222', borderBottom: '1px solid #333', boxShadow: '0px 0px 2px #222'}}>
-                    <img src={ScrewHeadWithHole} width="35px" style={{ margin: '8px'}}/>  
-                    <img src={ScrewHeadWithHole} width="35px" style={{ margin: '8px'}}/>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
+              <ol>
+                {this.state.slices.map((slice, sliceIndex) => (
+                  <VideoSlice
+                    slice={slice}
+                    isSelected={slice === this.state.selectedSlice}
+                    currentPatternIndex={this.state.currentPatternIndex}
+                    currentStep={this.state.currentSteps[sliceIndex]}
+                    onClickSlice={this.handleClickSlice}
+                    onRemoveSlice={this.handleRemoveSlice}
+                    onUpdateSequenceLength={this.updateSequenceLength}
+                    onUpdateSteps={this.updateSteps}
+                    key={slice.id}
+                  />
+                ))}
+              </ol>
+            </div>
           </div>
-          <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRight: '1px inset #222', borderBottom: '1px solid #333', boxShadow: '0px 0px 2px #333'}}>
-            <img src={ScrewHeadWithHole} width="35px" style={{ margin: '8px'}}/>  
-            <img src={ScrewHeadWithHole} width="35px" style={{ margin: '8px'}}/>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              borderRight: '1px inset #222',
+              borderBottom: '1px solid #333',
+              boxShadow: '0px 0px 2px #333',
+            }}
+          >
+            <img
+              src={ScrewHeadWithHole}
+              width="35px"
+              style={{ margin: '8px' }}
+            />
+            <img
+              src={ScrewHeadWithHole}
+              width="35px"
+              style={{ margin: '8px' }}
+            />
           </div>
         </div>
       </div>
