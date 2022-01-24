@@ -13,7 +13,7 @@ import { Slice } from './Slice';
 
 import './VideoPlayer.scss';
 
-import ScrewHeadWithHole from '../../assets/svg/screw_head.svg';
+import ScrewHeadWithHole from '../../assets/svg/screw_head_with_hole.svg';
 
 declare const yt: { getYouTubeVideoSource: (url: string) => Promise<string> };
 
@@ -117,8 +117,8 @@ export default class VideoPlayer extends React.Component<
         this.regionsPlugin,
         TimelinePlugin.create({ container: this.timelineRef.current! }),
       ],
-      waveColor: '#aaa',
-      progressColor: '#eee',
+      waveColor: '#222',
+      progressColor: '#222',
       cursorColor: '#4353FF',
       barWidth: 1,
       barRadius: 1,
@@ -153,8 +153,8 @@ export default class VideoPlayer extends React.Component<
     this.wavesurfer.on('region-created', this.handleRegionCreated);
     this.wavesurfer.on('region-updated', this.handleRegionUpdated);
     this.wavesurfer.on('region-removed', this.handleRegionRemoved);
-    this.wavesurfer.on('region-click', this.handleClickSlice);
-    this.wavesurfer.on('region-update-end', this.handleClickSlice);
+    //this.wavesurfer.on('region-click', this.handleClickSlice);
+    //this.wavesurfer.on('region-update-end', this.handleClickSlice);
   };
 
   handleRegionCreated = (region: Region) => {
@@ -411,7 +411,13 @@ export default class VideoPlayer extends React.Component<
   render = () => {
     return (
       <div className="border p-4 m-4">
-        <img src={ScrewHeadWithHole} width="25px"/>
+        <div style={{display: 'flex'}}>
+          <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRight: '1px inset #222', borderBottom: '1px outset #777', boxShadow: '0px 0px 2px #222'}}>
+            <img src={ScrewHeadWithHole} width="35px" style={{ margin: '8px'}}/>  
+            <img src={ScrewHeadWithHole} width="35px" style={{ margin: '8px'}}/>
+          </div>
+        <div style={{borderBottom: '1px solid #222', boxShadow: '0px 0px 3px #222', padding: '10px', width: '100%'}}>
+
         <div>current Time: {this.state.currentTime}s</div>
         <div>Length: {this.state.length}s</div>
         <div className="flex flex-col w-full">
@@ -425,8 +431,8 @@ export default class VideoPlayer extends React.Component<
             />
           </div>
 
-          <div ref={this.waveformRef} />
-          <div ref={this.timelineRef} />
+          <div ref={this.waveformRef} className="lcd" style={{margin: '2px' }}/>
+          <div ref={this.timelineRef} className="lcd" style={{margin: '2px' }} />
           <input
             onChange={this.setZoom}
             value={this.state.zoom}
@@ -434,22 +440,23 @@ export default class VideoPlayer extends React.Component<
             min="1"
             max="200"
             step="10"
-          />
+            />
 
           <ol>
             {this.state.slices.map((slice) => (
               <li
-                style={{ background: slice.color }}
-                key={slice.id}
-                onClick={() => this.handleClickSlice(slice)}
-                className={`slice ${
-                  slice === this.state.selectedSlice ? 'slice-active' : ''
-                } `}
+              style={{ background: slice.color }}
+              key={slice.id}
+              onClick={() => this.handleClickSlice(slice)}
+              className={`slice ${
+                slice === this.state.selectedSlice ? 'slice-active' : ''
+              } `}
               >
                 <span className="lcd">{slice.id}</span>
                 <FormattedTime timeInSeconds={slice.start} /> -{' '}
                 <FormattedTime timeInSeconds={slice.end} />
                 <input
+                  className="lcd"
                   type="number"
                   step="1"
                   min="4"
@@ -458,11 +465,11 @@ export default class VideoPlayer extends React.Component<
                   onChange={(event) =>
                     this.updateSequenceLength(slice, event.target.valueAsNumber)
                   }
-                />
+                  />
                 <button
                   type="button"
                   onClick={() => this.handleRemoveSlice(slice)}
-                >
+                  >
                   Remove slice
                 </button>
                 <Sequencer
@@ -470,10 +477,16 @@ export default class VideoPlayer extends React.Component<
                   currentStep={this.state.currentStep}
                   onChange={(step) => this.updateSteps(slice, step)}
                   onToggleStep={(step) => this.onToggleStep(step)}
-                />
+                  />
               </li>
             ))}
           </ol>
+        </div>
+          </div>
+          <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRight: '1px inset #222', borderBottom: '1px outset #777', boxShadow: '0px 0px 2px #222'}}>
+            <img src={ScrewHeadWithHole} width="35px" style={{ margin: '8px'}}/>  
+            <img src={ScrewHeadWithHole} width="35px" style={{ margin: '8px'}}/>
+          </div>
         </div>
       </div>
     );
