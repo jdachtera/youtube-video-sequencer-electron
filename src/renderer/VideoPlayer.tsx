@@ -12,6 +12,8 @@ import { Slice } from './Slice';
 
 import './VideoPlayer.scss';
 
+import ScrewHeadWithHole from '../../assets/svg/screw_head.svg';
+
 declare const yt: { getYouTubeVideoSource: (url: string) => Promise<string> };
 
 const FormattedTime = ({ timeInSeconds }: { timeInSeconds: number }) => {
@@ -318,6 +320,7 @@ export default class VideoPlayer extends React.Component<
   render = () => {
     return (
       <div className="border p-4 m-4">
+        <img src={ScrewHeadWithHole} width="25px"/>
         <div>current Time: {this.state.currentTime}s</div>
         <div>Length: {this.state.length}s</div>
         <div className="flex flex-col w-full">
