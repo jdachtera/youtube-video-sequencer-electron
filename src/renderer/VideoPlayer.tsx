@@ -74,7 +74,7 @@ export default class VideoPlayer extends React.Component<
   };
 
   loadFromLocalStorage = () => {
-    const storedDataString = localStorage.getItem('track');
+    const storedDataString = localStorage.getItem(`track-${this.state.src}`);
     if (!storedDataString) return;
     try {
       const decodedData = JSON.parse(storedDataString);
@@ -94,7 +94,7 @@ export default class VideoPlayer extends React.Component<
 
   saveToLocalStorage = () => {
     localStorage.setItem(
-      'track',
+      `track-${this.state.src}`,
       JSON.stringify({
         slices: this.state.slices,
       })
@@ -105,6 +105,8 @@ export default class VideoPlayer extends React.Component<
     Transport.on('stop', this.stopPlayer);
     Transport.on('pause', this.stopPlayer);
     Transport.on('loopEnd', this.stopPlayer);
+
+    this.waveformRef.current?.addEventListener('wheel', this.scrollZoom);
 
     this.loadFromLocalStorage();
 
@@ -138,6 +140,13 @@ export default class VideoPlayer extends React.Component<
 
     await this.loadUrl(this.props.src);
   };
+
+  componentWillUnmount() {
+    this.waveformRef.current?.removeEventListener('wheel', this.scrollZoom);
+    if (this.tonePlayer) {
+      this.tonePlayer.dispose();
+    }
+  }
 
   stopObservingRegionChanges = () => {
     this.wavesurfer.un('region-created', this.handleRegionCreated);
@@ -187,6 +196,7 @@ export default class VideoPlayer extends React.Component<
       },
       () => {
         this.tonePlayer.setPolyphony(this.state.slices.length);
+        region.update({ ...region, color });
         this.saveToLocalStorage();
       }
     );
@@ -271,24 +281,16 @@ export default class VideoPlayer extends React.Component<
 
     this.stopObservingRegionChanges();
     this.state.slices.forEach((slice: Slice) => {
-      typelessWavesurfer.addRegion(slice);
+      const { id, color, start, end } = slice;
+      typelessWavesurfer.addRegion({ id, color, start, end });
     });
     this.startObservingRegionChanges();
 
     this.setState({ length: this.tonePlayer.buffer.duration });
   };
 
-  // destroy player on unmount
-  componentWillUnmount = () => {
-    if (this.tonePlayer) {
-      this.tonePlayer.dispose();
-    }
-  };
-
-  setZoom = (event: ChangeEvent<HTMLInputElement>) =>
-    this.setState({ zoom: event.target.valueAsNumber }, () =>
-      this.wavesurfer.zoom(this.state.zoom)
-    );
+  setZoom = (zoom: number) =>
+    this.setState({ zoom }, () => this.wavesurfer.zoom(this.state.zoom));
 
   setSrc = async (e: ChangeEvent<HTMLInputElement>) => {
     this.setState({ src: e.target.value }, () => {
@@ -387,9 +389,8 @@ export default class VideoPlayer extends React.Component<
       .start(0, slice.start, slice.end - slice.start);
   };
 
-  handleRemoveSlice = (slice: Slice) => {
+  handleRemoveSlice = (slice: Slice) =>
     this.wavesurfer.regions.list[slice.id]?.remove();
-  };
 
   updateSequenceLength = (slice: Slice, newLength: number) => {
     const steps = slice.patterns[this.state.currentPatternIndex];
@@ -405,6 +406,18 @@ export default class VideoPlayer extends React.Component<
       ]);
     }
   };
+
+  scrollZoom = (event: WheelEvent) => {
+    const newZoom = Math.min(Math.max(this.state.zoom + event.deltaY, 1), 200);
+
+    if (this.state.zoom !== newZoom) {
+      event.preventDefault();
+      this.setZoom(newZoom);
+    }
+  };
+
+  handleZoomChanged = (event: ChangeEvent<HTMLInputElement>) =>
+    this.setZoom(event.target.valueAsNumber);
 
   render = () => {
     return (
@@ -425,7 +438,7 @@ export default class VideoPlayer extends React.Component<
           <div ref={this.waveformRef} />
           <div ref={this.timelineRef} />
           <input
-            onChange={this.setZoom}
+            onChange={this.handleZoomChanged}
             value={this.state.zoom}
             type="number"
             min="1"
