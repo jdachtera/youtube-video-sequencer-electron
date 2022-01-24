@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import React, { ChangeEvent } from 'react';
-import { Player as TonePlayer, Sequence, Transport } from 'tone';
+import { Sequence, Transport } from 'tone';
 import Wavesurfer from 'wavesurfer.js';
 import RegionsPlugin, { Region } from 'wavesurfer.js/src/plugin/regions';
 import TimelinePlugin from 'wavesurfer.js/src/plugin/timeline';
+import PolyPlayer from './PolyPlayer';
 
 import Sequencer from './Sequencer';
 import { Action } from './SequencerAction';
@@ -36,28 +37,29 @@ export default class VideoPlayer extends React.Component<
   {
     currentTime: number;
     currentStep?: Step;
+    currentPatternIndex: number;
     selectedSlice?: Slice;
     zoom: number;
     src: string;
     length: number;
     slices: Slice[];
-    steps: Step[];
+    sequences: Sequence[];
   }
 > {
   state = {
     currentStep: undefined,
     selectedSlice: undefined,
+    currentPatternIndex: 0,
     currentTime: 0,
     slices: this.props.slices ?? [],
     zoom: 0,
     length: 0,
     src: this.props.src,
-    steps:
-      this.props.steps ??
-      Array.from({ length: 16 }).map(() => ({ actions: [] as Action[] })),
+    pattern: [] as Step[][],
+    sequences: [] as Sequence[],
   };
 
-  tonePlayer = new TonePlayer().toDestination();
+  tonePlayer = new PolyPlayer().toDestination();
 
   wavesurfer: WaveSurfer = null!;
 
@@ -79,9 +81,14 @@ export default class VideoPlayer extends React.Component<
     try {
       const decodedData = JSON.parse(storedDataString);
       this.setState({
-        steps: decodedData.steps,
         slices: decodedData.slices,
+        sequences: decodedData.slices.map((slice: Slice) =>
+          new Sequence((time, step: Step) => {
+            this.handleStep(time, step, slice);
+          }, slice.patterns[0]).start()
+        ),
       });
+      this.tonePlayer.setPolyphony(decodedData.slices.length);
     } catch {
       //
     }
@@ -91,7 +98,6 @@ export default class VideoPlayer extends React.Component<
     localStorage.setItem(
       'track',
       JSON.stringify({
-        steps: this.state.steps,
         slices: this.state.slices,
       })
     );
@@ -103,9 +109,6 @@ export default class VideoPlayer extends React.Component<
     Transport.on('loopEnd', this.stopPlayer);
 
     this.loadFromLocalStorage();
-
-    this.sequence = new Sequence(this.handleStep, this.state.steps);
-    this.sequence.start();
 
     this.wavesurfer = Wavesurfer.create({
       container: this.waveformRef.current!,
@@ -121,7 +124,7 @@ export default class VideoPlayer extends React.Component<
       barRadius: 1,
       cursorWidth: 0,
       height: 100,
-      barGap: 1
+      barGap: 1,
     });
 
     this.startObservingRegionChanges();
@@ -142,19 +145,23 @@ export default class VideoPlayer extends React.Component<
     this.wavesurfer.un('region-created', this.handleRegionCreated);
     this.wavesurfer.un('region-updated', this.handleRegionUpdated);
     this.wavesurfer.un('region-removed', this.handleRegionRemoved);
+    this.wavesurfer.un('region-click', this.handleClickSlice);
+    this.wavesurfer.un('region-update-end', this.handleClickSlice);
   };
 
   startObservingRegionChanges = () => {
     this.wavesurfer.on('region-created', this.handleRegionCreated);
     this.wavesurfer.on('region-updated', this.handleRegionUpdated);
     this.wavesurfer.on('region-removed', this.handleRegionRemoved);
+    this.wavesurfer.on('region-click', this.handleClickSlice);
+    this.wavesurfer.on('region-update-end', this.handleClickSlice);
   };
 
   handleRegionCreated = (region: Region) => {
     let randR = Math.floor(Math.random() * (255 - 0 + 1) + 0);
     let randG = Math.floor(Math.random() * (255 - 0 + 1) + 0);
     let randB = Math.floor(Math.random() * (255 - 0 + 1) + 0);
-    let color = `rgba(${randR},${randG},${randB},0.8)`
+    let color = `rgba(${randR},${randG},${randB},0.8)`;
     this.setState(
       (state) => {
         const slice: Slice = {
@@ -163,19 +170,37 @@ export default class VideoPlayer extends React.Component<
           end: region.end,
           playbackSpeed: 1,
           reverse: false,
-          color: color
+          color: color,
+          patterns: [
+            Array.from({ length: 16 }).map(() => ({
+              actions: [],
+            })),
+          ],
         };
-        return { slices: [...state.slices, slice] };
+
+        const sequence = new Sequence((time, step: Step) => {
+          this.handleStep(time, step, slice);
+        }, slice.patterns[0]).start();
+
+        return {
+          slices: [...state.slices, slice],
+          sequences: [...state.sequences, sequence],
+        };
       },
-      () => this.saveToLocalStorage()
+      () => {
+        this.tonePlayer.setPolyphony(this.state.slices.length);
+        this.saveToLocalStorage();
+      }
     );
   };
 
-  handleRegionUpdated = (region: Region) => {
-    this.setState(
+  handleRegionUpdated = async (region: Region) => {
+    await this.setState(
       (state) => {
         const slice = state.slices.find(({ id }) => id === region.id)!;
-        const sliceIndex = state.slices.indexOf(slice);
+        const sliceIndex = this.state.slices.findIndex(
+          ({ id }) => id === slice.id
+        );
         const updatedSlice: Slice = {
           ...slice,
           start: region.start,
@@ -195,18 +220,46 @@ export default class VideoPlayer extends React.Component<
   };
 
   handleRegionRemoved = (region: Region) => {
+    this.setState(
+      (state) => {
+        const slice = state.slices.find(({ id }) => id === region.id)!;
+        const sliceIndex = this.state.slices.findIndex(
+          ({ id }) => id === slice.id
+        );
+
+        const sequenceToDispose = this.state.sequences[sliceIndex];
+        sequenceToDispose.dispose();
+
+        return {
+          slices: [
+            ...state.slices.slice(0, sliceIndex),
+            ...state.slices.slice(sliceIndex + 1),
+          ],
+          sequences: [
+            ...state.sequences.slice(0, sliceIndex),
+            ...state.sequences.slice(sliceIndex + 1),
+          ],
+        };
+      },
+      () => {
+        () => this.saveToLocalStorage();
+        this.tonePlayer.setPolyphony(this.state.slices.length);
+      }
+    );
+  };
+
+  updateSlice = (slice: Slice, callback?: () => void) =>
     this.setState((state) => {
-      const slice = state.slices.find(({ id }) => id === region.id)!;
-      const sliceIndex = state.slices.indexOf(slice);
+      const sliceIndex = state.slices.findIndex(({ id }) => id === slice.id);
 
       return {
         slices: [
           ...state.slices.slice(0, sliceIndex),
+          slice,
           ...state.slices.slice(sliceIndex + 1),
         ],
       };
-    });
-  };
+    }, callback);
 
   loadUrl = async (url: string) => {
     const sourceUrl = await yt.getYouTubeVideoSource(url);
@@ -249,42 +302,66 @@ export default class VideoPlayer extends React.Component<
     this.tonePlayer.stop();
   };
 
-  handleStep = (time: number, step: Step) => {
+  handleStep = (time: number, step: Step, slice: Slice) => {
     this.setState({ currentStep: step });
+
+    const sliceIndex = this.state.slices.findIndex(({ id }) => id === slice.id);
+
     step.actions.forEach((action) => {
-      this.handleAction(time, action);
+      this.handleAction(time, action, sliceIndex);
     });
   };
 
-  updateSteps = (steps: Step[]) => {
-    const oldSequence = this.sequence;
-    oldSequence.dispose();
+  updateSteps = (slice: Slice, steps: Step[]) => {
+    const sliceIndex = this.state.slices.findIndex(({ id }) => id === slice.id);
+    this.state.sequences[sliceIndex].events = steps;
 
-    this.setState({ steps }, () => this.saveToLocalStorage());
-    this.sequence = new Sequence(this.handleStep, steps);
-    this.sequence.start(oldSequence.startOffset);
+    this.setState(
+      (state) => {
+        const updatedSlice: Slice = {
+          ...slice,
+          patterns: [
+            ...slice.patterns.slice(0, this.state.currentPatternIndex),
+            steps,
+            ...slice.patterns.slice(this.state.currentPatternIndex + 1),
+          ],
+        };
+        return {
+          slices: [
+            ...state.slices.slice(0, sliceIndex),
+            updatedSlice,
+            ...state.slices.slice(sliceIndex + 1),
+          ],
+        };
+      },
+      () => {
+        this.saveToLocalStorage();
+      }
+    );
   };
 
-  handleAction = (time: number, action: Action) => {
+  handleAction = (time: number, action: Action, sliceIndex: number) => {
     switch (action.type) {
       case 'PLAY': {
-        const slice = this.state.slices[action.slice];
+        const slice = this.state.slices[sliceIndex];
 
         if (!slice) break;
 
         if (slice.start < this.tonePlayer.buffer.duration) {
-          this.tonePlayer.start(time, slice.start, slice.end - slice.start);
+          this.tonePlayer
+            .getPlayer(sliceIndex)
+            .start(time, slice.start, slice.end - slice.start);
         }
         break;
       }
       case 'PAUSE':
-        this.tonePlayer.stop(time);
+        this.tonePlayer.getPlayer(sliceIndex).stop(time);
         break;
       case 'SET_PLAYBACK_SPEED':
-        this.tonePlayer.playbackRate = action.value;
+        this.tonePlayer.getPlayer(sliceIndex).playbackRate = action.value;
         break;
       case 'SET_REVERSE':
-        this.tonePlayer.reverse = action.value;
+        this.tonePlayer.getPlayer(sliceIndex).reverse = action.value;
         break;
       default:
         break;
@@ -293,28 +370,42 @@ export default class VideoPlayer extends React.Component<
 
   onToggleStep = (step: Step): Action[] => {
     if (step.actions.length === 0) {
-      return [
-        {
-          type: 'PLAY',
-          slice: this.state.selectedSlice
-            ? this.state.slices.indexOf(this.state.selectedSlice)
-            : 0,
-        },
-      ];
+      return [{ type: 'PLAY' }];
     }
     return [];
   };
 
   handleClickSlice = (slice: Slice) => {
     this.setState({ selectedSlice: slice });
+    const sliceIndex = this.state.slices.findIndex(({ id }) => id === slice.id);
+
+    if (sliceIndex === -1) return;
+
     this.wavesurfer.seekAndCenter(
       slice.start / this.tonePlayer.buffer.duration
     );
-    this.tonePlayer.start(0, slice.start, slice.end - slice.start);
+    this.tonePlayer
+      .getPlayer(sliceIndex)
+      .start(0, slice.start, slice.end - slice.start);
   };
 
   handleRemoveSlice = (slice: Slice) => {
     this.wavesurfer.regions.list[slice.id]?.remove();
+  };
+
+  updateSequenceLength = (slice: Slice, newLength: number) => {
+    const steps = slice.patterns[this.state.currentPatternIndex];
+
+    if (steps.length > newLength) {
+      this.updateSteps(slice, steps.slice(0, newLength));
+    } else if (steps.length < newLength) {
+      this.updateSteps(slice, [
+        ...steps.slice(0),
+        ...Array.from({ length: newLength - steps.length }).map(() => ({
+          actions: [],
+        })),
+      ]);
+    }
   };
 
   render = () => {
@@ -348,31 +439,41 @@ export default class VideoPlayer extends React.Component<
           <ol>
             {this.state.slices.map((slice) => (
               <li
-                style={{background: slice.color}}
+                style={{ background: slice.color }}
                 key={slice.id}
                 onClick={() => this.handleClickSlice(slice)}
                 className={`slice ${
                   slice === this.state.selectedSlice ? 'slice-active' : ''
                 } `}
               >
-                <span className="lcd">{slice.id}</span><FormattedTime timeInSeconds={slice.start} /> -{' '}
+                <span className="lcd">{slice.id}</span>
+                <FormattedTime timeInSeconds={slice.start} /> -{' '}
                 <FormattedTime timeInSeconds={slice.end} />
+                <input
+                  type="number"
+                  step="1"
+                  min="4"
+                  max="64"
+                  value={slice.patterns[this.state.currentPatternIndex].length}
+                  onChange={(event) =>
+                    this.updateSequenceLength(slice, event.target.valueAsNumber)
+                  }
+                />
                 <button
                   type="button"
                   onClick={() => this.handleRemoveSlice(slice)}
                 >
                   Remove slice
                 </button>
+                <Sequencer
+                  steps={slice.patterns[this.state.currentPatternIndex]}
+                  currentStep={this.state.currentStep}
+                  onChange={(step) => this.updateSteps(slice, step)}
+                  onToggleStep={(step) => this.onToggleStep(step)}
+                />
               </li>
             ))}
           </ol>
-
-          <Sequencer
-            steps={this.state.steps}
-            currentStep={this.state.currentStep}
-            onChange={this.updateSteps}
-            onToggleStep={this.onToggleStep}
-          />
         </div>
       </div>
     );

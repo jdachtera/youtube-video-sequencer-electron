@@ -3,7 +3,7 @@ import { ChangeEvent, useCallback } from 'react';
 export type Action =
   | {
       type: 'PLAY';
-      slice: number;
+      velocity?: number;
     }
   | {
       type: 'PAUSE';
@@ -23,7 +23,7 @@ const SequencerPlayAction: React.FC<{
 }> = ({ action, onChange }) => {
   const handleChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
-      onChange({ ...action, slice: +event.target.value });
+      onChange({ ...action, velocity: +event.target.value });
     },
     [action, onChange]
   );
@@ -32,7 +32,7 @@ const SequencerPlayAction: React.FC<{
     <input
       type="number"
       step="1"
-      value={action.slice}
+      value={action.velocity}
       onChange={handleChange}
     />
   );
@@ -49,7 +49,16 @@ const SequencerSetPlaybackSpeedAction: React.FC<{
     [action, onChange]
   );
 
-  return <input type="text" value={action.value} onChange={handleChange} />;
+  return (
+    <input
+      type="range"
+      min="0.01"
+      max="3"
+      step="0.01"
+      value={action.value}
+      onChange={handleChange}
+    />
+  );
 };
 
 const SequencerSetReverseAction: React.FC<{
@@ -96,7 +105,7 @@ export function createNewAction(actionType: Action['type']): Action {
       return { type: 'PAUSE' };
     case 'PLAY':
     default:
-      return { type: 'PLAY', slice: 0 };
+      return { type: 'PLAY' };
   }
 }
 
