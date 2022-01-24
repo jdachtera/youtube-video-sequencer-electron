@@ -105,7 +105,7 @@ export function createNewAction(actionType: Action['type']): Action {
       return { type: 'PAUSE' };
     case 'PLAY':
     default:
-      return { type: 'PLAY', slice: 0 };
+      return { type: 'PLAY' };
   }
 }
 
