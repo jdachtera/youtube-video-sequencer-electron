@@ -132,12 +132,16 @@ export default class VideoPlayer extends React.Component<
     this.wavesurfer.un('region-created', this.handleRegionCreated);
     this.wavesurfer.un('region-updated', this.handleRegionUpdated);
     this.wavesurfer.un('region-removed', this.handleRegionRemoved);
+    this.wavesurfer.un('region-click', this.handleClickSlice);
+    this.wavesurfer.un('region-update-end', this.handleClickSlice);
   };
 
   startObservingRegionChanges = () => {
     this.wavesurfer.on('region-created', this.handleRegionCreated);
     this.wavesurfer.on('region-updated', this.handleRegionUpdated);
     this.wavesurfer.on('region-removed', this.handleRegionRemoved);
+    this.wavesurfer.on('region-click', this.handleClickSlice);
+    this.wavesurfer.on('region-update-end', this.handleClickSlice);
   };
 
   handleRegionCreated = (region: Region) => {

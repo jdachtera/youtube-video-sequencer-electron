@@ -49,7 +49,16 @@ const SequencerSetPlaybackSpeedAction: React.FC<{
     [action, onChange]
   );
 
-  return <input type="text" value={action.value} onChange={handleChange} />;
+  return (
+    <input
+      type="range"
+      min="0.01"
+      max="3"
+      step="0.01"
+      value={action.value}
+      onChange={handleChange}
+    />
+  );
 };
 
 const SequencerSetReverseAction: React.FC<{
