@@ -1,7 +1,8 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import SequencerAction, { Action, createNewAction } from './SequencerAction';
 import SequencerStep, { Step } from './SequencerStep';
 import './Sequencer.scss';
+import SliceChain from './engine/SliceChain';
 
 const createDefaultAction = (allSteps: Step[]): Action => {
   const firstStepWithPlayAction = allSteps.find((step) =>
@@ -22,10 +23,21 @@ const createDefaultAction = (allSteps: Step[]): Action => {
 
 const Sequencer: React.FC<{
   steps: Step[];
-  currentStep?: Step;
+  chain: SliceChain;
   onChange: (steps: Step[]) => void;
   onToggleStep: (step: Step) => Action[];
-}> = React.memo(({ steps, currentStep, onChange, onToggleStep }) => {
+}> = React.memo(({ steps, chain, onChange, onToggleStep }) => {
+  // console.log('Render Sequencer');
+  const [currentStep, setCurrentStep] = useState<Step>();
+
+  useEffect(
+    () =>
+      chain.subscribe('sequence-event', (step: Step) => {
+        setCurrentStep(step);
+      }),
+    [chain]
+  );
+
   const [selectedStep, setSelectedStep] = useState<Step>();
 
   const handleUpdateActions = useCallback(

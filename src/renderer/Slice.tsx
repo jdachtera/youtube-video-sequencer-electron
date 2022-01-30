@@ -1,13 +1,15 @@
-import React, { ChangeEvent, useCallback } from 'react';
+import React, { ChangeEvent, useCallback, useEffect, useState } from 'react';
 
 import { Step } from './SequencerStep';
 
 import ScrewHeadWithHole from '../../assets/svg/screw_head_with_hole.svg';
 import Sequencer from './Sequencer';
 import { Action } from './SequencerAction';
+import type SliceChain from './engine/SliceChain';
 
 export type Slice = {
   id: string;
+  url: string;
   start: number;
   end: number;
   playbackSpeed: number;
@@ -29,44 +31,54 @@ const FormattedTime = ({ timeInSeconds }: { timeInSeconds: number }) => {
 
 const VideoSlice = React.memo(
   ({
-    slice,
+    chain,
     currentPatternIndex,
-    currentStep,
     onClickSlice,
     onUpdateSequenceLength,
     onRemoveSlice,
     onUpdateSteps,
     isSelected,
   }: {
-    slice: Slice;
+    chain: SliceChain;
     currentPatternIndex: number;
-    currentStep: Step;
     isSelected: boolean;
     onClickSlice: (slice: Slice) => void;
     onUpdateSequenceLength: (slice: Slice, sequenceLength: number) => void;
     onRemoveSlice: (slice: Slice) => void;
     onUpdateSteps: (slice: Slice, steps: Step[]) => void;
   }) => {
+    console.log('Render VideoSlice');
+    const [slice, setSlice] = useState(chain.getSlice());
+
+    useEffect(
+      () =>
+        chain.subscribe('slice-updated', (updatedSlice) =>
+          setSlice(updatedSlice)
+        ),
+      [chain, setSlice]
+    );
+
     const handleClickSlice = useCallback(() => {
       onClickSlice(slice);
-    }, [slice]);
+    }, [slice, onClickSlice]);
 
     const handleUpdateSequenceLength = useCallback(
       (event: ChangeEvent<HTMLInputElement>) => {
         onUpdateSequenceLength(slice, event.target.valueAsNumber);
       },
-      [slice]
+      [slice, onUpdateSequenceLength]
     );
 
     const handleRemoveSlice = useCallback(() => {
+      console.log('handleRemoveSlice', onRemoveSlice);
       onRemoveSlice(slice);
-    }, [slice]);
+    }, [slice, onRemoveSlice]);
 
     const handleUpdateSteps = useCallback(
       (steps: Step[]) => {
         onUpdateSteps(slice, steps);
       },
-      [slice]
+      [slice, onUpdateSteps]
     );
 
     const onToggleStep = useCallback((step: Step): Action[] => {
@@ -80,7 +92,6 @@ const VideoSlice = React.memo(
       <li
         style={{ background: slice.color }}
         key={slice.id}
-        onClick={handleClickSlice}
         className={`slice ${isSelected ? 'slice-active' : ''} `}
       >
         <div style={{ display: 'flex', width: '100%' }}>
@@ -95,11 +106,13 @@ const VideoSlice = React.memo(
             }}
           >
             <img
+              alt="screw"
               src={ScrewHeadWithHole}
               width="35px"
               style={{ margin: '8px' }}
             />
             <img
+              alt="screw"
               src={ScrewHeadWithHole}
               width="35px"
               style={{ margin: '8px' }}
@@ -127,13 +140,16 @@ const VideoSlice = React.memo(
               value={slice.patterns[currentPatternIndex].length}
               onChange={handleUpdateSequenceLength}
             />
+            <button type="button" onClick={handleClickSlice}>
+              Play
+            </button>
             <button type="button" onClick={handleRemoveSlice}>
               Remove slice
             </button>
             <div style={{ marginLeft: 'auto' }}>
               <Sequencer
                 steps={slice.patterns[currentPatternIndex]}
-                currentStep={currentStep}
+                chain={chain}
                 onChange={handleUpdateSteps}
                 onToggleStep={onToggleStep}
               />
@@ -150,11 +166,13 @@ const VideoSlice = React.memo(
             }}
           >
             <img
+              alt="screw"
               src={ScrewHeadWithHole}
               width="35px"
               style={{ margin: '8px' }}
             />
             <img
+              alt="screw"
               src={ScrewHeadWithHole}
               width="35px"
               style={{ margin: '8px' }}

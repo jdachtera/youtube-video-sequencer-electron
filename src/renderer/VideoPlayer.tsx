@@ -1,95 +1,48 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import React, { ChangeEvent } from 'react';
-import { Sequence, Transport } from 'tone';
+import React from 'react';
 import Wavesurfer from 'wavesurfer.js';
-import RegionsPlugin, { Region } from 'wavesurfer.js/src/plugin/regions';
-import TimelinePlugin from 'wavesurfer.js/src/plugin/timeline';
-import PolyPlayer from './PolyPlayer';
+import { Region } from 'wavesurfer.js/src/plugin/regions';
+import { Transport } from 'tone';
 
-import Sequencer from './Sequencer';
-import { Action } from './SequencerAction';
 import { Step } from './SequencerStep';
 import VideoSlice, { Slice } from './Slice';
 
 import './VideoPlayer.scss';
 
 import ScrewHeadWithHole from '../../assets/svg/screw_head_with_hole.svg';
-
-declare const yt: { getYouTubeVideoSource: (url: string) => Promise<string> };
+import Sampler from './engine/Sampler';
+import WavesurferView from './WavesurferView';
 
 export default class VideoPlayer extends React.Component<
   {
-    src: string;
+    url: string;
     slices?: Slice[];
     steps?: Step[];
+    sampler: Sampler;
   },
   {
-    currentTime: number;
-    currentSteps: Step[];
     currentPatternIndex: number;
     selectedSlice?: Slice;
-    zoom: number;
-    src: string;
+    url: string;
     length: number;
     slices: Slice[];
-    sequences: Sequence[];
+    bufferHasLoaded: boolean;
   }
 > {
   state = {
-    currentSteps: [] as Step[],
     selectedSlice: undefined,
     currentPatternIndex: 0,
-    currentTime: 0,
     slices: this.props.slices ?? [],
-    zoom: 0,
     length: 0,
-    src: this.props.src,
-    pattern: [] as Step[][],
-    sequences: [] as Sequence[],
+    url: this.props.url,
+    bufferHasLoaded: false,
   };
 
-  tonePlayer = new PolyPlayer().toDestination();
+  wavesurfer?: Wavesurfer;
 
-  wavesurfer: WaveSurfer = null!;
-
-  sequence: Sequence = null!;
-
-  regionsPlugin = RegionsPlugin.create({});
-
-  waveformRef = React.createRef<HTMLDivElement>();
-
-  timelineRef = React.createRef<HTMLDivElement>();
-
+  // eslint-disable-next-line react/sort-comp
   stopPlayer = () => {
-    this.tonePlayer.stop();
-  };
-
-  loadFromLocalStorage = () => {
-    const storedDataString = localStorage.getItem(`track-${this.state.src}`);
-    if (!storedDataString) return;
-    try {
-      const decodedData = JSON.parse(storedDataString);
-      this.setState({
-        slices: decodedData.slices,
-        sequences: decodedData.slices.map((slice: Slice) =>
-          new Sequence((time, step: Step) => {
-            this.handleStep(time, step, slice);
-          }, slice.patterns[0]).start()
-        ),
-      });
-      this.tonePlayer.setPolyphony(decodedData.slices.length);
-    } catch {
-      //
-    }
-  };
-
-  saveToLocalStorage = () => {
-    localStorage.setItem(
-      `track-${this.state.src}`,
-      JSON.stringify({
-        slices: this.state.slices,
-      })
-    );
+    this.props.sampler.stop();
   };
 
   componentDidMount = async () => {
@@ -97,292 +50,143 @@ export default class VideoPlayer extends React.Component<
     Transport.on('pause', this.stopPlayer);
     Transport.on('loopEnd', this.stopPlayer);
 
-    this.waveformRef.current?.addEventListener('wheel', this.scrollZoom);
+    await this.props.sampler.hasLoaded();
 
-    this.loadFromLocalStorage();
+    const { buffer } = this.props.sampler;
 
-    this.wavesurfer = Wavesurfer.create({
-      container: this.waveformRef.current!,
-      partialRender: true,
-      plugins: [
-        this.regionsPlugin,
-        TimelinePlugin.create({ container: this.timelineRef.current! }),
-      ],
-      waveColor: '#222',
-      progressColor: '#222',
-      cursorColor: '#4353FF',
-      barWidth: 1,
-      barRadius: 1,
-      cursorWidth: 0,
-      height: 100,
-      barGap: 1,
-    });
+    this.setState(
+      {
+        bufferHasLoaded: true,
+        slices: this.props.sampler.serialize().slices,
+        length: buffer.duration,
+      },
+      () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const typelessWavesurfer = this.wavesurfer as any;
 
-    this.startObservingRegionChanges();
+        this.state.slices.forEach((slice: Slice) => {
+          const { id, color, start, end } = slice;
+          typelessWavesurfer.addRegion({ id, color, start, end });
+        });
+      }
+    );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const typelessWavesurfer = this.wavesurfer as any;
-    typelessWavesurfer.enableDragSelection({
-      drag: true,
-      loop: true,
-      resize: true,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any);
+    this.props.sampler.on('chain-added', this.handleSamplerChanged);
+    this.props.sampler.on('chain-removed', this.handleSamplerChanged);
+  };
 
-    await this.loadUrl(this.props.src);
+  setWavesurferInstance = (wavesurfer: Wavesurfer) => {
+    this.wavesurfer = wavesurfer;
+  };
+
+  handleSamplerChanged = () => {
+    this.setState({ slices: this.props.sampler.serialize().slices });
   };
 
   componentWillUnmount() {
-    this.waveformRef.current?.removeEventListener('wheel', this.scrollZoom);
-    if (this.tonePlayer) {
-      this.tonePlayer.dispose();
-    }
+    this.props.sampler.off('chain-added', this.handleSamplerChanged);
+    this.props.sampler.off('chain-removed', this.handleSamplerChanged);
   }
 
-  stopObservingRegionChanges = () => {
-    this.wavesurfer.un('region-created', this.handleRegionCreated);
-    this.wavesurfer.un('region-updated', this.handleRegionUpdated);
-    this.wavesurfer.un('region-removed', this.handleRegionRemoved);
-    this.wavesurfer.un('region-click', this.handleClickSlice);
-    this.wavesurfer.un('region-update-end', this.handleClickSlice);
-  };
+  handleRegionCreated = async (region: Region) => {
+    const randR = Math.floor(Math.random() * (255 - 0 + 1) + 0);
+    const randG = Math.floor(Math.random() * (255 - 0 + 1) + 0);
+    const randB = Math.floor(Math.random() * (255 - 0 + 1) + 0);
+    const color = `rgba(${randR},${randG},${randB},0.8)`;
 
-  startObservingRegionChanges = () => {
-    this.wavesurfer.on('region-created', this.handleRegionCreated);
-    this.wavesurfer.on('region-updated', this.handleRegionUpdated);
-    this.wavesurfer.on('region-removed', this.handleRegionRemoved);
-    //this.wavesurfer.on('region-click', this.handleClickSlice);
-    //this.wavesurfer.on('region-update-end', this.handleClickSlice);
-  };
+    const slice: Slice = {
+      id: region.id,
+      url: this.state.url,
+      start: region.start,
+      end: region.end,
+      playbackSpeed: 1,
+      reverse: false,
+      color,
+      patterns: [
+        Array.from({ length: 16 }).map(() => ({
+          actions: [],
+        })),
+      ],
+    };
 
-  handleRegionCreated = (region: Region) => {
-    let randR = Math.floor(Math.random() * (255 - 0 + 1) + 0);
-    let randG = Math.floor(Math.random() * (255 - 0 + 1) + 0);
-    let randB = Math.floor(Math.random() * (255 - 0 + 1) + 0);
-    let color = `rgba(${randR},${randG},${randB},0.8)`;
-    this.setState(
-      (state) => {
-        const slice: Slice = {
-          id: region.id,
-          start: region.start,
-          end: region.end,
-          playbackSpeed: 1,
-          reverse: false,
-          color: color,
-          patterns: [
-            Array.from({ length: 16 }).map(() => ({
-              actions: [],
-            })),
-          ],
-        };
-
-        const sequence = new Sequence((time, step: Step) => {
-          this.handleStep(time, step, slice);
-        }, slice.patterns[0]).start();
-
-        return {
-          slices: [...state.slices, slice],
-          sequences: [...state.sequences, sequence],
-        };
-      },
-      () => {
-        this.tonePlayer.setPolyphony(this.state.slices.length);
-        region.update({ ...region, color });
-        this.saveToLocalStorage();
-      }
+    this.props.sampler.getOrCreateChain(slice);
+    this.setState(this.props.sampler.serialize(), () =>
+      region.update({ ...region, color })
     );
   };
 
   handleRegionUpdated = async (region: Region) => {
-    await this.setState(
-      (state) => {
-        const slice = state.slices.find(({ id }) => id === region.id)!;
-        const sliceIndex = this.state.slices.findIndex(
-          ({ id }) => id === slice.id
-        );
-        const updatedSlice: Slice = {
-          ...slice,
-          start: region.start,
-          end: region.end,
-        };
+    const slice = this.state.slices.find(({ id }) => id === region.id)!;
 
-        return {
-          slices: [
-            ...state.slices.slice(0, sliceIndex),
-            updatedSlice,
-            ...state.slices.slice(sliceIndex + 1),
-          ],
-        };
-      },
-      () => this.saveToLocalStorage()
-    );
+    const updatedSlice: Slice = {
+      ...slice,
+      start: region.start,
+      end: region.end,
+    };
+
+    this.updateSlice(updatedSlice);
   };
 
   handleRegionRemoved = (region: Region) => {
-    this.setState(
-      (state) => {
-        const slice = state.slices.find(({ id }) => id === region.id)!;
-        const sliceIndex = this.state.slices.findIndex(
-          ({ id }) => id === slice.id
-        );
+    const slice = this.state.slices.find(({ id }) => id === region.id)!;
 
-        const sequenceToDispose = this.state.sequences[sliceIndex];
-        sequenceToDispose.dispose();
-
-        return {
-          slices: [
-            ...state.slices.slice(0, sliceIndex),
-            ...state.slices.slice(sliceIndex + 1),
-          ],
-          sequences: [
-            ...state.sequences.slice(0, sliceIndex),
-            ...state.sequences.slice(sliceIndex + 1),
-          ],
-        };
-      },
-      () => {
-        () => this.saveToLocalStorage();
-        this.tonePlayer.setPolyphony(this.state.slices.length);
-      }
-    );
+    console.log('handleRegionRemoved', region, slice);
+    this.props.sampler.removeChain(slice);
+    this.setState(this.props.sampler.serialize());
   };
 
-  updateSlice = (slice: Slice, callback?: () => void) =>
-    this.setState((state) => {
-      const sliceIndex = state.slices.findIndex(({ id }) => id === slice.id);
+  updateSlice = async (slice: Slice) => {
+    this.props.sampler.getOrCreateChain(slice).setSlice(slice);
 
-      return {
-        slices: [
-          ...state.slices.slice(0, sliceIndex),
-          slice,
-          ...state.slices.slice(sliceIndex + 1),
-        ],
-      };
-    }, callback);
-
-  loadUrl = async (url: string) => {
-    const sourceUrl = await yt.getYouTubeVideoSource(url);
-    await this.tonePlayer.load(sourceUrl);
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const typelessWavesurfer = this.wavesurfer as any;
-    typelessWavesurfer.loadDecodedBuffer(this.tonePlayer.buffer.toMono().get());
-
-    typelessWavesurfer.clearRegions();
-
-    this.stopObservingRegionChanges();
-    this.state.slices.forEach((slice: Slice) => {
-      const { id, color, start, end } = slice;
-      typelessWavesurfer.addRegion({ id, color, start, end });
-    });
-    this.startObservingRegionChanges();
-
-    this.setState({ length: this.tonePlayer.buffer.duration });
-  };
-
-  setZoom = (zoom: number) =>
-    this.setState({ zoom }, () => this.wavesurfer.zoom(this.state.zoom));
-
-  setSrc = async (e: ChangeEvent<HTMLInputElement>) => {
-    this.setState({ src: e.target.value }, () => {
-      this.loadUrl(this.state.src);
-    });
+    this.setState(this.props.sampler.serialize());
   };
 
   pause = () => {
-    this.tonePlayer.stop();
-  };
-
-  handleStep = (time: number, step: Step, slice: Slice) => {
-    const sliceIndex = this.state.slices.findIndex(({ id }) => id === slice.id);
-
-    this.setState((state) => {
-      return {
-        currentSteps: [
-          ...state.currentSteps.slice(0, sliceIndex),
-          step,
-          ...state.currentSteps.slice(sliceIndex),
-        ],
-      };
-    });
-
-    step.actions.forEach((action) => {
-      this.handleAction(time, action, sliceIndex);
-    });
+    this.props.sampler.stop();
   };
 
   updateSteps = (slice: Slice, steps: Step[]) => {
-    const sliceIndex = this.state.slices.findIndex(({ id }) => id === slice.id);
-    this.state.sequences[sliceIndex].events = steps;
+    const updatedSlice: Slice = {
+      ...slice,
+      patterns: [
+        ...slice.patterns.slice(0, this.state.currentPatternIndex),
+        steps,
+        ...slice.patterns.slice(this.state.currentPatternIndex + 1),
+      ],
+    };
 
-    this.setState(
-      (state) => {
-        const updatedSlice: Slice = {
-          ...slice,
-          patterns: [
-            ...slice.patterns.slice(0, this.state.currentPatternIndex),
-            steps,
-            ...slice.patterns.slice(this.state.currentPatternIndex + 1),
-          ],
-        };
-        return {
-          slices: [
-            ...state.slices.slice(0, sliceIndex),
-            updatedSlice,
-            ...state.slices.slice(sliceIndex + 1),
-          ],
-        };
-      },
-      () => {
-        this.saveToLocalStorage();
-      }
-    );
+    this.updateSlice(updatedSlice);
   };
 
-  handleAction = (time: number, action: Action, sliceIndex: number) => {
-    switch (action.type) {
-      case 'PLAY': {
-        const slice = this.state.slices[sliceIndex];
-
-        if (!slice) break;
-
-        if (slice.start < this.tonePlayer.buffer.duration) {
-          this.tonePlayer
-            .getPlayer(sliceIndex)
-            .start(time, slice.start, slice.end - slice.start);
-        }
-        break;
-      }
-      case 'PAUSE':
-        this.tonePlayer.getPlayer(sliceIndex).stop(time);
-        break;
-      case 'SET_PLAYBACK_SPEED':
-        this.tonePlayer.getPlayer(sliceIndex).playbackRate = action.value;
-        break;
-      case 'SET_REVERSE':
-        this.tonePlayer.getPlayer(sliceIndex).reverse = action.value;
-        break;
-      default:
-        break;
-    }
+  handleClickRegion = (region: Region) => {
+    const slice = this.state.slices.find(({ id }) => id === region.id)!;
+    this.handleClickSlice(slice);
   };
 
-  handleClickSlice = (slice: Slice) => {
+  handleClickSlice = async (slice: Slice) => {
     this.setState({ selectedSlice: slice });
     const sliceIndex = this.state.slices.findIndex(({ id }) => id === slice.id);
 
     if (sliceIndex === -1) return;
 
-    this.wavesurfer.seekAndCenter(
-      slice.start / this.tonePlayer.buffer.duration
-    );
-    this.tonePlayer
-      .getPlayer(sliceIndex)
-      .start(0, slice.start, slice.end - slice.start);
+    const chain = this.props.sampler.getOrCreateChain(slice);
+
+    const { duration } = chain.getPlayer().buffer;
+    if (duration > 0) {
+      this.wavesurfer?.seekAndCenter(slice.start / duration);
+      chain.play();
+    }
   };
 
-  handleRemoveSlice = (slice: Slice) =>
-    this.wavesurfer.regions.list[slice.id]?.remove();
+  handleRemoveSlice = (slice: Slice) => {
+    console.log(
+      'handleRemoveSlice',
+      slice,
+      this.wavesurfer,
+      this.wavesurfer?.regions.list[slice.id]
+    );
+    this.wavesurfer?.regions.list[slice.id]?.remove();
+  };
 
   updateSequenceLength = (slice: Slice, newLength: number) => {
     const steps = slice.patterns[this.state.currentPatternIndex];
@@ -399,19 +203,9 @@ export default class VideoPlayer extends React.Component<
     }
   };
 
-  scrollZoom = (event: WheelEvent) => {
-    const newZoom = Math.min(Math.max(this.state.zoom + event.deltaY, 1), 200);
-
-    if (this.state.zoom !== newZoom) {
-      event.preventDefault();
-      this.setZoom(newZoom);
-    }
-  };
-
-  handleZoomChanged = (event: ChangeEvent<HTMLInputElement>) =>
-    this.setZoom(event.target.valueAsNumber);
-
   render = () => {
+    console.log('Render VideoPlayer');
+
     return (
       <div className="border p-4 m-4">
         <div style={{ display: 'flex' }}>
@@ -426,11 +220,13 @@ export default class VideoPlayer extends React.Component<
             }}
           >
             <img
+              alt="screw"
               src={ScrewHeadWithHole}
               width="35px"
               style={{ margin: '8px' }}
             />
             <img
+              alt="screw"
               src={ScrewHeadWithHole}
               width="35px"
               style={{ margin: '8px' }}
@@ -444,7 +240,6 @@ export default class VideoPlayer extends React.Component<
               width: '100%',
             }}
           >
-            <div>current Time: {this.state.currentTime}s</div>
             <div>Length: {this.state.length}s</div>
             <div className="flex flex-col w-full">
               <div className="mb-2 w-full">
@@ -452,37 +247,28 @@ export default class VideoPlayer extends React.Component<
                 <input
                   className="border w-2/3 lcd"
                   type="text"
-                  onChange={this.setSrc}
-                  value={this.state.src}
+                  disabled
+                  value={this.state.url}
                 />
               </div>
 
-              <div
-                ref={this.waveformRef}
-                className="lcd"
-                style={{ margin: '2px' }}
-              />
-              <div
-                ref={this.timelineRef}
-                className="lcd"
-                style={{ margin: '2px' }}
-              />
-              <input
-                onChange={this.handleZoomChanged}
-                value={this.state.zoom}
-                type="number"
-                min="1"
-                max="200"
-                step="10"
+              <WavesurferView
+                buffer={
+                  this.state.bufferHasLoaded ? this.props.sampler.buffer : null
+                }
+                onRegionClick={this.handleClickRegion}
+                onRegionCreated={this.handleRegionCreated}
+                onRegionRemoved={this.handleRegionRemoved}
+                onRegionUpdated={this.handleRegionUpdated}
+                onWavesurferInstance={this.setWavesurferInstance}
               />
 
               <ol>
-                {this.state.slices.map((slice, sliceIndex) => (
+                {this.state.slices.map((slice) => (
                   <VideoSlice
-                    slice={slice}
+                    chain={this.props.sampler.getOrCreateChain(slice)}
                     isSelected={slice === this.state.selectedSlice}
                     currentPatternIndex={this.state.currentPatternIndex}
-                    currentStep={this.state.currentSteps[sliceIndex]}
                     onClickSlice={this.handleClickSlice}
                     onRemoveSlice={this.handleRemoveSlice}
                     onUpdateSequenceLength={this.updateSequenceLength}
@@ -504,11 +290,13 @@ export default class VideoPlayer extends React.Component<
             }}
           >
             <img
+              alt="screw"
               src={ScrewHeadWithHole}
               width="35px"
               style={{ margin: '8px' }}
             />
             <img
+              alt="screw"
               src={ScrewHeadWithHole}
               width="35px"
               style={{ margin: '8px' }}

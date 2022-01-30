@@ -1,4 +1,4 @@
-import { ChangeEvent, useCallback } from 'react';
+import React, { ChangeEvent, useCallback } from 'react';
 
 export type Action =
   | {
@@ -20,7 +20,7 @@ export type Action =
 const SequencerPlayAction: React.FC<{
   action: { type: 'PLAY' } & Action;
   onChange: (action: Action) => void;
-}> = ({ action, onChange }) => {
+}> = React.memo(({ action, onChange }) => {
   const handleChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       onChange({ ...action, velocity: +event.target.value });
@@ -36,12 +36,12 @@ const SequencerPlayAction: React.FC<{
       onChange={handleChange}
     />
   );
-};
+});
 
 const SequencerSetPlaybackSpeedAction: React.FC<{
   action: Action & { type: 'SET_PLAYBACK_SPEED' };
   onChange: (action: Action) => void;
-}> = ({ action, onChange }) => {
+}> = React.memo(({ action, onChange }) => {
   const handleChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       onChange({ ...action, value: +event.target.value });
@@ -59,12 +59,12 @@ const SequencerSetPlaybackSpeedAction: React.FC<{
       onChange={handleChange}
     />
   );
-};
+});
 
 const SequencerSetReverseAction: React.FC<{
   action: Action & { type: 'SET_REVERSE' };
   onChange: (action: Action) => void;
-}> = ({ action, onChange }) => {
+}> = React.memo(({ action, onChange }) => {
   const handleChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       onChange({ ...action, value: event.target.checked });
@@ -75,12 +75,12 @@ const SequencerSetReverseAction: React.FC<{
   return (
     <input type="checkbox" checked={action.value} onChange={handleChange} />
   );
-};
+});
 
 const SequencerActionFields: React.FC<{
   action: Action;
   onChange: (action: Action) => void;
-}> = ({ action, onChange }) => {
+}> = React.memo(({ action, onChange }) => {
   switch (action.type) {
     case 'PLAY':
       return <SequencerPlayAction action={action} onChange={onChange} />;
@@ -93,7 +93,7 @@ const SequencerActionFields: React.FC<{
     default:
       return null;
   }
-};
+});
 
 export function createNewAction(actionType: Action['type']): Action {
   switch (actionType) {
@@ -119,7 +119,7 @@ const actionTypes: Action['type'][] = [
 const SequencerAction: React.FC<{
   action: Action;
   onChange: (newAction: Action | null, previousAction: Action) => void;
-}> = ({ action, onChange }) => {
+}> = React.memo(({ action, onChange }) => {
   const handleChange = useCallback(
     (newAction: Action | null) => {
       onChange(newAction, action);
@@ -162,6 +162,6 @@ const SequencerAction: React.FC<{
       </button>
     </div>
   );
-};
+});
 
 export default SequencerAction;
