@@ -4,6 +4,7 @@ import { debounce } from 'ts-debounce';
 
 import './App.css';
 import { Engine } from './engine/Engine';
+import { Sampler } from './engine/Sampler';
 
 import { VideoPlayer } from './VideoPlayer';
 
@@ -13,10 +14,7 @@ export function App() {
   const [isPlaying, setIsPlaying] = createSignal(false);
   const [tempo, setTempo] = createSignal(120);
   const [swing, setSwing] = createSignal(120);
-  const [samplers, setSamplers] = createSignal<{ url: string }[]>([
-    { url: 'https://www.youtube.com/watch?v=GxZuq57_bYM' },
-    { url: 'https://www.youtube.com/watch?v=0-fJLVH8_Es' },
-  ]);
+  const [samplers, setSamplers] = createSignal<Sampler[]>([]);
 
   const togglePlay = () => {
     setIsPlaying(!isPlaying());
@@ -27,7 +25,7 @@ export function App() {
   };
 
   const handleSamplerChanged = () => {
-    setSamplers(engine.serialize().samplers);
+    setSamplers(engine.getSamplers());
   };
 
   const saveToLocalStorage = debounce(() => {
@@ -36,16 +34,6 @@ export function App() {
   }, 500);
 
   onMount(() => {
-    (async () => {
-      const storedDataString = localStorage.getItem(`track`);
-      if (!storedDataString) return;
-      try {
-        await engine.load(JSON.parse(storedDataString));
-      } catch {
-        //
-      }
-    })();
-
     engine.on('sampler-added', handleSamplerChanged);
     engine.on('sampler-removed', handleSamplerChanged);
     engine.on('change', saveToLocalStorage);
@@ -55,6 +43,28 @@ export function App() {
     engine.off('sampler-added', handleSamplerChanged);
     engine.off('sampler-removed', handleSamplerChanged);
     engine.off('change', saveToLocalStorage);
+  });
+
+  onMount(() => {
+    let parsedData;
+    const storedDataString = localStorage.getItem(`track`);
+
+    if (storedDataString) {
+      try {
+        parsedData = JSON.parse(storedDataString);
+      } catch {
+        //
+      }
+    }
+    engine.load(
+      parsedData ?? {
+        samplers: [
+          { url: 'https://www.youtube.com/watch?v=GxZuq57_bYM' },
+          { url: 'https://www.youtube.com/watch?v=0-fJLVH8_Es' },
+        ],
+        currentPatternIndex: 0,
+      }
+    );
   });
 
   createEffect(() => {
@@ -71,7 +81,11 @@ export function App() {
   });
 
   const addSampler = (event: { currentTarget: HTMLInputElement }) => {
-    engine.getOrCreateSampler(event.currentTarget.value);
+    engine.createSampler({
+      url: event.currentTarget.value,
+      zoom: 0,
+      slices: [],
+    });
   };
 
   console.log('Render App');
@@ -93,12 +107,7 @@ export function App() {
         <input type="text" onInput={addSampler} />
       </div>
       <For each={samplers()}>
-        {(sampler) => (
-          <VideoPlayer
-            url={sampler.url}
-            sampler={engine.getOrCreateSampler(sampler.url)}
-          />
-        )}
+        {(sampler) => <VideoPlayer sampler={sampler} />}
       </For>
     </div>
   );

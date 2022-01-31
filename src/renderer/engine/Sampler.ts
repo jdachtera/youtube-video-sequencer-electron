@@ -11,6 +11,7 @@ declare const yt: {
 interface SamplerEvents {
   'chain-added': (chain: SliceChain) => void;
   'chain-removed': (chain: SliceChain) => void;
+  'chain-updated': (chain: SliceChain) => void;
   change: () => void;
 }
 
@@ -21,16 +22,43 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
 
   url: string;
 
+  zoom: number;
+
+  protected engine: Engine;
+
   private hasLoadedPromise: Promise<void>;
 
-  constructor(protected engine: Engine, url: string) {
+  constructor({
+    engine,
+    url,
+    zoom,
+    slices,
+  }: {
+    engine: Engine;
+    url: string;
+    zoom: number;
+    slices: Slice[];
+  }) {
     super();
 
     this.url = url;
+    this.zoom = zoom;
+    this.engine = engine;
+
     this.hasLoadedPromise = this.load();
+
+    this.addSlicesWhenLoaded(slices);
 
     this.on('chain-added', () => this.emit('change'));
     this.on('chain-removed', () => this.emit('change'));
+    this.on('chain-updated', () => this.emit('change'));
+  }
+
+  protected async addSlicesWhenLoaded(slices: Slice[]) {
+    await this.hasLoaded();
+    slices.forEach((slice) => {
+      this.createChain(slice);
+    });
   }
 
   private async load() {
@@ -44,25 +72,31 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
     return hasLoaded;
   }
 
-  getOrCreateChain(slice: Slice) {
-    const maybeExistingChain = this.chains.get(slice.id);
-    if (maybeExistingChain) return maybeExistingChain;
-
-    const chain = new SliceChain(this.buffer, slice, this.engine);
-    chain.on('slice-updated', () => this.emit('change'));
+  createChain(slice: Slice) {
+    const chain = new SliceChain(this.buffer, this.engine, slice);
+    chain.on('chain-updated', (updatedChain) => {
+      this.emit('chain-updated', updatedChain);
+    });
 
     this.chains.set(slice.id, chain);
     this.emit('chain-added', chain);
-    return chain;
   }
 
-  removeChain(slice: Slice) {
-    const maybeExistingChain = this.chains.get(slice.id);
+  getChains() {
+    return [...this.chains.values()];
+  }
+
+  getChain(id: string) {
+    return this.chains.get(id);
+  }
+
+  removeChain(id: string) {
+    const maybeExistingChain = this.chains.get(id);
     console.log('removeChain', maybeExistingChain);
     if (maybeExistingChain) {
       maybeExistingChain.dispose();
       maybeExistingChain.removeAllListeners();
-      this.chains.delete(slice.id);
+      this.chains.delete(id);
       this.emit('chain-removed', maybeExistingChain);
     }
   }
@@ -79,6 +113,7 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
   serialize() {
     return {
       url: this.url,
+      zoom: this.zoom,
       slices: [...this.chains.values()].map((chain) => chain.getSlice()),
     };
   }

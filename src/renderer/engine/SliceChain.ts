@@ -6,7 +6,7 @@ import type { Slice } from '../Slice';
 
 export interface SliceChainEvents {
   'sequence-event': (step: Step) => void;
-  'slice-updated': (updatedSlice: Slice) => void;
+  'chain-updated': (updatedChain: SliceChain) => void;
 }
 
 export class SliceChain extends TypedEmitter<SliceChainEvents> {
@@ -14,18 +14,21 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
 
   protected sequence: Sequence<Step>;
 
-  constructor(
-    buffer: ToneAudioBuffer,
-    protected slice: Slice,
-    protected engine: Engine
-  ) {
+  protected engine: Engine;
+
+  protected slice: Slice;
+
+  constructor(buffer: ToneAudioBuffer, engine: Engine, slice: Slice) {
     super();
 
+    this.engine = engine;
+    this.slice = slice;
     this.player = new Player(buffer);
     this.player.toDestination();
-    this.sequence = new Sequence(this.onSequenceEvent, []);
 
+    this.sequence = new Sequence(this.onSequenceEvent, []);
     this.sequence.start(0, Transport.progress);
+
     this.setSlice(slice);
   }
 
@@ -70,7 +73,7 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
   setSlice(slice: Slice) {
     this.slice = slice;
     this.updateSequence();
-    this.emit('slice-updated', slice);
+    this.emit('chain-updated', this);
   }
 
   getSlice() {

@@ -22,13 +22,16 @@ export class Engine extends TypedEmitter<EngineEvents> {
     this.on('sampler-removed', () => this.emit('change'));
   }
 
-  getOrCreateSampler(url: string) {
-    const maybeExistingSampler = this.samplers.get(url);
-    if (maybeExistingSampler) {
-      return maybeExistingSampler;
-    }
-
-    const sampler = new Sampler(this, url);
+  createSampler({
+    url,
+    zoom,
+    slices,
+  }: {
+    url: string;
+    zoom: number;
+    slices: Slice[];
+  }) {
+    const sampler = new Sampler({ engine: this, url, zoom, slices });
     this.samplers.set(url, sampler);
 
     sampler.on('change', () => this.emit('change'));
@@ -36,11 +39,20 @@ export class Engine extends TypedEmitter<EngineEvents> {
     return sampler;
   }
 
+  getSamplers() {
+    return [...this.samplers.values()];
+  }
+
+  getSampler(url: string) {
+    return this.samplers.get(url);
+  }
+
   removeSampler(url: string) {
     const maybeExistingSampler = this.samplers.get(url);
     if (maybeExistingSampler) {
       maybeExistingSampler.removeAllListeners();
       this.samplers.delete(url);
+
       this.emit('sampler-removed', maybeExistingSampler);
     }
   }
@@ -56,16 +68,13 @@ export class Engine extends TypedEmitter<EngineEvents> {
     samplers,
     currentPatternIndex,
   }: {
-    samplers: { url: string; slices: Slice[] }[];
+    samplers: { url: string; slices?: Slice[]; zoom?: number }[];
     currentPatternIndex: number;
   }) {
-    await Promise.all(
-      samplers.map(async ({ url, slices }) => {
-        const sampler = this.getOrCreateSampler(url);
-        await sampler.hasLoaded();
-        slices.forEach((slice) => sampler.getOrCreateChain(slice));
-      })
-    );
+    samplers.forEach(({ url, slices = [], zoom = 0 }) => {
+      this.createSampler({ url, slices, zoom });
+    });
+
     this.setCurrentPatternIndex(currentPatternIndex);
   }
 

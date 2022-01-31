@@ -40,8 +40,12 @@ export const VideoSlice = (props: {
   console.log('Render VideoSlice');
   const [slice, setSlice] = createSignal(props.chain.getSlice());
 
-  onMount(() => props.chain.on('slice-updated', setSlice));
-  onCleanup(() => props.chain.off('slice-updated', setSlice));
+  const handleChainUpdated = () => {
+    setSlice(props.chain.getSlice());
+  };
+
+  onMount(() => props.chain.on('chain-updated', handleChainUpdated));
+  onCleanup(() => props.chain.off('chain-updated', handleChainUpdated));
 
   const handleClickSlice = () => {
     props.onClickSlice(slice());

@@ -1,10 +1,8 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { createSignal, onMount, onCleanup, Index } from 'solid-js';
+import { createSignal, createEffect, onMount, onCleanup, For } from 'solid-js';
 
-import Wavesurfer from 'wavesurfer.js';
 import { Region } from 'wavesurfer.js/src/plugin/regions';
 import { Transport } from 'tone';
-import { debounce } from 'ts-debounce';
 
 import { Step } from './SequencerStep';
 import { VideoSlice, Slice } from './Slice';
@@ -14,19 +12,17 @@ import './VideoPlayer.scss';
 import ScrewHeadWithHole from '../../assets/svg/screw_head_with_hole.svg';
 import { Sampler } from './engine/Sampler';
 import { WavesurferView } from './WavesurferView';
+import { SliceChain } from './engine/SliceChain';
 
-export const VideoPlayer = (props: {
-  url: string;
-  slices?: Slice[];
-  sampler: Sampler;
-}) => {
+export const VideoPlayer = (props: { sampler: Sampler }) => {
+  console.log('VideoPlayer', props);
   const [selectedSlice, setSelectedSlice] = createSignal<Slice>();
   const [currentPatternIndex, setCurrentPatternIndex] = createSignal(0);
-  const [slices, setSlices] = createSignal<Slice[]>(props.slices ?? []);
+  const [chains, setChains] = createSignal<SliceChain[]>(
+    props.sampler.getChains()
+  );
+  const [waveformCenter, setWaveformCenter] = createSignal(0);
   const [length, setLength] = createSignal(0);
-  const [bufferHasLoaded, setBufferHasLoadded] = createSignal(false);
-
-  let wavesurfer: Wavesurfer;
 
   // eslint-disable-next-line react/sort-comp
   const stopPlayer = () => {
@@ -34,7 +30,8 @@ export const VideoPlayer = (props: {
   };
 
   const handleSamplerChanged = () => {
-    setSlices(props.sampler.serialize().slices);
+    console.trace(props.sampler.serialize().slices);
+    setChains(props.sampler.getChains());
   };
 
   onMount(async () => {
@@ -42,86 +39,26 @@ export const VideoPlayer = (props: {
     Transport.on('pause', stopPlayer);
     Transport.on('loopEnd', stopPlayer);
 
-    await props.sampler.hasLoaded();
-
-    const { buffer } = props.sampler;
-
-    setBufferHasLoadded(true);
-    setSlices(props.sampler.serialize().slices);
-    setLength(buffer.duration);
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const typelessWavesurfer = wavesurfer as any;
-    slices().forEach((slice: Slice) => {
-      const { id, color, start, end } = slice;
-      typelessWavesurfer.addRegion({ id, color, start, end });
-    });
-
     props.sampler.on('chain-added', handleSamplerChanged);
     props.sampler.on('chain-removed', handleSamplerChanged);
+
+    await props.sampler.hasLoaded();
+
+    setLength(props.sampler.buffer.duration);
   });
 
-  const setWavesurferInstance = (incomingWavesurfer: Wavesurfer) => {
-    wavesurfer = incomingWavesurfer;
-  };
-
-  const handleRegionCreated = async (region: Region) => {
-    const randR = Math.floor(Math.random() * (255 - 0 + 1) + 0);
-    const randG = Math.floor(Math.random() * (255 - 0 + 1) + 0);
-    const randB = Math.floor(Math.random() * (255 - 0 + 1) + 0);
-    const color = `rgba(${randR},${randG},${randB},0.8)`;
-
-    const slice: Slice = {
-      id: region.id,
-      start: region.start,
-      end: region.end,
-      playbackSpeed: 1,
-      reverse: false,
-      color,
-      patterns: [
-        Array.from({ length: 16 }).map(() => ({
-          actions: [],
-        })),
-      ],
-    };
-
-    props.sampler.getOrCreateChain(slice);
-
-    handleSamplerChanged();
-    region.update({ ...region, color });
-  };
-
   const updateSlice = async (slice: Slice) => {
-    props.sampler.getOrCreateChain(slice).setSlice(slice);
-    setSlices(props.sampler.serialize().slices);
+    const chain = props.sampler.getChain(slice.id);
+    if (!chain) return;
+    chain.setSlice(slice);
+    setChains(props.sampler.getChains());
   };
 
-  const handleRegionUpdated = debounce(async (region: Region) => {
-    const slice = slices().find(({ id }) => id === region.id)!;
-
-    const updatedSlice: Slice = {
-      ...slice,
-      start: region.start,
-      end: region.end,
-    };
-
-    updateSlice(updatedSlice);
-  }, 100);
-
-  const handleRegionRemoved = (region: Region) => {
-    const slice = slices().find(({ id }) => id === region.id)!;
-
-    console.log('handleRegionRemoved', region, slice);
-    props.sampler.removeChain(slice);
-    handleSamplerChanged();
-  };
-
-  const pause = () => {
-    props.sampler.stop();
+  const handleRemoveSlice = (slice: Slice) => {
+    props.sampler.removeChain(slice.id);
   };
 
   const updateSteps = (slice: Slice, steps: Step[]) => {
-    console.log(slice, steps);
     const updatedSlice: Slice = {
       ...slice,
       patterns: [
@@ -136,32 +73,30 @@ export const VideoPlayer = (props: {
 
   const handleClickSlice = async (slice: Slice) => {
     setSelectedSlice(slice);
-    const sliceIndex = slices().findIndex(({ id }) => id === slice.id);
 
-    if (sliceIndex === -1) return;
+    const chain = chains().find(
+      (currentChain) => currentChain.getSlice().id === slice.id
+    );
 
-    const chain = props.sampler.getOrCreateChain(slice);
+    if (!chain) return;
 
     const { duration } = chain.getPlayer().buffer;
     if (duration > 0) {
-      wavesurfer?.seekAndCenter(slice.start / duration);
+      setWaveformCenter(slice.start / duration);
       chain.play();
     }
   };
 
   const handleClickRegion = (region: Region) => {
-    const slice = slices().find(({ id }) => id === region.id)!;
-    handleClickSlice(slice);
-  };
-
-  const handleRemoveSlice = (slice: Slice) => {
-    console.log(
-      'handleRemoveSlice',
-      slice,
-      wavesurfer,
-      wavesurfer?.regions.list[slice.id]
+    const chain = chains().find(
+      (currentChain) => currentChain.getSlice().id === region.id
     );
-    wavesurfer?.regions.list[slice.id]?.remove();
+    if (!chain) return;
+
+    const { duration } = chain.getPlayer().buffer;
+    if (duration > 0) {
+      chain.play();
+    }
   };
 
   const updateSequenceLength = (slice: Slice, newLength: number) => {
@@ -184,7 +119,7 @@ export const VideoPlayer = (props: {
     props.sampler.off('chain-removed', handleSamplerChanged);
   });
 
-  console.log('Render VideoPlayer');
+  createEffect(() => console.log(chains()));
 
   return (
     <div className="border p-4 m-4">
@@ -228,25 +163,22 @@ export const VideoPlayer = (props: {
                 className="border w-2/3 lcd"
                 type="text"
                 disabled
-                value={props.url}
+                value={props.sampler.url}
               />
             </div>
 
             <WavesurferView
-              buffer={bufferHasLoaded() ? props.sampler.buffer : null}
+              sampler={props.sampler}
+              center={waveformCenter()}
               onRegionClick={handleClickRegion}
-              onRegionCreated={handleRegionCreated}
-              onRegionRemoved={handleRegionRemoved}
-              onRegionUpdated={handleRegionUpdated}
-              onWavesurferInstance={setWavesurferInstance}
             />
 
             <ol>
-              <Index each={slices()}>
-                {(slice) => (
+              <For each={chains()}>
+                {(chain) => (
                   <VideoSlice
-                    chain={props.sampler.getOrCreateChain(slice())}
-                    isSelected={slice() === selectedSlice()}
+                    chain={chain}
+                    isSelected={chain.getSlice() === selectedSlice()}
                     currentPatternIndex={currentPatternIndex()}
                     onClickSlice={handleClickSlice}
                     onRemoveSlice={handleRemoveSlice}
@@ -254,7 +186,7 @@ export const VideoPlayer = (props: {
                     onUpdateSteps={updateSteps}
                   />
                 )}
-              </Index>
+              </For>
             </ol>
           </div>
         </div>
