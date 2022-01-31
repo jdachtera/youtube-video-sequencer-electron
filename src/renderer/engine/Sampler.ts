@@ -1,4 +1,4 @@
-import { ToneAudioBuffer } from 'tone';
+import { Gain, ToneAudioBuffer } from 'tone';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import type { Engine } from './Engine';
 import type { Slice } from '../Slice';
@@ -24,6 +24,8 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
 
   zoom: number;
 
+  gain = new Gain();
+
   protected engine: Engine;
 
   private hasLoadedPromise: Promise<void>;
@@ -32,11 +34,13 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
     engine,
     url,
     zoom,
+    volume = 1,
     slices,
   }: {
     engine: Engine;
     url: string;
     zoom: number;
+    volume?: number;
     slices: Slice[];
   }) {
     super();
@@ -44,6 +48,9 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
     this.url = url;
     this.zoom = zoom;
     this.engine = engine;
+
+    this.gain.toDestination();
+    this.gain.gain.value = volume;
 
     this.hasLoadedPromise = this.load();
 
@@ -57,7 +64,8 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
   protected async addSlicesWhenLoaded(slices: Slice[]) {
     await this.hasLoaded();
     slices.forEach((slice) => {
-      this.createChain(slice);
+      const chain = this.createChain(slice);
+      chain.gain.connect(this.gain);
     });
   }
 
@@ -80,6 +88,7 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
 
     this.chains.set(slice.id, chain);
     this.emit('chain-added', chain);
+    return chain;
   }
 
   getChains() {
@@ -114,6 +123,7 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
     return {
       url: this.url,
       zoom: this.zoom,
+      volume: this.gain.gain.value,
       slices: [...this.chains.values()].map((chain) => chain.getSlice()),
     };
   }

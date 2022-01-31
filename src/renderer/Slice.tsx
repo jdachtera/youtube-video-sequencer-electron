@@ -11,8 +11,9 @@ export type Slice = {
   id: string;
   start: number;
   end: number;
-  playbackSpeed: number;
-  reverse: boolean;
+  volume?: number;
+  playbackSpeed?: number;
+  reverse?: boolean;
   color: string;
   patterns: Step[][];
 };
@@ -38,6 +39,13 @@ export const VideoSlice = (props: {
   onUpdateSteps: (slice: Slice, steps: Step[]) => void;
 }) => {
   const [slice, setSlice] = createSignal(props.chain.getSlice());
+
+  const handleUpdateVolume = (event: { currentTarget: HTMLInputElement }) => {
+    props.chain.setSlice({
+      ...slice(),
+      volume: event.currentTarget.valueAsNumber,
+    });
+  };
 
   const handleChainUpdated = () => {
     setSlice(props.chain.getSlice());
@@ -124,6 +132,14 @@ export const VideoSlice = (props: {
             max="64"
             value={slice().patterns[props.currentPatternIndex].length}
             onChange={handleUpdateSequenceLength}
+          />
+          <input
+            type="number"
+            min="0"
+            max="1"
+            step="0.1"
+            value={slice().volume}
+            onChange={handleUpdateVolume}
           />
           <button type="button" onClick={handleClickSlice}>
             Play

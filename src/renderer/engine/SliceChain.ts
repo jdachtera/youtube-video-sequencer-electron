@@ -1,4 +1,11 @@
-import { getDraw, Player, Sequence, ToneAudioBuffer, Transport } from 'tone';
+import {
+  Gain,
+  getDraw,
+  Player,
+  Sequence,
+  ToneAudioBuffer,
+  Transport,
+} from 'tone';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import type { Engine } from './Engine';
 import type { Step } from '../SequencerStep';
@@ -7,10 +14,13 @@ import type { Slice } from '../Slice';
 export interface SliceChainEvents {
   'sequence-event': (step: Step) => void;
   'chain-updated': (updatedChain: SliceChain) => void;
+  'volume-updated': (volume: number) => void;
 }
 
 export class SliceChain extends TypedEmitter<SliceChainEvents> {
   protected player: Player;
+
+  gain = new Gain();
 
   protected sequence: Sequence<Step>;
 
@@ -24,13 +34,14 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
     this.engine = engine;
     this.slice = slice;
     this.player = new Player(buffer);
-    this.player.toDestination();
+    this.player.connect(this.gain);
 
     this.sequence = new Sequence({
       callback: this.onSequenceEvent,
       events: [],
       subdivision: '16n',
     });
+
     this.sequence.start(0, Transport.progress);
 
     this.setSlice(slice);
@@ -76,6 +87,7 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
 
   setSlice(slice: Slice) {
     this.slice = slice;
+    this.gain.gain.value = slice.volume ?? 1;
     this.updateSequence();
     this.emit('chain-updated', this);
   }

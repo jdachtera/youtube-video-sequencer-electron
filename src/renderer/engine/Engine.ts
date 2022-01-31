@@ -33,12 +33,14 @@ export class Engine extends TypedEmitter<EngineEvents> {
     url,
     zoom,
     slices,
+    volume = 1,
   }: {
     url: string;
     zoom: number;
     slices: Slice[];
+    volume?: number;
   }) {
-    const sampler = new Sampler({ engine: this, url, zoom, slices });
+    const sampler = new Sampler({ engine: this, url, zoom, slices, volume });
     this.samplers.set(url, sampler);
 
     sampler.on('change', () => this.emit('change'));

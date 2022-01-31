@@ -74,6 +74,7 @@ export const WavesurferView = (props: WavesurferViewProps) => {
       end: region.end,
       playbackSpeed: 1,
       reverse: false,
+      volume: 1,
       color,
       patterns: [
         Array.from({ length: 16 }).map(() => ({
