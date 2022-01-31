@@ -92,7 +92,7 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
 
   removeChain(id: string) {
     const maybeExistingChain = this.chains.get(id);
-    console.log('removeChain', maybeExistingChain);
+
     if (maybeExistingChain) {
       maybeExistingChain.dispose();
       maybeExistingChain.removeAllListeners();

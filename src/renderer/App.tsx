@@ -34,11 +34,8 @@ export function App() {
   };
 
   const saveToLocalStorage = debounce(() => {
-    console.log('handleChange');
     localStorage.setItem('track', JSON.stringify(engine.serialize()));
   }, 500);
-
-  console.log(Time('').toSeconds());
 
   const renderToWavefile = async () => {
     const maxLength =
@@ -57,8 +54,10 @@ export function App() {
 
     const timeToRender = (maxLength * 4) / 8;
 
+    let offlineEngine: Engine | null = null;
+
     const buffer = await Offline(async (offlineContext) => {
-      const offlineEngine = new Engine(offlineContext.transport);
+      offlineEngine = new Engine(offlineContext.transport);
       offlineEngine.load(engine.serialize());
 
       await Promise.all(
@@ -67,6 +66,8 @@ export function App() {
 
       offlineContext.transport.start();
     }, timeToRender);
+
+    offlineEngine!.dispose();
 
     const wav = bufferToWav(buffer.get()!);
     const blob = new window.Blob([new DataView(wav)], {
@@ -135,8 +136,6 @@ export function App() {
       Transport.stop();
     }
   });
-
-  console.log('Render App');
 
   return (
     <div className="App">

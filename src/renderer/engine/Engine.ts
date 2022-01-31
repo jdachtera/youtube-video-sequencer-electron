@@ -64,6 +64,12 @@ export class Engine extends TypedEmitter<EngineEvents> {
     }
   }
 
+  dispose() {
+    this.samplers.forEach((sampler) => {
+      sampler.dispose();
+    });
+  }
+
   setCurrentPatternIndex(index: number) {
     this.currentPatternIndex = index;
     this.samplers.forEach((sampler) => {

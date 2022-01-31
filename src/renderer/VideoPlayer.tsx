@@ -15,7 +15,6 @@ import { WavesurferView } from './WavesurferView';
 import { SliceChain } from './engine/SliceChain';
 
 export const VideoPlayer = (props: { sampler: Sampler }) => {
-  console.log('VideoPlayer', props);
   const [selectedSlice, setSelectedSlice] = createSignal<Slice>();
   const [currentPatternIndex, setCurrentPatternIndex] = createSignal(0);
   const [chains, setChains] = createSignal<SliceChain[]>(
@@ -118,8 +117,6 @@ export const VideoPlayer = (props: { sampler: Sampler }) => {
     props.sampler.off('chain-added', handleSamplerChanged);
     props.sampler.off('chain-removed', handleSamplerChanged);
   });
-
-  createEffect(() => console.log(chains()));
 
   return (
     <div className="border p-4 m-4">

@@ -37,7 +37,6 @@ export const VideoSlice = (props: {
   onRemoveSlice: (slice: Slice) => void;
   onUpdateSteps: (slice: Slice, steps: Step[]) => void;
 }) => {
-  console.log('Render VideoSlice');
   const [slice, setSlice] = createSignal(props.chain.getSlice());
 
   const handleChainUpdated = () => {
@@ -58,7 +57,6 @@ export const VideoSlice = (props: {
   };
 
   const handleRemoveSlice = () => {
-    console.log('handleRemoveSlice', props.onRemoveSlice);
     props.onRemoveSlice(slice());
   };
 
