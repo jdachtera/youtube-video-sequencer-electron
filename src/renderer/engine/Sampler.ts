@@ -119,6 +119,10 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
     this.buffer.dispose();
   }
 
+  getEngine() {
+    return this.engine;
+  }
+
   serialize() {
     return {
       url: this.url,

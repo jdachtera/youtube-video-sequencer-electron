@@ -125,6 +125,10 @@ export function App() {
     });
   };
 
+  const clear = () => {
+    engine.dispose();
+  };
+
   onMount(() => {
     engine.on('sampler-added', handleSamplerChanged);
     engine.on('sampler-removed', handleSamplerChanged);
@@ -202,6 +206,9 @@ export function App() {
       </button>
       <button type="button" onClick={exportJSON}>
         Export JSON
+      </button>
+      <button type="button" onClick={clear}>
+        Clear all
       </button>
       Load JSON: <input type="file" onChange={loadJSON} accept=".json" />
       <For each={samplers()}>

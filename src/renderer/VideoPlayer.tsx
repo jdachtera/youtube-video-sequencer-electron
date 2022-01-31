@@ -32,6 +32,10 @@ export const VideoPlayer = (props: { sampler: Sampler }) => {
     setChains(props.sampler.getChains());
   };
 
+  const handleRemoveSampler = () => {
+    props.sampler.getEngine().removeSampler(props.sampler.url);
+  };
+
   onMount(async () => {
     Transport.on('stop', stopPlayer);
     Transport.on('pause', stopPlayer);
@@ -161,6 +165,9 @@ export const VideoPlayer = (props: { sampler: Sampler }) => {
                 disabled
                 value={props.sampler.url}
               />
+              <button type="button" onClick={handleRemoveSampler}>
+                Remove sampler
+              </button>
             </div>
 
             <WavesurferView
