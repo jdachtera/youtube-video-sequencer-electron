@@ -146,9 +146,9 @@ export const WavesurferView = (props: WavesurferViewProps) => {
 
   onCleanup(() => {
     timelineRef?.removeEventListener('wheel', scrollZoom);
-    wavesurfer.off('region-created', handleRegionCreated);
-    wavesurfer.off('region-updated', handleRegionUpdated);
-    wavesurfer.off('region-removed', handleRegionRemoved);
+    wavesurfer.un('region-created', handleRegionCreated);
+    wavesurfer.un('region-updated', handleRegionUpdated);
+    wavesurfer.un('region-removed', handleRegionRemoved);
     wavesurfer.un('region-click', props.onRegionClick);
     wavesurfer.un('region-update-end', props.onRegionClick);
   });

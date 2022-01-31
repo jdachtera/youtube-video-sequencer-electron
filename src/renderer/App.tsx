@@ -37,6 +37,41 @@ export function App() {
     localStorage.setItem('track', JSON.stringify(engine.serialize()));
   }, 500);
 
+  const exportJSON = () => {
+    const json = JSON.stringify(engine.serialize(), undefined, 2);
+
+    const blob = new window.Blob([json], {
+      type: 'application/json',
+    });
+
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'export.json';
+    anchor.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const loadJSON = (event: { currentTarget: HTMLInputElement }) => {
+    const file = event.currentTarget.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.addEventListener('load', (loadEvent) => {
+        const fileContents = loadEvent.target?.result?.toString();
+
+        if (!fileContents) return;
+        try {
+          const parsedData = JSON.parse(fileContents);
+          engine.dispose();
+          engine.load(parsedData);
+        } catch {
+          //
+        }
+      });
+      reader.readAsText(file);
+    }
+  };
+
   const renderToWavefile = async () => {
     const maxLength =
       engine
@@ -165,6 +200,10 @@ export function App() {
       <button type="button" onClick={renderToWavefile}>
         Download WAV
       </button>
+      <button type="button" onClick={exportJSON}>
+        Export JSON
+      </button>
+      Load JSON: <input type="file" onChange={loadJSON} accept=".json" />
       <For each={samplers()}>
         {(sampler) => <VideoPlayer sampler={sampler} />}
       </For>

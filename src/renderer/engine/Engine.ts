@@ -58,6 +58,10 @@ export class Engine extends TypedEmitter<EngineEvents> {
     const maybeExistingSampler = this.samplers.get(url);
     if (maybeExistingSampler) {
       maybeExistingSampler.removeAllListeners();
+      maybeExistingSampler.chains.forEach((chain) => {
+        maybeExistingSampler.removeChain(chain.getSlice().id);
+      });
+      maybeExistingSampler.dispose();
       this.samplers.delete(url);
 
       this.emit('sampler-removed', maybeExistingSampler);
@@ -66,7 +70,7 @@ export class Engine extends TypedEmitter<EngineEvents> {
 
   dispose() {
     this.samplers.forEach((sampler) => {
-      sampler.dispose();
+      this.removeSampler(sampler.url);
     });
   }
 
