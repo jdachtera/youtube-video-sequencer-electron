@@ -1,7 +1,7 @@
 /* eslint-disable max-classes-per-file */
 import { Time } from 'tone/build/esm/core/type/Units';
-import SubscriptionEventEmitter from './EventEmitter';
-import Sampler from './Sampler';
+import { TypedEmitter } from 'tiny-typed-emitter';
+import { Sampler } from './Sampler';
 import type { Slice } from '../Slice';
 
 interface EngineEvents {
@@ -10,7 +10,7 @@ interface EngineEvents {
   change: () => void;
 }
 
-export default class Engine extends SubscriptionEventEmitter<EngineEvents> {
+export class Engine extends TypedEmitter<EngineEvents> {
   protected samplers = new Map<string, Sampler>();
 
   public currentPatternIndex: number = 0;

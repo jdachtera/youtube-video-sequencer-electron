@@ -13,6 +13,7 @@ module.exports = {
     'react/state-in-constructor': 'off',
     'react/require-default-props': 'off',
     'react/prop-types': 'off',
+    'import/prefer-default-export': 'off',
   },
   parserOptions: {
     ecmaVersion: 2020,

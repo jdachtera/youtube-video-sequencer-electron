@@ -1,6 +1,6 @@
 import { getDraw, Player, Sequence, ToneAudioBuffer, Transport } from 'tone';
-import type Engine from './Engine';
-import SubscriptionEventEmitter from './EventEmitter';
+import { TypedEmitter } from 'tiny-typed-emitter';
+import type { Engine } from './Engine';
 import type { Step } from '../SequencerStep';
 import type { Slice } from '../Slice';
 
@@ -9,7 +9,7 @@ export interface SliceChainEvents {
   'slice-updated': (updatedSlice: Slice) => void;
 }
 
-export default class SliceChain extends SubscriptionEventEmitter<SliceChainEvents> {
+export class SliceChain extends TypedEmitter<SliceChainEvents> {
   protected player: Player;
 
   protected sequence: Sequence<Step>;

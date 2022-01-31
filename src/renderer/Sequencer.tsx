@@ -1,8 +1,10 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import SequencerAction, { Action, createNewAction } from './SequencerAction';
-import SequencerStep, { Step } from './SequencerStep';
+/* eslint-disable react-hooks/exhaustive-deps */
+import { createSignal, onMount, onCleanup, For } from 'solid-js';
+
+import { SequencerAction, Action, createNewAction } from './SequencerAction';
+import { SequencerStep, Step } from './SequencerStep';
 import './Sequencer.scss';
-import SliceChain from './engine/SliceChain';
+import { SliceChain } from './engine/SliceChain';
 
 const createDefaultAction = (allSteps: Step[]): Action => {
   const firstStepWithPlayAction = allSteps.find((step) =>
@@ -21,106 +23,98 @@ const createDefaultAction = (allSteps: Step[]): Action => {
   return createNewAction('PLAY');
 };
 
-const Sequencer: React.FC<{
+export const Sequencer = (props: {
   steps: Step[];
   chain: SliceChain;
   onChange: (steps: Step[]) => void;
   onToggleStep: (step: Step) => Action[];
-}> = React.memo(({ steps, chain, onChange, onToggleStep }) => {
+}) => {
   // console.log('Render Sequencer');
-  const [currentStep, setCurrentStep] = useState<Step>();
+  const [currentStep, setCurrentStep] = createSignal<Step>();
 
-  useEffect(
-    () =>
-      chain.subscribe('sequence-event', (step: Step) => {
-        setCurrentStep(step);
-      }),
-    [chain]
-  );
+  onMount(() => props.chain.on('sequence-event', setCurrentStep));
+  onCleanup(() => props.chain.off('sequence-event', setCurrentStep));
 
-  const [selectedStep, setSelectedStep] = useState<Step>();
+  const [selectedStep, setSelectedStep] = createSignal<Step>();
 
-  const handleUpdateActions = useCallback(
-    (updatedActions: Action[], step: Step) => {
-      const newStep = {
-        ...step,
-        actions: updatedActions,
-      };
+  const handleUpdateActions = (updatedActions: Action[], step: Step) => {
+    const newStep = {
+      ...step,
+      actions: updatedActions,
+    };
 
-      const stepIndex = steps.indexOf(step);
+    const { steps } = props;
 
-      const newSteps = [
-        ...steps.slice(0, stepIndex),
-        newStep,
-        ...steps.slice(stepIndex + 1),
-      ];
-      setSelectedStep(newStep);
-      onChange(newSteps);
-    },
-    [steps, onChange]
-  );
+    const stepIndex = steps.indexOf(step);
 
-  const handleAddAction = useCallback(() => {
-    if (!selectedStep) return;
+    const newSteps = [
+      ...steps.slice(0, stepIndex),
+      newStep,
+      ...steps.slice(stepIndex + 1),
+    ];
+    setSelectedStep(newStep);
+    props.onChange(newSteps);
+  };
+
+  const handleAddAction = () => {
+    const selectedStepValue = selectedStep();
+    if (!selectedStepValue) return;
     handleUpdateActions(
-      [...selectedStep.actions, createDefaultAction(steps)],
-      selectedStep
+      [...selectedStepValue.actions, createDefaultAction(props.steps)],
+      selectedStepValue
     );
-  }, [selectedStep, steps, handleUpdateActions]);
+  };
 
-  const handleUpdateAction = useCallback(
-    (newAction: Action | null, previousAction: Action) => {
-      if (!selectedStep) return;
-      const actionIndex = selectedStep.actions.indexOf(previousAction);
-      handleUpdateActions(
-        [
-          ...selectedStep.actions.slice(0, actionIndex),
-          ...(newAction ? [newAction] : []),
-          ...selectedStep.actions.slice(actionIndex + 1),
-        ],
-        selectedStep
-      );
-    },
-    [selectedStep, handleUpdateActions]
-  );
+  const handleUpdateAction = (
+    newAction: Action | null,
+    previousAction: Action
+  ) => {
+    const selectedStepValue = selectedStep();
+    if (!selectedStepValue) return;
+    const actionIndex = selectedStepValue.actions.indexOf(previousAction);
+    handleUpdateActions(
+      [
+        ...selectedStepValue.actions.slice(0, actionIndex),
+        ...(newAction ? [newAction] : []),
+        ...selectedStepValue.actions.slice(actionIndex + 1),
+      ],
+      selectedStepValue
+    );
+  };
 
-  const toggleStep = useCallback(
-    (step: Step) => {
-      setSelectedStep(step);
-      handleUpdateActions(onToggleStep(step), step);
-    },
-    [setSelectedStep, handleUpdateActions, onToggleStep]
-  );
+  const toggleStep = (step: Step) => {
+    setSelectedStep(step);
+    handleUpdateActions(props.onToggleStep(step), step);
+  };
 
   return (
     <div>
       <ul className="sequencer-steps">
-        {steps.map((step, stepIndex) => (
-          <SequencerStep
-            step={step}
-            // eslint-disable-next-line react/no-array-index-key
-            key={`action-${stepIndex}`}
-            onAuxClick={setSelectedStep}
-            onClick={toggleStep}
-            isSelected={step === selectedStep}
-            isCurrent={step === currentStep}
-            // className={`step-${stepIndex}`}
-          />
-        ))}
+        <For each={props.steps}>
+          {(step, stepIndex) => (
+            <SequencerStep
+              step={step}
+              onClick={toggleStep}
+              isSelected={step === selectedStep()}
+              isCurrent={step === currentStep()}
+              // className={`step-${stepIndex}`}
+            />
+          )}
+        </For>
       </ul>
       <div>
-        {selectedStep && (
+        {selectedStep() && (
           <div>
-            {selectedStep.actions.map((action, actionIndex) => {
-              return (
-                <SequencerAction
-                  // eslint-disable-next-line react/no-array-index-key
-                  key={`action-${actionIndex}`}
-                  action={action}
-                  onChange={handleUpdateAction}
-                />
-              );
-            })}
+            <For each={selectedStep()?.actions}>
+              {(action) => {
+                return (
+                  <SequencerAction
+                    action={action}
+                    onChange={handleUpdateAction}
+                  />
+                );
+              }}
+            </For>
             <button type="button" onClick={handleAddAction}>
               Add action
             </button>
@@ -129,6 +123,4 @@ const Sequencer: React.FC<{
       </div>
     </div>
   );
-});
-
-export default Sequencer;
+};

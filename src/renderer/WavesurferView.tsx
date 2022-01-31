@@ -1,5 +1,6 @@
-import React, { ChangeEvent } from 'react';
-import debounce from 'lodash.debounce';
+import { createSignal, createEffect, onMount, onCleanup } from 'solid-js';
+
+import { debounce } from 'ts-debounce';
 
 import { ToneAudioBuffer } from 'tone';
 import Wavesurfer from 'wavesurfer.js';
@@ -15,32 +16,29 @@ type WavesurferViewProps = {
   onWavesurferInstance: (wavesurfer: Wavesurfer) => void;
 };
 
-type WavesurferViewState = { zoom: number };
+export const WavesurferView = (props: WavesurferViewProps) => {
+  const [zoom, setZoom] = createSignal(1);
 
-export default class WavesurferView extends React.Component<
-  WavesurferViewProps,
-  WavesurferViewState
-> {
-  state = { zoom: 0 };
+  let waveformRef: HTMLDivElement | undefined;
+  let timelineRef: HTMLDivElement | undefined;
+  let wavesurfer: Wavesurfer;
 
-  wavesurfer: WaveSurfer = null!;
+  const handleZoomChanged = (event: { currentTarget: HTMLInputElement }) =>
+    setZoom(event.currentTarget.valueAsNumber);
 
-  regionsPlugin = RegionsPlugin.create({});
+  const scrollZoom = (event: WheelEvent) => {
+    event.preventDefault();
+    setZoom(Math.min(Math.max(zoom() + event.deltaY, 1), 300));
+  };
 
-  waveformRef = React.createRef<HTMLDivElement>();
-
-  timelineRef = React.createRef<HTMLDivElement>();
-
-  async componentDidMount() {
-    this.waveformRef.current?.addEventListener('wheel', this.scrollZoom);
-
-    this.wavesurfer = Wavesurfer.create({
-      container: this.waveformRef.current!,
+  onMount(async () => {
+    wavesurfer = Wavesurfer.create({
+      container: waveformRef!,
       partialRender: true,
       plugins: [
-        this.regionsPlugin,
+        RegionsPlugin.create({}),
         TimelinePlugin.create({
-          container: this.timelineRef.current!,
+          container: timelineRef!,
           zoomDebounce: 200,
         }),
       ],
@@ -56,7 +54,7 @@ export default class WavesurferView extends React.Component<
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const typelessWavesurfer = this.wavesurfer as any;
+    const typelessWavesurfer = wavesurfer as any;
     typelessWavesurfer.enableDragSelection({
       drag: true,
       loop: true,
@@ -66,75 +64,52 @@ export default class WavesurferView extends React.Component<
 
     typelessWavesurfer.clearRegions();
 
-    this.props.onWavesurferInstance(this.wavesurfer);
+    props.onWavesurferInstance(wavesurfer);
 
-    this.startObservingRegionChanges();
-  }
+    timelineRef?.addEventListener('wheel', scrollZoom);
+    wavesurfer.on('region-created', props.onRegionCreated);
+    wavesurfer.on('region-updated', props.onRegionUpdated);
+    wavesurfer.on('region-removed', props.onRegionRemoved);
+    wavesurfer.on('region-click', props.onRegionClick);
+    wavesurfer.on('region-update-end', props.onRegionClick);
+  });
 
-  componentDidUpdate(prevProps: WavesurferViewProps) {
-    const { buffer } = this.props;
-    if (prevProps.buffer !== buffer && buffer) {
+  onCleanup(() => {
+    timelineRef?.removeEventListener('wheel', scrollZoom);
+    wavesurfer.un('region-created', props.onRegionCreated);
+    wavesurfer.un('region-updated', props.onRegionUpdated);
+    wavesurfer.un('region-removed', props.onRegionRemoved);
+    wavesurfer.un('region-click', props.onRegionClick);
+    wavesurfer.un('region-update-end', props.onRegionClick);
+  });
+
+  createEffect(() => {
+    if (props.buffer) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const typelessWavesurfer = this.wavesurfer as any;
-      typelessWavesurfer.loadDecodedBuffer(buffer.toMono().get());
+      const typelessWavesurfer = wavesurfer as any;
+      typelessWavesurfer.loadDecodedBuffer(props.buffer.toMono().get());
     }
-  }
+  });
 
-  componentWillUnmount() {
-    this.waveformRef.current?.removeEventListener('wheel', this.scrollZoom);
-  }
-
-  handleZoomChanged = (event: ChangeEvent<HTMLInputElement>) =>
-    this.setZoom(event.target.valueAsNumber);
-
-  setZoom = (zoom: number) =>
-    this.setState({ zoom }, this.updateWavesurferZoom);
-
-  // eslint-disable-next-line react/sort-comp
-  updateWavesurferZoom = debounce(
-    () => this.wavesurfer.zoom(this.state.zoom),
-    200
+  const updateWavesurferZoomDebounced = debounce(
+    (newZoom: number) => wavesurfer.zoom(newZoom),
+    100
   );
 
-  scrollZoom = (event: WheelEvent) => {
-    const newZoom = Math.min(Math.max(this.state.zoom + event.deltaY, 1), 200);
+  createEffect(() => updateWavesurferZoomDebounced(zoom()));
 
-    if (this.state.zoom !== newZoom) {
-      event.preventDefault();
-      this.setZoom(newZoom);
-    }
-  };
-
-  stopObservingRegionChanges = () => {
-    this.wavesurfer.un('region-created', this.props.onRegionCreated);
-    this.wavesurfer.un('region-updated', this.props.onRegionUpdated);
-    this.wavesurfer.un('region-removed', this.props.onRegionRemoved);
-    this.wavesurfer.un('region-click', this.props.onRegionClick);
-    this.wavesurfer.un('region-update-end', this.props.onRegionClick);
-  };
-
-  startObservingRegionChanges = () => {
-    this.wavesurfer.on('region-created', this.props.onRegionCreated);
-    this.wavesurfer.on('region-updated', this.props.onRegionUpdated);
-    this.wavesurfer.on('region-removed', this.props.onRegionRemoved);
-    this.wavesurfer.on('region-click', this.props.onRegionClick);
-    this.wavesurfer.on('region-update-end', this.props.onRegionClick);
-  };
-
-  render() {
-    return (
-      <>
-        <div ref={this.waveformRef} className="lcd" style={{ margin: '2px' }} />
-        <div ref={this.timelineRef} className="lcd" style={{ margin: '2px' }} />
-        <input
-          onChange={this.handleZoomChanged}
-          value={this.state.zoom}
-          type="number"
-          min="1"
-          max="200"
-          step="10"
-        />
-      </>
-    );
-  }
-}
+  return (
+    <>
+      <div ref={waveformRef} className="lcd" style={{ margin: '2px' }} />
+      <div ref={timelineRef} className="lcd" style={{ margin: '2px' }} />
+      <input
+        onChange={handleZoomChanged}
+        value={zoom()}
+        type="number"
+        min="1"
+        max="200"
+        step="10"
+      />
+    </>
+  );
+};

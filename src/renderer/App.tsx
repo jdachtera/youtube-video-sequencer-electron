@@ -1,33 +1,41 @@
-import { ChangeEvent, useCallback, useEffect, useState } from 'react';
+import { createSignal, onMount, createEffect, onCleanup, For } from 'solid-js';
 import { Transport } from 'tone';
-import './App.css';
-import Engine from './engine/Engine';
+import { debounce } from 'ts-debounce';
 
-import VideoPlayer from './VideoPlayer';
+import './App.css';
+import { Engine } from './engine/Engine';
+
+import { VideoPlayer } from './VideoPlayer';
 
 const engine = new Engine();
 
-function App() {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [tempo, setTempo] = useState(120);
-  const [swing, setSwing] = useState(120);
-  const [samplers, setSamplers] = useState<{ url: string }[]>([
+export function App() {
+  const [isPlaying, setIsPlaying] = createSignal(false);
+  const [tempo, setTempo] = createSignal(120);
+  const [swing, setSwing] = createSignal(120);
+  const [samplers, setSamplers] = createSignal<{ url: string }[]>([
     { url: 'https://www.youtube.com/watch?v=GxZuq57_bYM' },
     { url: 'https://www.youtube.com/watch?v=0-fJLVH8_Es' },
   ]);
 
-  const togglePlay = useCallback(() => {
-    setIsPlaying(!isPlaying);
-  }, [isPlaying, setIsPlaying]);
+  const togglePlay = () => {
+    setIsPlaying(!isPlaying());
+  };
 
-  const handleTempoChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      setTempo(+event.target.value);
-    },
-    [setTempo]
-  );
+  const handleTempoChange = (event: { currentTarget: HTMLInputElement }) => {
+    setTempo(+event.currentTarget.value);
+  };
 
-  useEffect(() => {
+  const handleSamplerChanged = () => {
+    setSamplers(engine.serialize().samplers);
+  };
+
+  const saveToLocalStorage = debounce(() => {
+    console.log('handleChange');
+    localStorage.setItem('track', JSON.stringify(engine.serialize()));
+  }, 500);
+
+  onMount(() => {
     (async () => {
       const storedDataString = localStorage.getItem(`track`);
       if (!storedDataString) return;
@@ -38,40 +46,33 @@ function App() {
       }
     })();
 
-    const handleSamplerChanged = () => {
-      setSamplers(engine.serialize().samplers);
-    };
+    engine.on('sampler-added', handleSamplerChanged);
+    engine.on('sampler-removed', handleSamplerChanged);
+    engine.on('change', saveToLocalStorage);
+  });
 
-    const subscriptions = [
-      engine.subscribe('sampler-added', handleSamplerChanged),
-      engine.subscribe('sampler-removed', handleSamplerChanged),
-      engine.subscribe('change', () => {
-        console.log('handleChange');
-        localStorage.setItem('track', JSON.stringify(engine.serialize()));
-      }),
-    ];
+  onCleanup(() => {
+    engine.off('sampler-added', handleSamplerChanged);
+    engine.off('sampler-removed', handleSamplerChanged);
+    engine.off('change', saveToLocalStorage);
+  });
 
-    return () => {
-      subscriptions.forEach((unsubscribe) => unsubscribe());
-    };
-  }, []);
-
-  useEffect(() => {
-    if (isPlaying) {
+  createEffect(() => {
+    if (isPlaying()) {
       Transport.start();
       engine.start();
     } else {
       Transport.stop();
     }
-  }, [isPlaying]);
+  });
 
-  useEffect(() => {
-    Transport.bpm.value = tempo * 2;
-  }, [tempo]);
+  createEffect(() => {
+    Transport.bpm.value = tempo() * 2;
+  });
 
-  const addSampler = useCallback((event: ChangeEvent<HTMLInputElement>) => {
-    engine.getOrCreateSampler(event.target.value);
-  }, []);
+  const addSampler = (event: { currentTarget: HTMLInputElement }) => {
+    engine.getOrCreateSampler(event.currentTarget.value);
+  };
 
   console.log('Render App');
 
@@ -79,27 +80,26 @@ function App() {
     <div className="App">
       <div className="main-controls">
         <button type="button" onClick={togglePlay}>
-          {isPlaying ? 'Stop' : 'Play'}
+          {isPlaying() ? 'Stop' : 'Play'}
         </button>
         Tempo:
         <input
           type="number"
           min="20"
           max="280"
-          value={tempo}
+          value={tempo()}
           onChange={handleTempoChange}
         />
         <input type="text" onInput={addSampler} />
       </div>
-      {samplers.map((sampler) => (
-        <VideoPlayer
-          key={sampler.url}
-          url={sampler.url}
-          sampler={engine.getOrCreateSampler(sampler.url)}
-        />
-      ))}
+      <For each={samplers()}>
+        {(sampler) => (
+          <VideoPlayer
+            url={sampler.url}
+            sampler={engine.getOrCreateSampler(sampler.url)}
+          />
+        )}
+      </For>
     </div>
   );
 }
-
-export default App;

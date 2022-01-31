@@ -1,8 +1,8 @@
 import { ToneAudioBuffer } from 'tone';
-import type Engine from './Engine';
-import SubscriptionEventEmitter from './EventEmitter';
+import { TypedEmitter } from 'tiny-typed-emitter';
+import type { Engine } from './Engine';
 import type { Slice } from '../Slice';
-import SliceChain from './SliceChain';
+import { SliceChain } from './SliceChain';
 
 declare const yt: {
   getYouTubeVideoSource: (url: string) => Promise<string>;
@@ -14,7 +14,7 @@ interface SamplerEvents {
   change: () => void;
 }
 
-export default class Sampler extends SubscriptionEventEmitter<SamplerEvents> {
+export class Sampler extends TypedEmitter<SamplerEvents> {
   buffer = new ToneAudioBuffer();
 
   chains = new Map<string, SliceChain>();

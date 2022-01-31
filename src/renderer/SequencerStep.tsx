@@ -1,61 +1,43 @@
-import React, { useCallback } from 'react';
 import { Action } from './SequencerAction';
 
 export type Step = {
   actions: Action[];
 };
 
-const SequencerStep: React.FC<{
+export const SequencerStep = (props: {
   step: Step;
   isSelected: boolean;
   isCurrent: boolean;
   onClick?: (step: Step) => void;
   onDoubleClick?: (step: Step) => void;
-  onAuxClick?: (step: Step) => void;
-}> = React.memo(
-  ({
-    step,
-    isSelected,
-    isCurrent,
-    onClick = () => {},
-    onDoubleClick = () => {},
-    onAuxClick = () => {},
-  }) => {
-    const handleClick = useCallback(() => {
-      onClick(step);
-    }, [step, onClick]);
+}) => {
+  const handleClick = () => {
+    props?.onClick?.(props.step);
+  };
 
-    const handleDoubleClick = useCallback(() => {
-      onDoubleClick(step);
-    }, [step, onDoubleClick]);
+  const handleDoubleClick = () => {
+    props?.onDoubleClick?.(props.step);
+  };
 
-    const handleAuxClick = useCallback(() => {
-      onAuxClick(step);
-    }, [step, onAuxClick]);
-
-    return (
-      <li
-        className={`
+  return (
+    <li
+      className={`
       sequencer-step-${
         // eslint-disable-next-line no-nested-ternary
-        step.actions.length
-          ? step.actions.find(({ type }) => type === 'PLAY')
+        props.step.actions.length
+          ? props.step.actions.find(({ type }) => type === 'PLAY')
             ? 'play'
             : 'active'
           : 'inactive'
       }
-      sequencer-step ${isCurrent ? 'sequencer-step-current' : ''} ${
-          isSelected ? 'sequencer-step-selected' : ''
-        }
+      sequencer-step ${props.isCurrent ? 'sequencer-step-current' : ''} ${
+        props.isSelected ? 'sequencer-step-selected' : ''
+      }
       `}
-        onClick={handleClick}
-        onDoubleClick={handleDoubleClick}
-        onAuxClick={handleAuxClick}
-      >
-        &nbsp;
-      </li>
-    );
-  }
-);
-
-export default SequencerStep;
+      onClick={handleClick}
+      onDblClick={handleDoubleClick}
+    >
+      &nbsp;
+    </li>
+  );
+};
