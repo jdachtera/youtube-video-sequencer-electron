@@ -1437,6 +1437,11 @@
   resolved "https://registry.yarnpkg.com/@types/aria-query/-/aria-query-4.2.2.tgz#ed4e0ad92306a704f9fb132a0cfcf77486dbe2bc"
   integrity sha512-HnYpAE1Y6kRyKM/XkEuiRQhTHvkzMBurTHnpFLYLBGPIylZNPs9jJcuOOYWxPLJCSEtmZT0Y8rHDokKN7rRTig==
 
+"@types/audiobuffer-to-wav@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@types/audiobuffer-to-wav/-/audiobuffer-to-wav-1.0.2.tgz#88465e53518beced2ecf61298e84b61ca21c5ece"
+  integrity sha512-bWEtCSS7ywZUyb0qIxR+MR0lqq9tJIcAJfC3rJLw/HTKqfNZ6suKbIqFja7YQObSWAJA0lRTTxTzTqUwgEFPog==
+
 "@types/babel__core@^7.0.0", "@types/babel__core@^7.1.14":
   version "7.1.18"
   resolved "https://registry.yarnpkg.com/@types/babel__core/-/babel__core-7.1.18.tgz#1a29abcc411a9c05e2094c98f9a1b7da6cdf49f8"
@@ -2548,6 +2553,11 @@ atob@^2.1.2:
   version "2.1.2"
   resolved "https://registry.yarnpkg.com/atob/-/atob-2.1.2.tgz#6d9517eb9e030d2436666651e86bd9f6f13533c9"
   integrity sha512-Wm6ukoaOGJi/73p/cl2GvLjTI5JM1k/O14isD73YML8StrH/7/lRFgmg8nICZgD3bZZvjwCGxtMOD3wWNAu8cg==
+
+audiobuffer-to-wav@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/audiobuffer-to-wav/-/audiobuffer-to-wav-1.0.0.tgz#d5b432271455e7fee56b111cd0f8d620d7f9e105"
+  integrity sha1-1bQyJxRV5/7laxEc0PjWINf54QU=
 
 automation-events@^4.0.12:
   version "4.0.12"
