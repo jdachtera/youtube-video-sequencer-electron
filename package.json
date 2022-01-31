@@ -228,6 +228,7 @@
   },
   "dependencies": {
     "@babel/preset-env": "^7.16.11",
+    "@emotion/css": "^11.7.1",
     "@types/audiobuffer-to-wav": "^1.0.2",
     "audiobuffer-to-wav": "^1.0.0",
     "babel-loader": "^8.2.3",

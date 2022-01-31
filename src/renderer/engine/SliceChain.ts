@@ -26,7 +26,11 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
     this.player = new Player(buffer);
     this.player.toDestination();
 
-    this.sequence = new Sequence(this.onSequenceEvent, []);
+    this.sequence = new Sequence({
+      callback: this.onSequenceEvent,
+      events: [],
+      subdivision: '16n',
+    });
     this.sequence.start(0, Transport.progress);
 
     this.setSlice(slice);

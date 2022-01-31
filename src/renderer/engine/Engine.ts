@@ -84,12 +84,13 @@ export class Engine extends TypedEmitter<EngineEvents> {
   setSwing(swing: number) {
     this.swing = swing;
     this.transport.swing = swing;
+    this.transport.swingSubdivision = '16n';
     this.emit('swing-updated', swing);
   }
 
   setBpm(bpm: number) {
     this.bpm = bpm;
-    this.transport.bpm.value = bpm * 2;
+    this.transport.bpm.value = bpm;
     this.emit('bpm-updated', bpm);
   }
 

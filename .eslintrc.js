@@ -14,6 +14,7 @@ module.exports = {
     'react/require-default-props': 'off',
     'react/prop-types': 'off',
     'import/prefer-default-export': 'off',
+    '@typescript-eslint/no-use-before-define': 'off',
   },
   parserOptions: {
     ecmaVersion: 2020,
