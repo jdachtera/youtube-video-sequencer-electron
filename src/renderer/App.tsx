@@ -16,6 +16,9 @@ export function App() {
   const [bpm, setBpm] = createSignal(engine.bpm);
   const [swing, setSwing] = createSignal(engine.swing);
   const [samplers, setSamplers] = createSignal<Sampler[]>([]);
+  const [currentPatternIndex, setCurrentPatternIndex] = createSignal(
+    engine.currentPatternIndex
+  );
 
   const togglePlay = () => {
     setIsPlaying(!isPlaying());
@@ -31,6 +34,12 @@ export function App() {
 
   const handleSamplerChanged = () => {
     setSamplers(engine.getSamplers());
+  };
+
+  const handleCurrentPatternIndexChange = (event: {
+    currentTarget: HTMLInputElement;
+  }) => {
+    engine.setCurrentPatternIndex(event.currentTarget.valueAsNumber);
   };
 
   const saveToLocalStorage = debounce(() => {
@@ -135,6 +144,7 @@ export function App() {
     engine.on('change', saveToLocalStorage);
     engine.on('bpm-updated', setBpm);
     engine.on('swing-updated', setSwing);
+    engine.on('current-pattern-index-updated', setCurrentPatternIndex);
   });
 
   onCleanup(() => {
@@ -143,6 +153,7 @@ export function App() {
     engine.off('change', saveToLocalStorage);
     engine.off('bpm-updated', setBpm);
     engine.off('swing-updated', setSwing);
+    engine.off('current-pattern-index-updated', setCurrentPatternIndex);
   });
 
   onMount(() => {
@@ -198,6 +209,14 @@ export function App() {
           step="0.05"
           value={swing()}
           onChange={handleSwingChange}
+        />
+        Pattern:
+        <input
+          type="number"
+          min="0"
+          step="1"
+          value={currentPatternIndex()}
+          onChange={handleCurrentPatternIndexChange}
         />
         <input type="text" onInput={addSampler} />
       </div>

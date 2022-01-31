@@ -16,7 +16,9 @@ import { SliceChain } from './engine/SliceChain';
 
 export const VideoPlayer = (props: { sampler: Sampler }) => {
   const [selectedSlice, setSelectedSlice] = createSignal<Slice>();
-  const [currentPatternIndex, setCurrentPatternIndex] = createSignal(0);
+  const [currentPatternIndex, setCurrentPatternIndex] = createSignal(
+    props.sampler.getEngine().currentPatternIndex
+  );
   const [chains, setChains] = createSignal<SliceChain[]>(
     props.sampler.getChains()
   );
@@ -43,6 +45,10 @@ export const VideoPlayer = (props: { sampler: Sampler }) => {
 
     props.sampler.on('chain-added', handleSamplerChanged);
     props.sampler.on('chain-removed', handleSamplerChanged);
+
+    props.sampler
+      .getEngine()
+      .on('current-pattern-index-updated', setCurrentPatternIndex);
 
     await props.sampler.hasLoaded();
 
@@ -119,6 +125,9 @@ export const VideoPlayer = (props: { sampler: Sampler }) => {
   onCleanup(() => {
     props.sampler.off('chain-added', handleSamplerChanged);
     props.sampler.off('chain-removed', handleSamplerChanged);
+    props.sampler
+      .getEngine()
+      .off('current-pattern-index-updated', setCurrentPatternIndex);
   });
 
   return (

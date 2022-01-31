@@ -10,6 +10,7 @@ interface EngineEvents {
   'sampler-removed': (sampler: Sampler) => void;
   'bpm-updated': (bpm: number) => void;
   'swing-updated': (swing: number) => void;
+  'current-pattern-index-updated': (index: number) => void;
   change: () => void;
 }
 
@@ -27,6 +28,9 @@ export class Engine extends TypedEmitter<EngineEvents> {
 
     this.on('sampler-added', () => this.emit('change'));
     this.on('sampler-removed', () => this.emit('change'));
+    this.on('bpm-updated', () => this.emit('change'));
+    this.on('swing-updated', () => this.emit('change'));
+    this.on('current-pattern-index-updated', () => this.emit('change'));
   }
 
   createSampler({
@@ -79,8 +83,27 @@ export class Engine extends TypedEmitter<EngineEvents> {
   setCurrentPatternIndex(index: number) {
     this.currentPatternIndex = index;
     this.samplers.forEach((sampler) => {
-      sampler.chains.forEach((chain) => chain.updateSequence());
+      sampler.chains.forEach((chain) => {
+        const slice = chain.getSlice();
+        if (slice.patterns.length < index + 1) {
+          chain.setSlice({
+            ...slice,
+            patterns: [
+              ...slice.patterns,
+              ...Array.from({ length: index + 1 - slice.patterns.length }).map(
+                () =>
+                  Array.from({ length: 16 }).map(() => ({
+                    actions: [],
+                  }))
+              ),
+            ],
+          });
+        } else {
+          chain.updateSequence();
+        }
+      });
     });
+    this.emit('current-pattern-index-updated', index);
   }
 
   setSwing(swing: number) {
