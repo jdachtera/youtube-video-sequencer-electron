@@ -29,7 +29,6 @@ export const Sequencer = (props: {
   onChange: (steps: Step[]) => void;
   onToggleStep: (step: Step) => Action[];
 }) => {
-  // console.log('Render Sequencer');
   const [currentStep, setCurrentStep] = createSignal<Step>();
 
   onMount(() => props.chain.on('sequence-event', setCurrentStep));

@@ -29,7 +29,6 @@ export const VideoPlayer = (props: { sampler: Sampler }) => {
   };
 
   const handleSamplerChanged = () => {
-    console.trace(props.sampler.serialize().slices);
     setChains(props.sampler.getChains());
   };
 
