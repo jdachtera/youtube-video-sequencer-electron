@@ -64,8 +64,7 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
   protected async addSlicesWhenLoaded(slices: Slice[]) {
     await this.hasLoaded();
     slices.forEach((slice) => {
-      const chain = this.createChain(slice);
-      chain.gain.connect(this.gain);
+      this.createChain(slice);
     });
   }
 
@@ -82,6 +81,7 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
 
   createChain(slice: Slice) {
     const chain = new SliceChain(this.buffer, this.engine, slice);
+    chain.gain.connect(this.gain);
     chain.on('chain-updated', (updatedChain) => {
       this.emit('chain-updated', updatedChain);
     });
