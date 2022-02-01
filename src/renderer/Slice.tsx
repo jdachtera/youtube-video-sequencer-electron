@@ -2,7 +2,8 @@ import { createSignal, onMount, onCleanup } from 'solid-js';
 
 import { Step } from './SequencerStep';
 
-import ScrewHeadWithHole from '../../assets/svg/screw_head_with_hole.svg';
+import RackEar from './RackEar';
+
 import { Sequencer } from './Sequencer';
 import { Action } from './SequencerAction';
 import type { SliceChain } from './engine/SliceChain';
@@ -88,29 +89,7 @@ export const VideoSlice = (props: {
       }}
     >
       <div style={{ display: 'flex', width: '100%' }}>
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            boxShadow: '0px 0px 2px #222',
-            borderBottomLeftRadius: '5px',
-            borderTopLeftRadius: '5px',
-          }}
-        >
-          <img
-            alt="screw"
-            src={ScrewHeadWithHole}
-            width="35px"
-            style={{ margin: '8px' }}
-          />
-          <img
-            alt="screw"
-            src={ScrewHeadWithHole}
-            width="35px"
-            style={{ margin: '8px' }}
-          />
-        </div>
+        <RackEar/>
         <div
           style={{
             width: '100%',
@@ -156,29 +135,7 @@ export const VideoSlice = (props: {
             />
           </div>
         </div>
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            borderRight: '1px inset #222',
-            borderBottom: '1px solid #333',
-            boxShadow: '0px 0px 2px #222',
-          }}
-        >
-          <img
-            alt="screw"
-            src={ScrewHeadWithHole}
-            width="35px"
-            style={{ margin: '8px' }}
-          />
-          <img
-            alt="screw"
-            src={ScrewHeadWithHole}
-            width="35px"
-            style={{ margin: '8px' }}
-          />
-        </div>
+        <RackEar/>
       </div>
     </li>
   );

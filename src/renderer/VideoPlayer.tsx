@@ -10,6 +10,7 @@ import { VideoSlice, Slice } from './Slice';
 import './VideoPlayer.scss';
 
 import ScrewHeadWithHole from '../../assets/svg/screw_head_with_hole.svg';
+import RackEar from './RackEar';
 import { Sampler } from './engine/Sampler';
 import { WavesurferView } from './WavesurferView';
 import { SliceChain } from './engine/SliceChain';
@@ -133,29 +134,7 @@ export const VideoPlayer = (props: { sampler: Sampler }) => {
   return (
     <div className="border p-4 m-4">
       <div style={{ display: 'flex' }}>
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            borderRight: '1px inset #222',
-            borderBottom: '1px outset #777',
-            boxShadow: '0px 0px 2px #222',
-          }}
-        >
-          <img
-            alt="screw"
-            src={ScrewHeadWithHole}
-            width="35px"
-            style={{ margin: '8px' }}
-          />
-          <img
-            alt="screw"
-            src={ScrewHeadWithHole}
-            width="35px"
-            style={{ margin: '8px' }}
-          />
-        </div>
+        <RackEar/>
         <div
           style={{
             borderBottom: '1px solid #222',
@@ -202,29 +181,7 @@ export const VideoPlayer = (props: { sampler: Sampler }) => {
             </ol>
           </div>
         </div>
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            borderRight: '1px inset #222',
-            borderBottom: '1px solid #333',
-            boxShadow: '0px 0px 2px #333',
-          }}
-        >
-          <img
-            alt="screw"
-            src={ScrewHeadWithHole}
-            width="35px"
-            style={{ margin: '8px' }}
-          />
-          <img
-            alt="screw"
-            src={ScrewHeadWithHole}
-            width="35px"
-            style={{ margin: '8px' }}
-          />
-        </div>
+        <RackEar/>
       </div>
     </div>
   );
