@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { createSignal, createEffect, onMount, onCleanup, For } from 'solid-js';
+import { createSignal, onMount, onCleanup, For } from 'solid-js';
 
 import { Region } from 'wavesurfer.js/src/plugin/regions';
 import { Transport } from 'tone';
@@ -9,7 +9,6 @@ import { VideoSlice, Slice } from './Slice';
 
 import './VideoPlayer.scss';
 
-import ScrewHeadWithHole from '../../assets/svg/screw_head_with_hole.svg';
 import RackEar from './RackEar';
 import { Sampler } from './engine/Sampler';
 import { WavesurferView } from './WavesurferView';
@@ -89,7 +88,7 @@ export const VideoPlayer = (props: { sampler: Sampler }) => {
 
     if (!chain) return;
 
-    const { duration } = chain.getPlayer().buffer;
+    const { duration } = chain.getSampler().buffer;
     if (duration > 0) {
       setWaveformCenter(slice.start / duration);
       chain.play();
@@ -134,7 +133,7 @@ export const VideoPlayer = (props: { sampler: Sampler }) => {
   return (
     <div className="border p-4 m-4">
       <div style={{ display: 'flex' }}>
-        <RackEar/>
+        <RackEar />
         <div
           style={{
             borderBottom: '1px solid #222',
@@ -181,7 +180,7 @@ export const VideoPlayer = (props: { sampler: Sampler }) => {
             </ol>
           </div>
         </div>
-        <RackEar/>
+        <RackEar />
       </div>
     </div>
   );

@@ -1,14 +1,8 @@
-import {
-  Gain,
-  getDraw,
-  Player,
-  Sequence,
-  ToneAudioBuffer,
-  Transport,
-} from 'tone';
+import { Gain, getDraw, Player, Sequence, Transport } from 'tone';
 import { TypedEmitter } from 'tiny-typed-emitter';
-import type { Engine } from './Engine';
+
 import type { Step } from '../SequencerStep';
+import type { Sampler } from './Sampler';
 import type { Slice } from '../Slice';
 
 export interface SliceChainEvents {
@@ -25,16 +19,13 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
 
   protected sequence: Sequence<Step>;
 
-  protected engine: Engine;
-
   protected slice: Slice;
 
-  constructor(buffer: ToneAudioBuffer, engine: Engine, slice: Slice) {
+  constructor(protected sampler: Sampler, slice: Slice) {
     super();
 
-    this.engine = engine;
     this.slice = slice;
-    this.player = new Player(buffer);
+    this.player = new Player(this.sampler.buffer.slice(slice.start, slice.end));
     this.player.connect(this.gain);
 
     this.sequence = new Sequence({
@@ -53,18 +44,12 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
       this.emit('sequence-event', step);
     }, time);
 
-    const { slice } = this;
-
     for (let i = 0; i < step.actions.length; i += 1) {
       const action = step.actions[i];
 
       switch (action.type) {
         case 'PLAY': {
-          if (!slice) break;
-
-          if (slice.start < this.player.buffer.duration) {
-            this.player.start(time, slice.start, slice.end - slice.start);
-          }
+          this.play();
           break;
         }
         case 'PAUSE':
@@ -83,13 +68,18 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
   };
 
   public updateSequence() {
-    this.sequence.events = this.slice.patterns[this.engine.currentPatternIndex];
+    this.sequence.events =
+      this.slice.patterns[this.sampler.getEngine().currentPatternIndex];
   }
 
   setSlice(slice: Slice) {
+    if (this.slice.start !== slice.start || this.slice.end !== slice.end) {
+      this.player.buffer.set(this.sampler.buffer.slice(slice.start, slice.end));
+    }
+
     this.slice = slice;
     this.gain.gain.value = slice.volume ?? 1;
-    //this.playbackSpeed.value = slice.playbackSpeed ?? 1;
+
     this.updateSequence();
     this.emit('chain-updated', this);
   }
@@ -103,6 +93,7 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
   }
 
   dispose() {
+    this.sequence.stop();
     this.player.dispose();
     this.sequence.dispose();
   }
@@ -111,12 +102,18 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
     return this.player;
   }
 
+  getSampler() {
+    return this.sampler;
+  }
+
   play(time?: number) {
-    this.player.start(
-      time,
-      this.slice.start,
-      this.slice.end - this.slice.start
-    );
+    const { slice } = this;
+    if (!slice) return;
+
+    this.player.playbackRate = slice.playbackSpeed ?? 1;
+    this.player.reverse = slice.reverse ?? false;
+
+    this.player.start(time);
   }
 
   getSequence() {

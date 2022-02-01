@@ -1,8 +1,8 @@
 import { Gain, ToneAudioBuffer } from 'tone';
 import { TypedEmitter } from 'tiny-typed-emitter';
+import { SliceChain } from './SliceChain';
 import type { Engine } from './Engine';
 import type { Slice } from '../Slice';
-import { SliceChain } from './SliceChain';
 
 declare const yt: {
   getYouTubeVideoSource: (url: string) => Promise<string>;
@@ -35,14 +35,12 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
     url,
     zoom,
     volume = 1,
-    playbackSpeed = 1,
     slices,
   }: {
     engine: Engine;
     url: string;
     zoom: number;
     volume?: number;
-    playbackSpeed?: number;
     slices: Slice[];
   }) {
     super();
@@ -82,7 +80,7 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
   }
 
   createChain(slice: Slice) {
-    const chain = new SliceChain(this.buffer, this.engine, slice);
+    const chain = new SliceChain(this, slice);
     chain.gain.connect(this.gain);
     chain.on('chain-updated', (updatedChain) => {
       this.emit('chain-updated', updatedChain);
@@ -130,7 +128,6 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
       url: this.url,
       zoom: this.zoom,
       volume: this.gain.gain.value,
-      playbackSpeed: this.playbackSpeed,
       slices: [...this.chains.values()].map((chain) => chain.getSlice()),
     };
   }

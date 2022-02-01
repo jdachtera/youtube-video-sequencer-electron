@@ -1,5 +1,6 @@
 import { createSignal, onMount, onCleanup } from 'solid-js';
 
+import { css } from '@emotion/css';
 import { Step } from './SequencerStep';
 
 import RackEar from './RackEar';
@@ -7,7 +8,6 @@ import RackEar from './RackEar';
 import { Sequencer } from './Sequencer';
 import { Action } from './SequencerAction';
 import type { SliceChain } from './engine/SliceChain';
-import { css } from '@emotion/css';
 
 export type Slice = {
   id: string;
@@ -49,11 +49,17 @@ export const VideoSlice = (props: {
     });
   };
 
-  const handleUpdatePlaybackSpeed = (event: { currentTarget: HTMLInputElement }) => {
+  const handleUpdatePlaybackSpeed = (event: {
+    currentTarget: HTMLInputElement;
+  }) => {
     props.chain.setSlice({
       ...slice(),
       playbackSpeed: event.currentTarget.valueAsNumber,
     });
+  };
+
+  const handleUpdateReverse = (event: { currentTarget: HTMLInputElement }) => {
+    props.chain.setSlice({ ...slice(), reverse: event.currentTarget.checked });
   };
 
   const handleChainUpdated = () => {
@@ -81,6 +87,14 @@ export const VideoSlice = (props: {
     props.onUpdateSteps(slice(), steps);
   };
 
+  const handleCloneSlice = () => {
+    const sliceData = slice();
+    props.chain.getSampler().createChain({
+      ...sliceData,
+      id: `${sliceData.id}_clone`,
+    });
+  };
+
   const onToggleStep = (step: Step): Action[] => {
     if (step.actions.length === 0) {
       return [{ type: 'PLAY' }];
@@ -92,7 +106,7 @@ export const VideoSlice = (props: {
     <li
       style={{ background: slice().color }}
       className={css`
-      box-shadow: inset 0 0 5px #000;
+        box-shadow: inset 0 0 5px #000;
       `}
       classList={{
         slice: true,
@@ -100,7 +114,7 @@ export const VideoSlice = (props: {
       }}
     >
       <div style={{ display: 'flex', width: '100%' }}>
-        <RackEar/>
+        <RackEar />
         <div
           style={{
             width: '100%',
@@ -143,11 +157,20 @@ export const VideoSlice = (props: {
             onChange={handleUpdatePlaybackSpeed}
             style="-webkit-appearance: slider-vertical"
           />
+          Reverse:
+          <input
+            type="checkbox"
+            checked={slice().reverse}
+            onChange={handleUpdateReverse}
+          />
           <button type="button" onClick={handleClickSlice}>
             Play
           </button>
           <button type="button" onClick={handleRemoveSlice}>
             Remove slice
+          </button>
+          <button type="button" onClick={handleCloneSlice}>
+            Clone slice
           </button>
           <div style={{ marginLeft: 'auto' }}>
             <Sequencer
@@ -158,7 +181,7 @@ export const VideoSlice = (props: {
             />
           </div>
         </div>
-        <RackEar/>
+        <RackEar />
       </div>
     </li>
   );
