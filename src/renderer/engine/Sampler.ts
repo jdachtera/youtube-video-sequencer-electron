@@ -35,12 +35,14 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
     url,
     zoom,
     volume = 1,
+    playbackSpeed = 1,
     slices,
   }: {
     engine: Engine;
     url: string;
     zoom: number;
     volume?: number;
+    playbackSpeed?: number;
     slices: Slice[];
   }) {
     super();
@@ -128,6 +130,7 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
       url: this.url,
       zoom: this.zoom,
       volume: this.gain.gain.value,
+      playbackSpeed: this.playbackSpeed,
       slices: [...this.chains.values()].map((chain) => chain.getSlice()),
     };
   }

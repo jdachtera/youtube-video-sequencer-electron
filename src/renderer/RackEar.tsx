@@ -8,8 +8,8 @@ const RackEar = () => {
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      border-right: 1px inset #222;
-      border-bottom: 1px outset #777;
+      // border-right: 1px inset #222;
+      // border-bottom: 1px outset #777;
       box-shadow: 0px 0px 2px #222;
       `}>
       <img

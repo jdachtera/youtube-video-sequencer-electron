@@ -7,6 +7,7 @@ import RackEar from './RackEar';
 import { Sequencer } from './Sequencer';
 import { Action } from './SequencerAction';
 import type { SliceChain } from './engine/SliceChain';
+import { css } from '@emotion/css';
 
 export type Slice = {
   id: string;
@@ -48,6 +49,13 @@ export const VideoSlice = (props: {
     });
   };
 
+  const handleUpdatePlaybackSpeed = (event: { currentTarget: HTMLInputElement }) => {
+    props.chain.setSlice({
+      ...slice(),
+      playbackSpeed: event.currentTarget.valueAsNumber,
+    });
+  };
+
   const handleChainUpdated = () => {
     setSlice(props.chain.getSlice());
   };
@@ -83,6 +91,9 @@ export const VideoSlice = (props: {
   return (
     <li
       style={{ background: slice().color }}
+      className={css`
+      box-shadow: inset 0 0 5px #000;
+      `}
       classList={{
         slice: true,
         'slice-active': props.isSelected,
@@ -112,13 +123,25 @@ export const VideoSlice = (props: {
             value={slice().patterns[props.currentPatternIndex].length}
             onChange={handleUpdateSequenceLength}
           />
+          <span className="lcd">{slice().volume}</span>
           <input
-            type="number"
+            type="range"
             min="0"
-            max="1"
+            max="3"
             step="0.1"
             value={slice().volume}
             onChange={handleUpdateVolume}
+            style="-webkit-appearance: slider-vertical"
+          />
+          <span className="lcd">{slice().playbackSpeed}</span>
+          <input
+            type="range"
+            min="0"
+            max="3"
+            step="0.1"
+            value={slice().playbackSpeed}
+            onChange={handleUpdatePlaybackSpeed}
+            style="-webkit-appearance: slider-vertical"
           />
           <button type="button" onClick={handleClickSlice}>
             Play

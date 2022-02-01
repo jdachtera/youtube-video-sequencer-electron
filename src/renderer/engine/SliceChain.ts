@@ -15,6 +15,7 @@ export interface SliceChainEvents {
   'sequence-event': (step: Step) => void;
   'chain-updated': (updatedChain: SliceChain) => void;
   'volume-updated': (volume: number) => void;
+  'playback-speed-updated': (playbackSpeed: number) => void;
 }
 
 export class SliceChain extends TypedEmitter<SliceChainEvents> {
@@ -88,6 +89,7 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
   setSlice(slice: Slice) {
     this.slice = slice;
     this.gain.gain.value = slice.volume ?? 1;
+    //this.playbackSpeed.value = slice.playbackSpeed ?? 1;
     this.updateSequence();
     this.emit('chain-updated', this);
   }
