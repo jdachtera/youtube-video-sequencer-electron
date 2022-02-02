@@ -49,7 +49,7 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
 
       switch (action.type) {
         case 'PLAY': {
-          this.play();
+          this.play(time);
           break;
         }
         case 'PAUSE':
@@ -80,6 +80,9 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
     this.slice = slice;
     this.gain.gain.value = slice.volume ?? 1;
 
+    this.player.playbackRate = slice.playbackSpeed ?? 1;
+    this.player.reverse = slice.reverse ?? false;
+
     this.updateSequence();
     this.emit('chain-updated', this);
   }
@@ -107,13 +110,7 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
   }
 
   play(time?: number) {
-    const { slice } = this;
-    if (!slice) return;
-
-    this.player.playbackRate = slice.playbackSpeed ?? 1;
-    this.player.reverse = slice.reverse ?? false;
-
-    this.player.start(time);
+    this.player.start(time, 0, this.slice.end - this.slice.start);
   }
 
   getSequence() {
