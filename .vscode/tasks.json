@@ -20,6 +20,11 @@
           "endsPattern": "(Compiled successfully|Failed to compile)\\.$"
         }
       }
+    },
+    {
+      "type": "eslint",
+      "problemMatcher": ["$eslint-stylish"],
+      "label": "eslint: lint whole folder"
     }
   ]
 }

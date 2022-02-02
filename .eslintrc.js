@@ -1,20 +1,22 @@
 module.exports = {
-  extends: 'erb',
+  parser: '@typescript-eslint/parser',
+  plugins: ['import', 'solid'],
+  extends: [
+    'eslint:recommended',
+    'plugin:import/recommended',
+
+    'plugin:import/typescript',
+    'plugin:solid/typescript',
+  ],
   rules: {
     // A temporary hack related to IDE not resolving correct package.json
     'import/no-extraneous-dependencies': 'off',
     'import/no-unresolved': 'error',
     // Since React 17 and typescript 4.1 you can safely disable the rule
-    'react/react-in-jsx-scope': 'off',
-    'jsx-a11y/label-has-associated-control': 'off',
-    'jsx-a11y/click-events-have-key-events': 'off',
-    'jsx-a11y/no-noninteractive-element-interactions': 'off',
-    'react/destructuring-assignment': 'off',
-    'react/state-in-constructor': 'off',
-    'react/require-default-props': 'off',
-    'react/prop-types': 'off',
-    'import/prefer-default-export': 'off',
-    '@typescript-eslint/no-use-before-define': 'off',
+  },
+  env: {
+    browser: true,
+    node: true,
   },
   parserOptions: {
     ecmaVersion: 2020,
