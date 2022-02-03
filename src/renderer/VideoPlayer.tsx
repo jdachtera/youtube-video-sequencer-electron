@@ -4,8 +4,7 @@ import { createSignal, onMount, onCleanup, For, untrack } from 'solid-js';
 import { Region } from 'wavesurfer.js/src/plugin/regions';
 import { Transport } from 'tone';
 
-import { Step } from './SequencerStep';
-import { VideoSlice, Slice } from './Slice';
+import { VideoSlice, Slice, Pattern } from './Slice';
 
 import './VideoPlayer.scss';
 
@@ -61,12 +60,12 @@ export const VideoPlayer = (props: { sampler: Sampler }) => {
     props.sampler.removeChain(slice.id);
   };
 
-  const updateSteps = (slice: Slice, steps: Step[]) => {
+  const updatePattern = (slice: Slice, pattern: Pattern) => {
     const updatedSlice: Slice = {
       ...slice,
       patterns: [
         ...slice.patterns.slice(0, currentPatternIndex()),
-        steps,
+        pattern,
         ...slice.patterns.slice(currentPatternIndex() + 1),
       ],
     };
@@ -106,18 +105,26 @@ export const VideoPlayer = (props: { sampler: Sampler }) => {
     }
   };
 
-  const updateSequenceLength = (slice: Slice, newLength: number) => {
-    const steps = slice.patterns[currentPatternIndex()];
+  const updatePatternLength = (slice: Slice, newLength: number) => {
+    const pattern = slice.patterns[currentPatternIndex()];
 
-    if (steps.length > newLength) {
-      updateSteps(slice, steps.slice(0, newLength));
-    } else if (steps.length < newLength) {
-      updateSteps(slice, [
-        ...steps.slice(0),
-        ...Array.from({ length: newLength - steps.length }).map(() => ({
-          actions: [],
-        })),
-      ]);
+    if (pattern.steps.length > newLength) {
+      updatePattern(slice, {
+        ...pattern,
+        steps: pattern.steps.slice(0, newLength),
+      });
+    } else if (pattern.steps.length < newLength) {
+      updatePattern(slice, {
+        ...pattern,
+        steps: [
+          ...pattern.steps.slice(0),
+          ...Array.from({ length: newLength - pattern.steps.length }).map(
+            () => ({
+              actions: [],
+            })
+          ),
+        ],
+      });
     }
   };
 
@@ -171,8 +178,8 @@ export const VideoPlayer = (props: { sampler: Sampler }) => {
                     currentPatternIndex={currentPatternIndex()}
                     onClickSlice={handleClickSlice}
                     onRemoveSlice={handleRemoveSlice}
-                    onUpdateSequenceLength={updateSequenceLength}
-                    onUpdateSteps={updateSteps}
+                    onUpdateSequenceLength={updatePatternLength}
+                    onUpdatePattern={updatePattern}
                   />
                 )}
               </For>

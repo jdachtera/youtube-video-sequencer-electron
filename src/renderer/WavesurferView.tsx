@@ -77,9 +77,13 @@ export const WavesurferView = (props: WavesurferViewProps) => {
       volume: 1,
       color,
       patterns: [
-        Array.from({ length: 16 }).map(() => ({
-          actions: [],
-        })),
+        {
+          subdivision: 16,
+          subdivisionType: 'n',
+          steps: Array.from({ length: 16 }).map(() => ({
+            actions: [],
+          })),
+        },
       ],
     };
 

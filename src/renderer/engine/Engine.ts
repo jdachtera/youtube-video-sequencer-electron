@@ -83,25 +83,7 @@ export class Engine extends TypedEmitter<EngineEvents> {
   setCurrentPatternIndex(index: number) {
     this.currentPatternIndex = index;
     this.samplers.forEach((sampler) => {
-      sampler.chains.forEach((chain) => {
-        const slice = chain.getSlice();
-        if (slice.patterns.length < index + 1) {
-          chain.setSlice({
-            ...slice,
-            patterns: [
-              ...slice.patterns,
-              ...Array.from({ length: index + 1 - slice.patterns.length }).map(
-                () =>
-                  Array.from({ length: 16 }).map(() => ({
-                    actions: [],
-                  }))
-              ),
-            ],
-          });
-        } else {
-          chain.updateSequence();
-        }
-      });
+      sampler.setCurrentPatternIndex(index);
     });
     this.emit('current-pattern-index-updated', index);
   }

@@ -8,8 +8,65 @@ import { Engine } from './engine/Engine';
 import { Sampler } from './engine/Sampler';
 
 import { VideoPlayer } from './VideoPlayer';
+import { Pattern, Slice } from './Slice';
+import { Step } from './SequencerStep';
 
 const engine = new Engine(Transport);
+
+const normalizeStepData = (step: Partial<Step>): Step => ({
+  actions: Array.isArray(step.actions) ? step.actions : [],
+});
+
+const normalizePatternData = (pattern: Partial<Pattern> | Step[]): Pattern => ({
+  subdivision: Array.isArray(pattern) ? 16 : pattern.subdivision ?? 16,
+  subdivisionType: Array.isArray(pattern)
+    ? 'n'
+    : pattern.subdivisionType ?? 'n',
+  steps: (Array.isArray(pattern)
+    ? pattern
+    : Array.isArray(pattern.steps)
+    ? pattern.steps
+    : []
+  ).map(normalizeStepData),
+});
+
+const normaliizeSliceData = (slice: Partial<Slice>): Slice => ({
+  id: slice.id ?? Math.random().toString(),
+  color: slice.color ?? 'red',
+  start: slice.start ?? 0,
+  end: slice.end ?? 10,
+  playbackSpeed: slice.playbackSpeed ?? 1,
+  reverse: slice.reverse ?? false,
+  volume: slice.volume ?? 1,
+  patterns: (Array.isArray(slice.patterns) ? slice.patterns : []).map(
+    normalizePatternData
+  ),
+});
+
+const normalizeSamplerData = (
+  sampler: Partial<ReturnType<Sampler['serialize']>>
+): ReturnType<Sampler['serialize']> => ({
+  url: sampler.url ?? '',
+  volume: sampler.volume ?? 1,
+  zoom: sampler.zoom ?? 0,
+  slices: (Array.isArray(sampler.slices) ? sampler.slices : []).map(
+    normaliizeSliceData
+  ),
+});
+
+const normalizeData = (
+  parsedData: Partial<ReturnType<Engine['serialize']>>
+): ReturnType<Engine['serialize']> => {
+  return {
+    bpm: parsedData.bpm ?? 120,
+    swing: parsedData.swing ?? 0,
+    currentPatternIndex: parsedData.currentPatternIndex ?? 0,
+    samplers: (Array.isArray(parsedData.samplers)
+      ? parsedData.samplers
+      : []
+    ).map(normalizeSamplerData),
+  };
+};
 
 export function App() {
   const [isPlaying, setIsPlaying] = createSignal(false);
@@ -71,8 +128,9 @@ export function App() {
         if (!fileContents) return;
         try {
           const parsedData = JSON.parse(fileContents);
+
           engine.dispose();
-          engine.load(parsedData);
+          engine.load(normalizeData(parsedData));
         } catch {
           //
         }
@@ -90,7 +148,8 @@ export function App() {
             .getChains()
             .map(
               (chain) =>
-                chain.getSlice().patterns[engine.currentPatternIndex].length
+                chain.getSlice().patterns[engine.currentPatternIndex].steps
+                  .length
             );
         })
         .sort()
@@ -169,14 +228,17 @@ export function App() {
         //
       }
     }
+
     engine.load(
-      parsedData ?? {
-        samplers: [
-          { url: 'https://www.youtube.com/watch?v=GxZuq57_bYM' },
-          { url: 'https://www.youtube.com/watch?v=0-fJLVH8_Es' },
-        ],
-        currentPatternIndex: 0,
-      }
+      normalizeData(
+        parsedData ?? {
+          samplers: [
+            { url: 'https://www.youtube.com/watch?v=GxZuq57_bYM' },
+            { url: 'https://www.youtube.com/watch?v=0-fJLVH8_Es' },
+          ],
+          currentPatternIndex: 0,
+        }
+      )
     );
   });
 

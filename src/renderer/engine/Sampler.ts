@@ -87,6 +87,7 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
 
   createChain(slice: Slice) {
     const chain = new SliceChain(this, slice);
+
     chain.gain.connect(this.gain);
     chain.on('chain-updated', (updatedChain) => {
       this.emit('chain-updated', updatedChain);
@@ -114,6 +115,10 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
       this.chains.delete(id);
       this.emit('chain-removed', maybeExistingChain);
     }
+  }
+
+  setCurrentPatternIndex(index: number) {
+    this.chains.forEach((chain) => chain.setCurrentPatternIndex(index));
   }
 
   stop() {
