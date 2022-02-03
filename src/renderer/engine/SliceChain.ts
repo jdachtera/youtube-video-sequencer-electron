@@ -19,24 +19,15 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
 
   protected sequence: Sequence<Step>;
 
-  protected slice: Slice;
-
-  constructor(protected sampler: Sampler, slice: Slice) {
+  constructor(protected sampler: Sampler, protected slice: Slice) {
     super();
 
-    this.slice = slice;
     this.player = new Player(this.sampler.buffer.slice(slice.start, slice.end));
     this.player.connect(this.gain);
 
-    this.sequence = new Sequence({
-      callback: this.onSequenceEvent,
-      events: [],
-      subdivision: '16n',
-    });
+    this.sequence = this.createSequence();
 
-    this.sequence.start(0, Transport.progress);
-
-    this.setSlice(slice);
+    this.setSlice({ ...slice });
   }
 
   protected onSequenceEvent = (time: number, step: Step) => {
@@ -67,23 +58,50 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
     }
   };
 
-  public updateSequence() {
-    this.sequence.events =
-      this.slice.patterns[this.sampler.getEngine().currentPatternIndex];
+  protected getCurrentPattern(slice: Slice) {
+    return slice.patterns[this.sampler.getEngine().currentPatternIndex];
+  }
+
+  protected createSequence() {
+    const sequence = new Sequence(
+      this.onSequenceEvent,
+      this.getCurrentPattern(this.slice),
+      `${this.slice.subdivision ?? 16}${this.slice.subdivisionType ?? 'n'}`
+    );
+    sequence.start(0, Transport.progress);
+    return sequence;
   }
 
   setSlice(slice: Slice) {
-    if (this.slice.start !== slice.start || this.slice.end !== slice.end) {
+    const previousSlice = this.slice;
+    this.slice = slice;
+    if (previousSlice === slice) return;
+
+    if (
+      slice.subdivision !== previousSlice.subdivision ||
+      slice.subdivisionType !== previousSlice.subdivisionType
+    ) {
+      this.sequence.dispose();
+      this.sequence = this.createSequence();
+    } else {
+      const currentPattern = this.getCurrentPattern(slice);
+      if (this.getCurrentPattern(previousSlice) !== currentPattern) {
+        this.sequence.events = currentPattern;
+      }
+    }
+
+    if (
+      previousSlice.start !== slice.start ||
+      previousSlice.end !== slice.end
+    ) {
       this.player.buffer.set(this.sampler.buffer.slice(slice.start, slice.end));
     }
 
-    this.slice = slice;
     this.gain.gain.value = slice.volume ?? 1;
 
     this.player.playbackRate = slice.playbackSpeed ?? 1;
     this.player.reverse = slice.reverse ?? false;
 
-    this.updateSequence();
     this.emit('chain-updated', this);
   }
 

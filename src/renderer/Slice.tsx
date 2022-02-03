@@ -24,6 +24,8 @@ export type Slice = {
   reverse?: boolean;
   color: string;
   patterns: Step[][];
+  subdivision: 16;
+  subdivisionType: 'n';
 };
 
 const FormattedTime = (props: { timeInSeconds: number }) => {
@@ -31,7 +33,7 @@ const FormattedTime = (props: { timeInSeconds: number }) => {
   const seconds = createMemo(() => Math.round(props.timeInSeconds % 60));
 
   return (
-    <>{`${minutes.toString().padStart(2, '0')}:${seconds
+    <>{`${minutes().toString().padStart(2, '0')}:${seconds()
       .toString()
       .padStart(2, '0')}`}</>
   );
