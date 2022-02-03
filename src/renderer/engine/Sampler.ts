@@ -12,6 +12,8 @@ interface SamplerEvents {
   'chain-added': (chain: SliceChain) => void;
   'chain-removed': (chain: SliceChain) => void;
   'chain-updated': (chain: SliceChain) => void;
+  'zoom-updated': (zoom: number) => void;
+  'volume-updated': (volume: number) => void;
   change: () => void;
 }
 
@@ -59,6 +61,8 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
     this.on('chain-added', () => this.emit('change'));
     this.on('chain-removed', () => this.emit('change'));
     this.on('chain-updated', () => this.emit('change'));
+    this.on('zoom-updated', () => this.emit('change'));
+    this.on('volume-updated', () => this.emit('change'));
   }
 
   protected async addSlicesWhenLoaded(slices: Slice[]) {
@@ -69,7 +73,13 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
   }
 
   private async load() {
-    const sourceUrl = await yt.getYouTubeVideoSource(this.url);
+    let sourceUrl;
+    try {
+      sourceUrl = await yt.getYouTubeVideoSource(this.url);
+    } catch (e) {
+      console.dir(e);
+      throw e;
+    }
 
     await this.buffer.load(sourceUrl);
   }
@@ -81,6 +91,7 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
 
   createChain(slice: Slice) {
     const chain = new SliceChain(this, slice);
+
     chain.gain.connect(this.gain);
     chain.on('chain-updated', (updatedChain) => {
       this.emit('chain-updated', updatedChain);
@@ -110,6 +121,10 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
     }
   }
 
+  setCurrentPatternIndex(index: number) {
+    this.chains.forEach((chain) => chain.setCurrentPatternIndex(index));
+  }
+
   stop() {
     this.chains.forEach((chain) => chain.stop());
   }
@@ -121,6 +136,16 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
 
   getEngine() {
     return this.engine;
+  }
+
+  setVolume(volume: number) {
+    this.gain.gain.value = volume;
+    this.emit('volume-updated', volume);
+  }
+
+  setZoom(zoom: number) {
+    this.zoom = zoom;
+    this.emit('zoom-updated', zoom);
   }
 
   serialize() {

@@ -1,5 +1,4 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-import { createSignal, onMount, onCleanup, For } from 'solid-js';
+import { createSignal, onMount, onCleanup, For, Index, Show } from 'solid-js';
 
 import { SequencerAction, Action, createNewAction } from './SequencerAction';
 import { SequencerStep, Step } from './SequencerStep';
@@ -88,37 +87,39 @@ export const Sequencer = (props: {
 
   return (
     <div>
-      <ul className="sequencer-steps">
-        <For each={props.steps}>
-          {(step, stepIndex) => (
+      <ul class="sequencer-steps">
+        <Index each={props.steps}>
+          {(step) => (
             <SequencerStep
-              step={step}
+              step={step()}
               onClick={toggleStep}
-              isSelected={step === selectedStep()}
-              isCurrent={step === currentStep()}
-              // className={`step-${stepIndex}`}
+              isSelected={step() === selectedStep()}
+              isCurrent={step() === currentStep()}
+              // class={`step-${stepIndex}`}
             />
           )}
-        </For>
+        </Index>
       </ul>
       <div>
-        {selectedStep() && (
-          <div>
-            <For each={selectedStep()?.actions}>
-              {(action) => {
-                return (
-                  <SequencerAction
-                    action={action}
-                    onChange={handleUpdateAction}
-                  />
-                );
-              }}
-            </For>
-            <button type="button" onClick={handleAddAction}>
-              Add action
-            </button>
-          </div>
-        )}
+        <Show when={selectedStep()}>
+          {(step) => (
+            <div>
+              <For each={step.actions}>
+                {(action) => {
+                  return (
+                    <SequencerAction
+                      action={action}
+                      onChange={handleUpdateAction}
+                    />
+                  );
+                }}
+              </For>
+              <button type="button" onClick={handleAddAction}>
+                Add action
+              </button>
+            </div>
+          )}
+        </Show>
       </div>
     </div>
   );

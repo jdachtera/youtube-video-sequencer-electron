@@ -1,4 +1,11 @@
-import { createSignal, onMount, onCleanup } from 'solid-js';
+import {
+  createSignal,
+  onMount,
+  onCleanup,
+  createMemo,
+  untrack,
+  For,
+} from 'solid-js';
 
 import { css } from '@emotion/css';
 import { Step } from './SequencerStep';
@@ -9,6 +16,12 @@ import { Sequencer } from './Sequencer';
 import { Action } from './SequencerAction';
 import type { SliceChain } from './engine/SliceChain';
 
+export type Pattern = {
+  subdivision: number;
+  subdivisionType: typeof subdivisionTypes[number];
+  steps: Step[];
+};
+
 export type Slice = {
   id: string;
   start: number;
@@ -17,15 +30,22 @@ export type Slice = {
   playbackSpeed?: number;
   reverse?: boolean;
   color: string;
-  patterns: Step[][];
+  patterns: Pattern[];
 };
 
+const subdivisions = [
+  -0.5,
+  ...Array.from({ length: 7 }).map((_, index) => Math.pow(2, index)),
+];
+
+const subdivisionTypes = ['n', 't', 'n.'] as const;
+
 const FormattedTime = (props: { timeInSeconds: number }) => {
-  const minutes = Math.floor(props.timeInSeconds / 60);
-  const seconds = Math.round(props.timeInSeconds % 60);
+  const minutes = createMemo(() => Math.floor(props.timeInSeconds / 60));
+  const seconds = createMemo(() => Math.round(props.timeInSeconds % 60));
 
   return (
-    <>{`${minutes.toString().padStart(2, '0')}:${seconds
+    <>{`${minutes().toString().padStart(2, '0')}:${seconds()
       .toString()
       .padStart(2, '0')}`}</>
   );
@@ -38,9 +58,12 @@ export const VideoSlice = (props: {
   onClickSlice: (slice: Slice) => void;
   onUpdateSequenceLength: (slice: Slice, sequenceLength: number) => void;
   onRemoveSlice: (slice: Slice) => void;
-  onUpdateSteps: (slice: Slice, steps: Step[]) => void;
+  onUpdatePattern: (slice: Slice, pattern: Pattern) => void;
 }) => {
-  const [slice, setSlice] = createSignal(props.chain.getSlice());
+  const [slice, setSlice] = createSignal(untrack(() => props.chain.getSlice()));
+  const currentPattern = createMemo(
+    () => slice().patterns[props.currentPatternIndex]
+  );
 
   const handleUpdateVolume = (event: { currentTarget: HTMLInputElement }) => {
     props.chain.setSlice({
@@ -84,7 +107,7 @@ export const VideoSlice = (props: {
   };
 
   const handleUpdateSteps = (steps: Step[]) => {
-    props.onUpdateSteps(slice(), steps);
+    props.onUpdatePattern(slice(), { ...currentPattern(), steps });
   };
 
   const handleCloneSlice = () => {
@@ -102,10 +125,28 @@ export const VideoSlice = (props: {
     return [];
   };
 
+  const handleUpdateSubdivision = (event: {
+    currentTarget: HTMLSelectElement;
+  }) => {
+    props.onUpdatePattern(slice(), {
+      ...currentPattern(),
+      subdivision: +event.currentTarget.value,
+    });
+  };
+
+  const handleUpdateSubdivisionType = (event: {
+    currentTarget: HTMLSelectElement;
+  }) => {
+    props.onUpdatePattern(slice(), {
+      ...currentPattern(),
+      subdivisionType: event.currentTarget.value as Pattern['subdivisionType'],
+    });
+  };
+
   return (
     <li
       style={{ background: slice().color }}
-      className={css`
+      class={css`
         box-shadow: inset 0 0 5px #000;
       `}
       classList={{
@@ -123,21 +164,21 @@ export const VideoSlice = (props: {
             padding: '8px',
           }}
         >
-          <span className="lcd" style={{ margin: '8px', width: '300px' }}>
+          <span class="lcd" style={{ margin: '8px', width: '300px' }}>
             {slice().id}
           </span>
           <FormattedTime timeInSeconds={slice().start} /> -{' '}
           <FormattedTime timeInSeconds={slice().end} />
           <input
-            className="lcd"
+            class="lcd"
             type="number"
             step="1"
             min="4"
             max="64"
-            value={slice().patterns[props.currentPatternIndex].length}
+            value={currentPattern()?.steps?.length}
             onChange={handleUpdateSequenceLength}
           />
-          <span className="lcd">{slice().volume}</span>
+          <span class="lcd">{slice().volume}</span>
           <input
             type="range"
             min="0"
@@ -147,7 +188,7 @@ export const VideoSlice = (props: {
             onChange={handleUpdateVolume}
             style="-webkit-appearance: slider-vertical"
           />
-          <span className="lcd">{slice().playbackSpeed}</span>
+          <span class="lcd">{slice().playbackSpeed}</span>
           <input
             type="range"
             min="0"
@@ -172,9 +213,29 @@ export const VideoSlice = (props: {
           <button type="button" onClick={handleCloneSlice}>
             Clone slice
           </button>
+          <select
+            value={currentPattern()?.subdivision ?? 16}
+            onChange={handleUpdateSubdivision}
+          >
+            <For each={subdivisions}>
+              {(subdivision) => (
+                <option value={subdivision}>{subdivision}</option>
+              )}
+            </For>
+          </select>
+          <select
+            value={currentPattern()?.subdivisionType ?? 'n'}
+            onChange={handleUpdateSubdivisionType}
+          >
+            <For each={subdivisionTypes}>
+              {(subdivisionType) => (
+                <option value={subdivisionType}>{subdivisionType}</option>
+              )}
+            </For>
+          </select>
           <div style={{ marginLeft: 'auto' }}>
             <Sequencer
-              steps={slice().patterns[props.currentPatternIndex]}
+              steps={slice().patterns[props.currentPatternIndex].steps}
               chain={props.chain}
               onChange={handleUpdateSteps}
               onToggleStep={onToggleStep}

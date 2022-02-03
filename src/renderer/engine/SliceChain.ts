@@ -19,24 +19,15 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
 
   protected sequence: Sequence<Step>;
 
-  protected slice: Slice;
-
-  constructor(protected sampler: Sampler, slice: Slice) {
+  constructor(protected sampler: Sampler, protected slice: Slice) {
     super();
 
-    this.slice = slice;
     this.player = new Player(this.sampler.buffer.slice(slice.start, slice.end));
     this.player.connect(this.gain);
 
-    this.sequence = new Sequence({
-      callback: this.onSequenceEvent,
-      events: [],
-      subdivision: '16n',
-    });
+    this.sequence = this.createSequence();
 
-    this.sequence.start(0, Transport.progress);
-
-    this.setSlice(slice);
+    this.setSlice({ ...slice });
   }
 
   protected onSequenceEvent = (time: number, step: Step) => {
@@ -49,7 +40,7 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
 
       switch (action.type) {
         case 'PLAY': {
-          this.play();
+          this.play(time);
           break;
         }
         case 'PAUSE':
@@ -67,22 +58,97 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
     }
   };
 
-  public updateSequence() {
-    this.sequence.events =
-      this.slice.patterns[this.sampler.getEngine().currentPatternIndex];
+  protected getCurrentPattern(slice: Slice = this.slice) {
+    return slice.patterns?.[this.sampler.getEngine().currentPatternIndex];
+  }
+
+  protected createSequence() {
+    const currentPattern = this.getCurrentPattern();
+
+    const sequence = new Sequence({
+      callback: this.onSequenceEvent,
+      events: currentPattern?.steps ?? [],
+      subdivision: `${currentPattern?.subdivision ?? 16}${
+        currentPattern?.subdivisionType ?? 'n'
+      }`,
+    });
+
+    sequence.start(0, Transport.progress);
+    return sequence;
   }
 
   setSlice(slice: Slice) {
-    if (this.slice.start !== slice.start || this.slice.end !== slice.end) {
-      this.player.buffer.set(this.sampler.buffer.slice(slice.start, slice.end));
+    const previousSlice = this.slice;
+
+    this.slice = this.ensurePatternExists(
+      slice,
+      this.sampler.getEngine().currentPatternIndex
+    );
+
+    if (previousSlice === this.slice) return;
+
+    this.gain.gain.value = this.slice.volume ?? 1;
+    this.player.playbackRate = this.slice.playbackSpeed ?? 1;
+    this.player.reverse = this.slice.reverse ?? false;
+
+    const currentPattern = this.getCurrentPattern(this.slice);
+    const previousPattern = this.getCurrentPattern(previousSlice);
+
+    if (
+      !previousPattern ||
+      currentPattern.subdivision !== previousPattern.subdivision ||
+      currentPattern.subdivisionType !== previousPattern.subdivisionType
+    ) {
+      this.sequence.clear();
+      this.sequence.dispose();
+      this.sequence = this.createSequence();
+    } else {
+      if (this.getCurrentPattern(previousSlice) !== currentPattern) {
+        this.sequence.events = currentPattern.steps;
+      }
     }
 
-    this.slice = slice;
-    this.gain.gain.value = slice.volume ?? 1;
+    if (
+      !previousSlice ||
+      previousSlice.start !== this.slice.start ||
+      previousSlice.end !== this.slice.end
+    ) {
+      this.player.buffer.set(
+        this.sampler.buffer.slice(this.slice.start, this.slice.end)
+      );
+    }
 
-    this.updateSequence();
     this.emit('chain-updated', this);
   }
+
+  ensurePatternExists(slice: Slice, index: number) {
+    if (slice.patterns.length < index + 1) {
+      return {
+        ...slice,
+        patterns: [
+          ...slice.patterns,
+          ...Array.from({ length: index + 1 - slice.patterns.length }).map(
+            () => ({
+              subdivision: 16,
+              subdivisionType: 'n' as const,
+              steps: Array.from({ length: 16 }).map(() => ({
+                actions: [],
+              })),
+            })
+          ),
+        ],
+      };
+    }
+    return slice;
+  }
+
+  setCurrentPatternIndex = (index: number) => {
+    if (this.slice.patterns.length < index + 1) {
+      this.setSlice(this.ensurePatternExists(this.slice, index));
+    } else {
+      this.sequence.events = this.getCurrentPattern().steps;
+    }
+  };
 
   getSlice() {
     return this.slice;
@@ -107,12 +173,6 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
   }
 
   play(time?: number) {
-    const { slice } = this;
-    if (!slice) return;
-
-    this.player.playbackRate = slice.playbackSpeed ?? 1;
-    this.player.reverse = slice.reverse ?? false;
-
     this.player.start(time);
   }
 

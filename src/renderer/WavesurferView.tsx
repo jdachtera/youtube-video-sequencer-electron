@@ -1,4 +1,10 @@
-import { createSignal, createEffect, onMount, onCleanup } from 'solid-js';
+import {
+  createSignal,
+  createEffect,
+  onMount,
+  onCleanup,
+  untrack,
+} from 'solid-js';
 
 import { debounce } from 'ts-debounce';
 
@@ -16,18 +22,18 @@ type WavesurferViewProps = {
 };
 
 export const WavesurferView = (props: WavesurferViewProps) => {
-  const [zoom, setZoom] = createSignal(0);
+  const [zoom, setZoom] = createSignal(untrack(() => props.sampler.zoom));
 
   let waveformRef: HTMLDivElement | undefined;
   let timelineRef: HTMLDivElement | undefined;
   let wavesurfer: Wavesurfer;
 
   const handleZoomChanged = (event: { currentTarget: HTMLInputElement }) =>
-    setZoom(event.currentTarget.valueAsNumber);
+    props.sampler.setZoom(event.currentTarget.valueAsNumber);
 
   const scrollZoom = (event: WheelEvent) => {
     event.preventDefault();
-    setZoom(Math.min(Math.max(zoom() + event.deltaY, 1), 300));
+    props.sampler.setZoom(Math.min(Math.max(zoom() + event.deltaY, 1), 300));
   };
 
   const handleChainAdded = (chain: SliceChain) => {
@@ -77,9 +83,13 @@ export const WavesurferView = (props: WavesurferViewProps) => {
       volume: 1,
       color,
       patterns: [
-        Array.from({ length: 16 }).map(() => ({
-          actions: [],
-        })),
+        {
+          subdivision: 16,
+          subdivisionType: 'n',
+          steps: Array.from({ length: 16 }).map(() => ({
+            actions: [],
+          })),
+        },
       ],
     };
 
@@ -109,10 +119,12 @@ export const WavesurferView = (props: WavesurferViewProps) => {
 
   onMount(() => {
     wavesurfer = Wavesurfer.create({
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       container: waveformRef!,
       plugins: [
         RegionsPlugin.create({}),
         TimelinePlugin.create({
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           container: timelineRef!,
           zoomDebounce: 200,
         }),
@@ -164,12 +176,14 @@ export const WavesurferView = (props: WavesurferViewProps) => {
     props.sampler.on('chain-added', handleChainAdded);
     props.sampler.on('chain-removed', handleChainRemoved);
     props.sampler.on('chain-updated', handleChainUpdated);
+    props.sampler.on('zoom-updated', setZoom);
   });
 
   onCleanup(() => {
-    props.sampler.on('chain-added', handleChainAdded);
-    props.sampler.on('chain-removed', handleChainRemoved);
-    props.sampler.on('chain-updated', handleChainUpdated);
+    props.sampler.off('chain-added', handleChainAdded);
+    props.sampler.off('chain-removed', handleChainRemoved);
+    props.sampler.off('chain-updated', handleChainUpdated);
+    props.sampler.off('zoom-updated', setZoom);
   });
 
   createEffect(() => {
@@ -186,8 +200,8 @@ export const WavesurferView = (props: WavesurferViewProps) => {
 
   return (
     <>
-      <div ref={waveformRef} className="lcd" style={{ margin: '2px' }} />
-      <div ref={timelineRef} className="lcd" style={{ margin: '2px' }} />
+      <div ref={waveformRef} class="lcd" style={{ margin: '2px' }} />
+      <div ref={timelineRef} class="lcd" style={{ margin: '2px' }} />
       <input
         onChange={handleZoomChanged}
         value={zoom()}

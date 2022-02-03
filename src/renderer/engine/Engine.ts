@@ -17,11 +17,11 @@ interface EngineEvents {
 export class Engine extends TypedEmitter<EngineEvents> {
   protected samplers = new Map<string, Sampler>();
 
-  public currentPatternIndex: number = 0;
+  public currentPatternIndex = 0;
 
-  public bpm: number = 120;
+  public bpm = 120;
 
-  public swing: number = 0;
+  public swing = 0;
 
   constructor(protected transport: Transport) {
     super();
@@ -83,25 +83,7 @@ export class Engine extends TypedEmitter<EngineEvents> {
   setCurrentPatternIndex(index: number) {
     this.currentPatternIndex = index;
     this.samplers.forEach((sampler) => {
-      sampler.chains.forEach((chain) => {
-        const slice = chain.getSlice();
-        if (slice.patterns.length < index + 1) {
-          chain.setSlice({
-            ...slice,
-            patterns: [
-              ...slice.patterns,
-              ...Array.from({ length: index + 1 - slice.patterns.length }).map(
-                () =>
-                  Array.from({ length: 16 }).map(() => ({
-                    actions: [],
-                  }))
-              ),
-            ],
-          });
-        } else {
-          chain.updateSequence();
-        }
-      });
+      sampler.setCurrentPatternIndex(index);
     });
     this.emit('current-pattern-index-updated', index);
   }
@@ -158,9 +140,9 @@ export class Engine extends TypedEmitter<EngineEvents> {
     });
   }
 
-  stop(time?: Time | undefined, offset?: number | undefined) {
+  stop(time?: Time | undefined) {
     this.samplers.forEach((sampler) => {
-      sampler.chains.forEach((chain) => chain.getSequence().stop());
+      sampler.chains.forEach((chain) => chain.getSequence().stop(time));
     });
   }
 }

@@ -16,7 +16,7 @@ type SequencerStepProps = {
 
 export const SequencerStep = (props: SequencerStepProps) => (
   <li
-    className={cx(
+    class={cx(
       sequencerStepBaseStyles,
       // eslint-disable-next-line no-nested-ternary
       props.step.actions.length
