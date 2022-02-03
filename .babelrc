@@ -1,0 +1,13 @@
+{
+  "presets": [
+    [
+      "@babel/preset-env",
+      {
+        "targets": { "electron": "16.0.5" }
+      }
+    ],
+    "babel-preset-solid",
+    "@babel/preset-typescript"
+  ],
+  "plugins": ["@babel/plugin-proposal-optional-chaining"]
+}
