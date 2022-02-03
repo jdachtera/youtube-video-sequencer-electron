@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { createSignal, onMount, onCleanup, For } from 'solid-js';
+import { createSignal, onMount, onCleanup, For, untrack } from 'solid-js';
 
 import { Region } from 'wavesurfer.js/src/plugin/regions';
 import { Transport } from 'tone';
@@ -17,25 +17,20 @@ import { SliceChain } from './engine/SliceChain';
 export const VideoPlayer = (props: { sampler: Sampler }) => {
   const [selectedSlice, setSelectedSlice] = createSignal<Slice>();
   const [currentPatternIndex, setCurrentPatternIndex] = createSignal(
-    props.sampler.getEngine().currentPatternIndex
+    untrack(() => props.sampler.getEngine().currentPatternIndex)
   );
   const [chains, setChains] = createSignal<SliceChain[]>(
-    props.sampler.getChains()
+    untrack(() => props.sampler.getChains())
   );
   const [waveformCenter, setWaveformCenter] = createSignal(0);
   const [length, setLength] = createSignal(0);
 
-  // eslint-disable-next-line react/sort-comp
   const stopPlayer = () => {
     props.sampler.stop();
   };
 
   const handleSamplerChanged = () => {
     setChains(props.sampler.getChains());
-  };
-
-  const handleRemoveSampler = () => {
-    props.sampler.getEngine().removeSampler(props.sampler.url);
   };
 
   onMount(async () => {
@@ -77,6 +72,10 @@ export const VideoPlayer = (props: { sampler: Sampler }) => {
     };
 
     updateSlice(updatedSlice);
+  };
+
+  const handleRemoveSampler = () => {
+    props.sampler.getEngine().removeSampler(props.sampler.url);
   };
 
   const handleClickSlice = async (slice: Slice) => {
@@ -131,7 +130,7 @@ export const VideoPlayer = (props: { sampler: Sampler }) => {
   });
 
   return (
-    <div className="border p-4 m-4">
+    <div class="border p-4 m-4">
       <div style={{ display: 'flex' }}>
         <RackEar />
         <div
@@ -143,11 +142,11 @@ export const VideoPlayer = (props: { sampler: Sampler }) => {
           }}
         >
           <div>Length: {length()}s</div>
-          <div className="flex flex-col w-full">
-            <div className="mb-2 w-full">
-              <label className="mr-2 w-full">Youtube URL</label>
+          <div class="flex flex-col w-full">
+            <div class="mb-2 w-full">
+              <label class="mr-2 w-full">Youtube URL</label>
               <input
-                className="border w-2/3 lcd"
+                class="border w-2/3 lcd"
                 type="text"
                 disabled
                 value={props.sampler.url}

@@ -1,10 +1,11 @@
 module.exports = {
   parser: '@typescript-eslint/parser',
-  plugins: ['import', 'solid'],
+  plugins: ['@typescript-eslint', 'promise', 'import', 'solid'],
   extends: [
     'eslint:recommended',
+    'plugin:promise/recommended',
+    'plugin:@typescript-eslint/recommended',
     'plugin:import/recommended',
-
     'plugin:import/typescript',
     'plugin:solid/typescript',
   ],

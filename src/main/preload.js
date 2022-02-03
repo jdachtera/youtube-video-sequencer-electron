@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 const { contextBridge, ipcRenderer } = require('electron');
 const ytdl = require('ytdl-core');
 
@@ -25,12 +26,17 @@ contextBridge.exposeInMainWorld('electron', {
 
 contextBridge.exposeInMainWorld('yt', {
   getYouTubeVideoSource: async (url) => {
-    const result = await ytdl.getInfo(url);
+    try {
+      const result = await ytdl.getInfo(url);
 
-    const sourceUrl = result.formats.find((entry) =>
-      entry.mimeType.startsWith('audio/webm')
-    )?.url;
+      const sourceUrl = result.formats.find((entry) =>
+        entry.mimeType.startsWith('audio/webm')
+      )?.url;
 
-    return sourceUrl;
+      return sourceUrl;
+    } catch (e) {
+      console.dir(e);
+      throw e;
+    }
   },
 });

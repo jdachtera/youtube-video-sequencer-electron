@@ -21,18 +21,6 @@ const configuration: webpack.Configuration = {
         use: {
           loader: 'babel-loader',
           options: {
-            babelrc: false,
-            presets: [
-              [
-                '@babel/preset-env',
-                {
-                  targets: { electron: '16.0.5' },
-                },
-              ],
-              'solid',
-              '@babel/preset-typescript',
-            ],
-            plugins: ['@babel/plugin-proposal-optional-chaining'],
             cacheDirectory: true,
             cacheCompression: !IS_DEVELOP,
             compact: !IS_DEVELOP,

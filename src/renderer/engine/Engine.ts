@@ -17,11 +17,11 @@ interface EngineEvents {
 export class Engine extends TypedEmitter<EngineEvents> {
   protected samplers = new Map<string, Sampler>();
 
-  public currentPatternIndex: number = 0;
+  public currentPatternIndex = 0;
 
-  public bpm: number = 120;
+  public bpm = 120;
 
-  public swing: number = 0;
+  public swing = 0;
 
   constructor(protected transport: Transport) {
     super();
@@ -158,9 +158,9 @@ export class Engine extends TypedEmitter<EngineEvents> {
     });
   }
 
-  stop(time?: Time | undefined, offset?: number | undefined) {
+  stop(time?: Time | undefined) {
     this.samplers.forEach((sampler) => {
-      sampler.chains.forEach((chain) => chain.getSequence().stop());
+      sampler.chains.forEach((chain) => chain.getSequence().stop(time));
     });
   }
 }

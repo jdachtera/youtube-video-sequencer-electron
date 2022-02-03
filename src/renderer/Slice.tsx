@@ -1,4 +1,10 @@
-import { createSignal, onMount, onCleanup } from 'solid-js';
+import {
+  createSignal,
+  onMount,
+  onCleanup,
+  createMemo,
+  untrack,
+} from 'solid-js';
 
 import { css } from '@emotion/css';
 import { Step } from './SequencerStep';
@@ -21,8 +27,8 @@ export type Slice = {
 };
 
 const FormattedTime = (props: { timeInSeconds: number }) => {
-  const minutes = Math.floor(props.timeInSeconds / 60);
-  const seconds = Math.round(props.timeInSeconds % 60);
+  const minutes = createMemo(() => Math.floor(props.timeInSeconds / 60));
+  const seconds = createMemo(() => Math.round(props.timeInSeconds % 60));
 
   return (
     <>{`${minutes.toString().padStart(2, '0')}:${seconds
@@ -40,7 +46,7 @@ export const VideoSlice = (props: {
   onRemoveSlice: (slice: Slice) => void;
   onUpdateSteps: (slice: Slice, steps: Step[]) => void;
 }) => {
-  const [slice, setSlice] = createSignal(props.chain.getSlice());
+  const [slice, setSlice] = createSignal(untrack(() => props.chain.getSlice()));
 
   const handleUpdateVolume = (event: { currentTarget: HTMLInputElement }) => {
     props.chain.setSlice({
@@ -105,7 +111,7 @@ export const VideoSlice = (props: {
   return (
     <li
       style={{ background: slice().color }}
-      className={css`
+      class={css`
         box-shadow: inset 0 0 5px #000;
       `}
       classList={{
@@ -123,13 +129,13 @@ export const VideoSlice = (props: {
             padding: '8px',
           }}
         >
-          <span className="lcd" style={{ margin: '8px', width: '300px' }}>
+          <span class="lcd" style={{ margin: '8px', width: '300px' }}>
             {slice().id}
           </span>
           <FormattedTime timeInSeconds={slice().start} /> -{' '}
           <FormattedTime timeInSeconds={slice().end} />
           <input
-            className="lcd"
+            class="lcd"
             type="number"
             step="1"
             min="4"
@@ -137,7 +143,7 @@ export const VideoSlice = (props: {
             value={slice().patterns[props.currentPatternIndex].length}
             onChange={handleUpdateSequenceLength}
           />
-          <span className="lcd">{slice().volume}</span>
+          <span class="lcd">{slice().volume}</span>
           <input
             type="range"
             min="0"
@@ -147,7 +153,7 @@ export const VideoSlice = (props: {
             onChange={handleUpdateVolume}
             style="-webkit-appearance: slider-vertical"
           />
-          <span className="lcd">{slice().playbackSpeed}</span>
+          <span class="lcd">{slice().playbackSpeed}</span>
           <input
             type="range"
             min="0"

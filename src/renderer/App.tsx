@@ -1,5 +1,5 @@
 import { createSignal, onMount, createEffect, onCleanup, For } from 'solid-js';
-import { Offline, Time, Transport } from 'tone';
+import { Offline, Transport } from 'tone';
 import { debounce } from 'ts-debounce';
 import bufferToWav from 'audiobuffer-to-wav';
 
@@ -111,8 +111,10 @@ export function App() {
       offlineContext.transport.start();
     }, timeToRender);
 
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     offlineEngine!.dispose();
 
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const wav = bufferToWav(buffer.get()!);
     const blob = new window.Blob([new DataView(wav)], {
       type: 'audio/wav',
@@ -188,8 +190,8 @@ export function App() {
   });
 
   return (
-    <div className="App">
-      <div className="main-controls">
+    <div class="App">
+      <div class="main-controls">
         <button type="button" onClick={togglePlay}>
           {isPlaying() ? 'Stop' : 'Play'}
         </button>

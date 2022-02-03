@@ -1,3 +1,5 @@
+import { For, Match, Switch } from 'solid-js';
+
 export type Action =
   | {
       type: 'PLAY';
@@ -74,28 +76,31 @@ const SequencerActionFields = (props: {
   action: Action;
   onChange: (action: Action) => void;
 }) => {
-  switch (props.action.type) {
-    case 'PLAY':
-      return (
-        <SequencerPlayAction action={props.action} onChange={props.onChange} />
-      );
-    case 'SET_PLAYBACK_SPEED':
-      return (
-        <SequencerSetPlaybackSpeedAction
-          action={props.action}
-          onChange={props.onChange}
-        />
-      );
-    case 'SET_REVERSE':
-      return (
-        <SequencerSetReverseAction
-          action={props.action}
-          onChange={props.onChange}
-        />
-      );
-    default:
-      return null;
-  }
+  return (
+    <Switch>
+      <Match when={props.action.type === 'PLAY' && props.action}>
+        {(action) => (
+          <SequencerPlayAction action={action} onChange={props.onChange} />
+        )}
+      </Match>
+      <Match when={props.action.type === 'SET_PLAYBACK_SPEED' && props.action}>
+        {(action) => (
+          <SequencerSetPlaybackSpeedAction
+            action={action}
+            onChange={props.onChange}
+          />
+        )}
+      </Match>
+      <Match when={props.action.type === 'SET_REVERSE' && props.action}>
+        {(action) => (
+          <SequencerSetReverseAction
+            action={action}
+            onChange={props.onChange}
+          />
+        )}
+      </Match>
+    </Switch>
+  );
 };
 
 export function createNewAction(actionType: Action['type']): Action {
@@ -143,14 +148,16 @@ export const SequencerAction = (props: {
   return (
     <div>
       <select onChange={handleActionTypeChange}>
-        {actionTypes.map((actionType) => (
-          <option
-            value={actionType}
-            selected={props.action.type === actionType}
-          >
-            {actionType}
-          </option>
-        ))}
+        <For each={actionTypes}>
+          {(actionType) => (
+            <option
+              value={actionType}
+              selected={props.action.type === actionType}
+            >
+              {actionType}
+            </option>
+          )}
+        </For>
       </select>
 
       <SequencerActionFields action={props.action} onChange={handleChange} />

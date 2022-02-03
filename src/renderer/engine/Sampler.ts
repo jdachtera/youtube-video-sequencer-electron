@@ -69,7 +69,13 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
   }
 
   private async load() {
-    const sourceUrl = await yt.getYouTubeVideoSource(this.url);
+    let sourceUrl;
+    try {
+      sourceUrl = await yt.getYouTubeVideoSource(this.url);
+    } catch (e) {
+      console.dir(e);
+      throw e;
+    }
 
     await this.buffer.load(sourceUrl);
   }

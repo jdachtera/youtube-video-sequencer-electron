@@ -109,10 +109,12 @@ export const WavesurferView = (props: WavesurferViewProps) => {
 
   onMount(() => {
     wavesurfer = Wavesurfer.create({
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       container: waveformRef!,
       plugins: [
         RegionsPlugin.create({}),
         TimelinePlugin.create({
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           container: timelineRef!,
           zoomDebounce: 200,
         }),
@@ -186,8 +188,8 @@ export const WavesurferView = (props: WavesurferViewProps) => {
 
   return (
     <>
-      <div ref={waveformRef} className="lcd" style={{ margin: '2px' }} />
-      <div ref={timelineRef} className="lcd" style={{ margin: '2px' }} />
+      <div ref={waveformRef} class="lcd" style={{ margin: '2px' }} />
+      <div ref={timelineRef} class="lcd" style={{ margin: '2px' }} />
       <input
         onChange={handleZoomChanged}
         value={zoom()}
