@@ -1,4 +1,10 @@
-import { createSignal, createEffect, onMount, onCleanup } from 'solid-js';
+import {
+  createSignal,
+  createEffect,
+  onMount,
+  onCleanup,
+  untrack,
+} from 'solid-js';
 
 import { debounce } from 'ts-debounce';
 
@@ -16,18 +22,18 @@ type WavesurferViewProps = {
 };
 
 export const WavesurferView = (props: WavesurferViewProps) => {
-  const [zoom, setZoom] = createSignal(0);
+  const [zoom, setZoom] = createSignal(untrack(() => props.sampler.zoom));
 
   let waveformRef: HTMLDivElement | undefined;
   let timelineRef: HTMLDivElement | undefined;
   let wavesurfer: Wavesurfer;
 
   const handleZoomChanged = (event: { currentTarget: HTMLInputElement }) =>
-    setZoom(event.currentTarget.valueAsNumber);
+    props.sampler.setZoom(event.currentTarget.valueAsNumber);
 
   const scrollZoom = (event: WheelEvent) => {
     event.preventDefault();
-    setZoom(Math.min(Math.max(zoom() + event.deltaY, 1), 300));
+    props.sampler.setZoom(Math.min(Math.max(zoom() + event.deltaY, 1), 300));
   };
 
   const handleChainAdded = (chain: SliceChain) => {
@@ -170,12 +176,14 @@ export const WavesurferView = (props: WavesurferViewProps) => {
     props.sampler.on('chain-added', handleChainAdded);
     props.sampler.on('chain-removed', handleChainRemoved);
     props.sampler.on('chain-updated', handleChainUpdated);
+    props.sampler.on('zoom-updated', setZoom);
   });
 
   onCleanup(() => {
-    props.sampler.on('chain-added', handleChainAdded);
-    props.sampler.on('chain-removed', handleChainRemoved);
-    props.sampler.on('chain-updated', handleChainUpdated);
+    props.sampler.off('chain-added', handleChainAdded);
+    props.sampler.off('chain-removed', handleChainRemoved);
+    props.sampler.off('chain-updated', handleChainUpdated);
+    props.sampler.off('zoom-updated', setZoom);
   });
 
   createEffect(() => {

@@ -12,6 +12,8 @@ interface SamplerEvents {
   'chain-added': (chain: SliceChain) => void;
   'chain-removed': (chain: SliceChain) => void;
   'chain-updated': (chain: SliceChain) => void;
+  'zoom-updated': (zoom: number) => void;
+  'volume-updated': (volume: number) => void;
   change: () => void;
 }
 
@@ -59,6 +61,8 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
     this.on('chain-added', () => this.emit('change'));
     this.on('chain-removed', () => this.emit('change'));
     this.on('chain-updated', () => this.emit('change'));
+    this.on('zoom-updated', () => this.emit('change'));
+    this.on('volume-updated', () => this.emit('change'));
   }
 
   protected async addSlicesWhenLoaded(slices: Slice[]) {
@@ -132,6 +136,16 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
 
   getEngine() {
     return this.engine;
+  }
+
+  setVolume(volume: number) {
+    this.gain.gain.value = volume;
+    this.emit('volume-updated', volume);
+  }
+
+  setZoom(zoom: number) {
+    this.zoom = zoom;
+    this.emit('zoom-updated', zoom);
   }
 
   serialize() {
