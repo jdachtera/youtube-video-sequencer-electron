@@ -31,6 +31,7 @@ export type Slice = {
   reverse?: boolean;
   color: string;
   patterns: Pattern[];
+  name: string;
 };
 
 const subdivisions = [
@@ -81,12 +82,34 @@ export const VideoSlice = (props: {
     });
   };
 
-  const handleUpdateReverse = (event: { currentTarget: HTMLInputElement }) => {
+  const handleUpdateSampleStart = (event: {
+    currentTarget: HTMLInputElement;
+  }) => {
+    props.chain.setSlice({
+      ...slice(),
+      start: event.currentTarget.valueAsNumber,
+    });
+  };
+
+  const handleUpdateSampleEnd = (event: {
+    currentTarget: HTMLInputElement;
+  }) => {
+    props.chain.setSlice({
+      ...slice(),
+      end: event.currentTarget.valueAsNumber,
+    });
+  };
+
+  const handleUpdateReverse = (event: { currentTarget:HTMLInputElement }) => {
     props.chain.setSlice({ ...slice(), reverse: event.currentTarget.checked });
   };
 
   const handleChainUpdated = () => {
     setSlice(props.chain.getSlice());
+  };
+
+  const handleUpdateName = (event: { currentTarget:HTMLInputElement }) => {
+    props.chain.setSlice({ ...slice(), name: event.currentTarget.value });
   };
 
   onMount(() => props.chain.on('chain-updated', handleChainUpdated));
@@ -159,44 +182,72 @@ export const VideoSlice = (props: {
         <div
           style={{
             width: '100%',
-            display: 'flex',
+            //display: 'flex',
             alignItems: 'center',
             padding: '8px',
           }}
         >
-          <span class="lcd" style={{ margin: '8px', width: '300px' }}>
-            {slice().id}
-          </span>
+          <input onChange={handleUpdateName} class="lcd" style={{ margin: '8px', width: '300px' }}>
+            {slice().name}
+          </input>
           <FormattedTime timeInSeconds={slice().start} /> -{' '}
           <FormattedTime timeInSeconds={slice().end} />
           <input
             class="lcd"
             type="number"
             step="1"
-            min="4"
-            max="64"
+            min="1"
+            max="1024"
             value={currentPattern()?.steps?.length}
             onChange={handleUpdateSequenceLength}
           />
-          <span class="lcd">{slice().volume}</span>
+          {/* <span class="lcd">{slice().volume}</span> */}
+          Volume:
           <input
-            type="range"
+            type="number"
             min="0"
-            max="3"
-            step="0.1"
+            max="2"
+            step="0.01"
             value={slice().volume}
             onChange={handleUpdateVolume}
             style="-webkit-appearance: slider-vertical"
+            className="lcd"
           />
-          <span class="lcd">{slice().playbackSpeed}</span>
+          {/* <span class="lcd">{slice().playbackSpeed}</span> */}
+          Pitch:
           <input
-            type="range"
+            type="number"
             min="0"
             max="3"
-            step="0.1"
+            step="0.01"
             value={slice().playbackSpeed}
             onChange={handleUpdatePlaybackSpeed}
-            style="-webkit-appearance: slider-vertical"
+            className="lcd"
+            //style="-webkit-appearance: slider-vertical"
+          />
+          Start:
+          <input
+            type="number"
+            //min="0"
+            //max="3"
+            step="0.001"
+            value={slice().start}
+            onChange={handleUpdateSampleStart}
+            className="lcd"
+            style="width: 200px"
+            //style="-webkit-appearance: slider-vertical"
+          />
+          End:
+          <input
+            type="number"
+            //min="0"
+            //max="3"
+            step="0.001"
+            value={slice().end}
+            onChange={handleUpdateSampleEnd}
+            className="lcd"
+            style="width: 200px"
+            //style="-webkit-appearance: slider-vertical"
           />
           Reverse:
           <input

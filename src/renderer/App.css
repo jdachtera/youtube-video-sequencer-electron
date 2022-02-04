@@ -8,3 +8,20 @@ html, body, ol, ul {
 .video-js {
   width: 500px !important;
 }
+
+input[type=number]::-webkit-inner-spin-button {
+  opacity: 1;
+  background-color: red;
+  border: 8px solid red;
+  margin: 0;
+  padding: 0;
+  content: "\e823";
+  color: rgba(0, 0, 0, 0.54);
+}
+input[type=number]::-webkit-outher-spin-button {
+  opacity: 1;
+  background-color: red;
+  border: 8px solid red;
+  margin: 0;
+  padding: 0;
+}

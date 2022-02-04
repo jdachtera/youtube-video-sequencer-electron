@@ -42,12 +42,29 @@ const sequencerStepBaseStyles = css`
   margin: 2px;
   border-radius: 4px;
   border: 3px outset #eee;
+  //box-shadow: 0px 0px 1px 1px rgb(198, 198, 198);
   background: rgb(198, 198, 198);
   background: linear-gradient(
     138deg,
     rgb(219, 204, 174) 10%,
     rgba(255, 255, 255, 1) 100%
   );
+  &:nth-of-type(8n+5),
+  &:nth-of-type(8n+6),
+  &:nth-of-type(8n+7),
+  &:nth-of-type(8n+8)
+
+  //&:nth-of-type(10n+6),
+  //&:nth-of-type(10n+7),
+  //&:nth-of-type(10n+8)
+  {
+    /* background: red !important; */
+    background: linear-gradient(
+      138deg,
+      rgb(182, 176, 164) 10%,
+      rgba(255, 255, 255, 1) 100%
+    );
+   };
 `;
 
 const sequencerStepActiveStyles = css`
@@ -59,6 +76,24 @@ const sequencerStepActiveStyles = css`
     rgb(255, 184, 143) 10%,
     rgb(255, 122, 78) 80%
   );
+  &:nth-of-type(8n+5),
+  &:nth-of-type(8n+6),
+  &:nth-of-type(8n+7),
+  &:nth-of-type(8n+8)
+
+  //&:nth-of-type(10n+6),
+  //&:nth-of-type(10n+7),
+  //&:nth-of-type(10n+8)
+  {
+    /* background: red !important; */
+    border: 3px outset #52c723;
+
+    background: radial-gradient(
+      circle,
+      rgb(229, 255, 143) 10%,
+      rgb(24, 255, 36) 80%
+  );
+   };
 `;
 
 const sequencerStepHalfActiveStyles = css`
