@@ -92,7 +92,7 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
   createChain(slice: Slice) {
     const chain = new SliceChain(this, slice);
 
-    chain.gain.connect(this.gain);
+    chain.solo.connect(this.gain);
     chain.on('chain-updated', (updatedChain) => {
       this.emit('chain-updated', updatedChain);
     });

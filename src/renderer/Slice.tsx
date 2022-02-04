@@ -26,12 +26,13 @@ export type Slice = {
   id: string;
   start: number;
   end: number;
-  volume?: number;
-  playbackSpeed?: number;
-  reverse?: boolean;
+  volume: number;
+  playbackSpeed: number;
+  reverse: boolean;
   color: string;
   patterns: Pattern[];
   name: string;
+  solo: boolean;
 };
 
 const subdivisions = [
@@ -66,13 +67,6 @@ export const VideoSlice = (props: {
     () => slice().patterns[props.currentPatternIndex]
   );
 
-  const handleUpdateVolume = (event: { currentTarget: HTMLInputElement }) => {
-    props.chain.setSlice({
-      ...slice(),
-      volume: event.currentTarget.valueAsNumber,
-    });
-  };
-
   const handleUpdatePlaybackSpeed = (event: {
     currentTarget: HTMLInputElement;
   }) => {
@@ -100,15 +94,19 @@ export const VideoSlice = (props: {
     });
   };
 
-  const handleUpdateReverse = (event: { currentTarget:HTMLInputElement }) => {
+  const handleUpdateReverse = (event: { currentTarget: HTMLInputElement }) => {
     props.chain.setSlice({ ...slice(), reverse: event.currentTarget.checked });
+  };
+
+  const handleUpdateSolo = (event: { currentTarget: HTMLInputElement }) => {
+    props.chain.setSlice({ ...slice(), solo: event.currentTarget.checked });
   };
 
   const handleChainUpdated = () => {
     setSlice(props.chain.getSlice());
   };
 
-  const handleUpdateName = (event: { currentTarget:HTMLInputElement }) => {
+  const handleUpdateName = (event: { currentTarget: HTMLInputElement }) => {
     props.chain.setSlice({ ...slice(), name: event.currentTarget.value });
   };
 
@@ -187,9 +185,12 @@ export const VideoSlice = (props: {
             padding: '8px',
           }}
         >
-          <input onChange={handleUpdateName} class="lcd" style={{ margin: '8px', width: '300px' }}>
-            {slice().name}
-          </input>
+          <input
+            onChange={handleUpdateName}
+            class="lcd"
+            style={{ margin: '8px', width: '300px' }}
+            value={slice().name}
+          />
           <FormattedTime timeInSeconds={slice().start} /> -{' '}
           <FormattedTime timeInSeconds={slice().end} />
           <input
@@ -209,7 +210,12 @@ export const VideoSlice = (props: {
             max="2"
             step="0.01"
             value={slice().volume}
-            onChange={handleUpdateVolume}
+            onChange={(event) => {
+              props.chain.setSlice({
+                ...slice(),
+                volume: event.currentTarget.valueAsNumber,
+              });
+            }}
             style="-webkit-appearance: slider-vertical"
             className="lcd"
           />
@@ -254,6 +260,12 @@ export const VideoSlice = (props: {
             type="checkbox"
             checked={slice().reverse}
             onChange={handleUpdateReverse}
+          />
+          Solo:
+          <input
+            type="checkbox"
+            checked={slice().solo}
+            onChange={handleUpdateSolo}
           />
           <button type="button" onClick={handleClickSlice}>
             Play

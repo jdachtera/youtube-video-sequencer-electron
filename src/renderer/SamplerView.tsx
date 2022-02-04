@@ -13,7 +13,7 @@ import { Sampler } from './engine/Sampler';
 import { WavesurferView } from './WavesurferView';
 import { SliceChain } from './engine/SliceChain';
 
-export const VideoPlayer = (props: { sampler: Sampler }) => {
+export const SamplerView = (props: { sampler: Sampler }) => {
   const [selectedSlice, setSelectedSlice] = createSignal<Slice>();
   const [currentPatternIndex, setCurrentPatternIndex] = createSignal(
     untrack(() => props.sampler.getEngine().currentPatternIndex)

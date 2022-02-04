@@ -15,9 +15,9 @@ import './App.css';
 import { Engine } from './engine/Engine';
 import { Sampler } from './engine/Sampler';
 
-import { VideoPlayer } from './VideoPlayer';
+import { SamplerView } from './SamplerView';
 import { normalizeData } from './engine/normalizeData';
-import { theme } from 'theme';
+import { theme } from './theme';
 
 const engine = new Engine(Transport);
 
@@ -254,7 +254,7 @@ export function App() {
           </button>
           Load JSON: <input type="file" onChange={loadJSON} accept=".json" />
           <For each={samplers()}>
-            {(sampler) => <VideoPlayer sampler={sampler} />}
+            {(sampler) => <SamplerView sampler={sampler} />}
           </For>
         </ErrorBoundary>
       </div>

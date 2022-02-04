@@ -1,5 +1,6 @@
 import { css } from 'solid-styled-components';
 import { Action } from './SequencerAction';
+import { useTheme } from './theme';
 
 export type Step = {
   actions: Action[];
@@ -97,10 +98,15 @@ const sequencerStepIsCurrentStyles = css`
   ) !important;
 `;
 
-const sequencerStepIsSelectedStyles = css`
-  box-shadow: 0px 0px 6px white;
-  border: 3px outset white;
-`;
+const sequencerStepIsSelectedStyles = () => {
+  const theme = useTheme();
+
+  return css`
+    box-shadow: 0px 0px 6px white;
+    border: 3px outset white;
+    background-color: ${theme.colors.primary};
+  `;
+};
 
 export const SequencerStep = (props: SequencerStepProps) => (
   <li
@@ -113,7 +119,7 @@ export const SequencerStep = (props: SequencerStepProps) => (
         !!props.step.actions.length &&
         !props.step.actions.find(({ type }) => type === 'PLAY'),
       [sequencerStepIsCurrentStyles]: props.isCurrent,
-      [sequencerStepIsSelectedStyles]: props.isSelected,
+      [sequencerStepIsSelectedStyles()]: props.isSelected,
     }}
     onClick={() => props?.onClick?.(props.step)}
     onDblClick={() => props?.onDblClick?.(props.step)}

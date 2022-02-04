@@ -1,4 +1,4 @@
-import { Gain, getDraw, Player, Sequence, Transport } from 'tone';
+import { Gain, getDraw, Player, Sequence, Solo, Transport } from 'tone';
 import { TypedEmitter } from 'tiny-typed-emitter';
 
 import type { Step } from '../SequencerStep';
@@ -17,6 +17,8 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
 
   gain = new Gain();
 
+  solo = new Solo();
+
   protected sequence: Sequence<Step>;
 
   constructor(protected sampler: Sampler, protected slice: Slice) {
@@ -24,6 +26,7 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
 
     this.player = new Player(this.sampler.buffer.slice(slice.start, slice.end));
     this.player.connect(this.gain);
+    this.gain.connect(this.solo);
 
     this.sequence = this.createSequence();
 
@@ -90,6 +93,7 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
     this.gain.gain.value = this.slice.volume ?? 1;
     this.player.playbackRate = this.slice.playbackSpeed ?? 1;
     this.player.reverse = this.slice.reverse ?? false;
+    this.solo.solo = this.slice.solo ?? false;
 
     const currentPattern = this.getCurrentPattern(this.slice);
     const previousPattern = this.getCurrentPattern(previousSlice);

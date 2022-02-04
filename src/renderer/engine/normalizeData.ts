@@ -23,8 +23,9 @@ export const normalizePatternData = (
   ).map(normalizeStepData),
 });
 
-export const normaliizeSliceData = (slice: Partial<Slice>): Slice => ({
+export const normalizeSliceData = (slice: Partial<Slice>): Slice => ({
   id: slice.id ?? createUniqueId(),
+  name: slice.name ?? '',
   color: slice.color ?? 'red',
   start: slice.start ?? 0,
   end: slice.end ?? 10,
@@ -34,6 +35,7 @@ export const normaliizeSliceData = (slice: Partial<Slice>): Slice => ({
   patterns: (Array.isArray(slice.patterns) ? slice.patterns : []).map(
     normalizePatternData
   ),
+  solo: slice.solo ?? false,
 });
 
 export const normalizeSamplerData = (
@@ -43,7 +45,7 @@ export const normalizeSamplerData = (
   volume: sampler.volume ?? 1,
   zoom: sampler.zoom ?? 0,
   slices: (Array.isArray(sampler.slices) ? sampler.slices : []).map(
-    normaliizeSliceData
+    normalizeSliceData
   ),
 });
 
