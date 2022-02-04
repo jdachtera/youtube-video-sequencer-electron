@@ -95,7 +95,6 @@ export const Sequencer = (props: {
               onClick={toggleStep}
               isSelected={step() === selectedStep()}
               isCurrent={step() === currentStep()}
-              // class={`step-${stepIndex}`}
             />
           )}
         </Index>

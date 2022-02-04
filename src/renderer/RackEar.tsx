@@ -1,4 +1,4 @@
-import { css } from '@emotion/css';
+import { css } from 'solid-styled-components';
 import ScrewHeadWithHole from '../../assets/svg/screw_head_with_hole.svg';
 
 const rackEarStyle = css`
@@ -22,17 +22,9 @@ const screwStyle = css`
 
 const RackEar = () => {
   return (
-    <div className={rackEarStyle}>
-      <img
-        alt="screw"
-        src={ScrewHeadWithHole}
-        className={screwStyle}
-      />
-      <img
-        alt="screw"
-        src={ScrewHeadWithHole}
-        className={screwStyle}
-      />
+    <div class={rackEarStyle}>
+      <img alt="screw" src={ScrewHeadWithHole} class={screwStyle} />
+      <img alt="screw" src={ScrewHeadWithHole} class={screwStyle} />
     </div>
   );
 };

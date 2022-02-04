@@ -1,5 +1,4 @@
-import { cx, css } from '@emotion/css';
-
+import { css } from 'solid-styled-components';
 import { Action } from './SequencerAction';
 
 export type Step = {
@@ -11,28 +10,8 @@ type SequencerStepProps = {
   isSelected: boolean;
   isCurrent: boolean;
   onClick?: (step: Step) => void;
-  onDoubleClick?: (step: Step) => void;
+  onDblClick?: (step: Step) => void;
 };
-
-export const SequencerStep = (props: SequencerStepProps) => (
-  <li
-    class={cx(
-      sequencerStepBaseStyles,
-      // eslint-disable-next-line no-nested-ternary
-      props.step.actions.length
-        ? props.step.actions.find(({ type }) => type === 'PLAY')
-          ? sequencerStepActiveStyles
-          : sequencerStepHalfActiveStyles
-        : null,
-      props.isCurrent ? sequencerStepIsCurrentStyles : null,
-      props.isSelected ? sequencerStepIsSelectedStyles : null
-    )}
-    onClick={() => props?.onClick?.(props.step)}
-    onDblClick={() => props?.onDoubleClick?.(props.step)}
-  >
-    &nbsp;
-  </li>
-);
 
 const sequencerStepBaseStyles = css`
   display: inline-block;
@@ -64,7 +43,7 @@ const sequencerStepBaseStyles = css`
       rgb(182, 176, 164) 10%,
       rgba(255, 255, 255, 1) 100%
     );
-   };
+  }
 `;
 
 const sequencerStepActiveStyles = css`
@@ -92,8 +71,8 @@ const sequencerStepActiveStyles = css`
       circle,
       rgb(229, 255, 143) 10%,
       rgb(24, 255, 36) 80%
-  );
-   };
+    );
+  }
 `;
 
 const sequencerStepHalfActiveStyles = css`
@@ -122,3 +101,23 @@ const sequencerStepIsSelectedStyles = css`
   box-shadow: 0px 0px 6px white;
   border: 3px outset white;
 `;
+
+export const SequencerStep = (props: SequencerStepProps) => (
+  <li
+    classList={{
+      [sequencerStepBaseStyles]: true,
+      [sequencerStepActiveStyles]: !!props.step.actions.find(
+        ({ type }) => type === 'PLAY'
+      ),
+      [sequencerStepHalfActiveStyles]:
+        !!props.step.actions.length &&
+        !props.step.actions.find(({ type }) => type === 'PLAY'),
+      [sequencerStepIsCurrentStyles]: props.isCurrent,
+      [sequencerStepIsSelectedStyles]: props.isSelected,
+    }}
+    onClick={() => props?.onClick?.(props.step)}
+    onDblClick={() => props?.onDblClick?.(props.step)}
+  >
+    &nbsp;
+  </li>
+);
