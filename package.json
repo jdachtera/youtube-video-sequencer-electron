@@ -1,6 +1,6 @@
 {
   "name": "electron-react-boilerplate",
-  "description": "A foundation for scalable desktop apps",
+  "description": "Youtube video Sequencer",
   "scripts": {
     "build": "concurrently \"npm run build:main\" \"npm run build:renderer\"",
     "build:main": "cross-env NODE_ENV=production TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.main.prod.ts",
@@ -93,20 +93,20 @@
     "url": "git+https://github.com/electron-react-boilerplate/electron-react-boilerplate.git"
   },
   "author": {
-    "name": "Electron React Boilerplate Maintainers",
-    "email": "electronreactboilerplate@gmail.com",
-    "url": "https://electron-react-boilerplate.js.org"
+    "name": "Youtube Video Sequencer",
+    "email": "jascha.dachtera@gmail.com",
+    "url": "https://github.com/jdachtera/youtube-video-sequencer-electron"
   },
   "contributors": [
     {
-      "name": "Amila Welihinda",
-      "email": "amilajack@gmail.com",
-      "url": "https://github.com/amilajack"
+      "name": "Jascha Dachtera",
+      "email": "jascha.dachtera@gmail.com",
+      "url": "https://github.com/jdachtera"
     },
     {
-      "name": "John Tran",
-      "email": "jptran318@gmail.com",
-      "url": "https://github.com/jooohhn"
+      "name": "Christian Sandner",
+      "email": "chris@pyracom.de",
+      "url": "https://github.com/pyracom"
     }
   ],
   "license": "MIT",

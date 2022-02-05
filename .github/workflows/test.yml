@@ -20,9 +20,9 @@ jobs:
           node-version: 16
           cache: npm
 
-      - name: npm install
+      - name: yarn install
         run: |
-          yarn install
+          yarn
 
       - name: yarn test
         env:
