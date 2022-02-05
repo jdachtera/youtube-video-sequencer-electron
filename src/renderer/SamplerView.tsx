@@ -178,7 +178,7 @@ export const SamplerView = (props: { sampler: Sampler }) => {
                     currentPatternIndex={currentPatternIndex()}
                     onClickSlice={handleClickSlice}
                     onRemoveSlice={handleRemoveSlice}
-                    onUpdateSequenceLength={updatePatternLength}
+                    onUpdatePatternLength={updatePatternLength}
                     onUpdatePattern={updatePattern}
                   />
                 )}

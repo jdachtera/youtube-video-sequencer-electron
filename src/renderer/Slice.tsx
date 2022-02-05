@@ -5,6 +5,7 @@ import {
   createMemo,
   untrack,
   For,
+  createEffect,
 } from 'solid-js';
 
 import { css } from 'solid-styled-components';
@@ -17,6 +18,7 @@ import { Action } from './SequencerAction';
 import type { SliceChain } from './engine/SliceChain';
 import { MoogKnobWithLabel } from './Knob';
 import { useAppTheme } from './theme';
+import { debounce } from 'ts-debounce';
 
 export type Pattern = {
   subdivision: number;
@@ -60,7 +62,7 @@ export const VideoSlice = (props: {
   currentPatternIndex: number;
   isSelected: boolean;
   onClickSlice: (slice: Slice) => void;
-  onUpdateSequenceLength: (slice: Slice, sequenceLength: number) => void;
+  onUpdatePatternLength: (slice: Slice, sequenceLength: number) => void;
   onRemoveSlice: (slice: Slice) => void;
   onUpdatePattern: (slice: Slice, pattern: Pattern) => void;
 }) => {
@@ -114,8 +116,8 @@ export const VideoSlice = (props: {
     props.onClickSlice(slice());
   };
 
-  const handleUpdateSequenceLength = (steps: number) => {
-    props.onUpdateSequenceLength(slice(), steps);
+  const handleUpdatePatternLength = (patternLength: number) => {
+    props.onUpdatePatternLength(slice(), patternLength);
   };
 
   const handleRemoveSlice = () => {
@@ -195,7 +197,7 @@ export const VideoSlice = (props: {
             max={1024}
             speed={1}
             value={currentPattern()?.steps?.length}
-            onChange={handleUpdateSequenceLength}
+            onChange={handleUpdatePatternLength}
           />
           <MoogKnobWithLabel
             min={0}
