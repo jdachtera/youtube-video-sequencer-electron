@@ -1,6 +1,6 @@
 import { css } from 'solid-styled-components';
 import { Action } from './SequencerAction';
-import { useTheme } from './theme';
+import { useAppTheme } from './theme';
 
 export type Step = {
   actions: Action[];
@@ -99,7 +99,7 @@ const sequencerStepIsCurrentStyles = css`
 `;
 
 const sequencerStepIsSelectedStyles = () => {
-  const theme = useTheme();
+  const theme = useAppTheme();
 
   return css`
     box-shadow: 0px 0px 6px white;

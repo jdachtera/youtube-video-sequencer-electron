@@ -15,6 +15,7 @@ import RackEar from './RackEar';
 import { Sequencer } from './Sequencer';
 import { Action } from './SequencerAction';
 import type { SliceChain } from './engine/SliceChain';
+import { MoogKnobWithLabel } from './Knob';
 
 export type Pattern = {
   subdivision: number;
@@ -67,30 +68,25 @@ export const VideoSlice = (props: {
     () => slice().patterns[props.currentPatternIndex]
   );
 
-  const handleUpdatePlaybackSpeed = (event: {
-    currentTarget: HTMLInputElement;
-  }) => {
+  const handleUpdatePlaybackSpeed = (playbackSpeed: number) => {
     props.chain.setSlice({
       ...slice(),
-      playbackSpeed: event.currentTarget.valueAsNumber,
+      playbackSpeed,
     });
   };
 
-  const handleUpdateSampleStart = (event: {
-    currentTarget: HTMLInputElement;
-  }) => {
+  const handleUpdateSampleStart = (start: number) => {
+    console.log({ start });
     props.chain.setSlice({
       ...slice(),
-      start: event.currentTarget.valueAsNumber,
+      start: Math.min(slice().end - 0.00001, start),
     });
   };
 
-  const handleUpdateSampleEnd = (event: {
-    currentTarget: HTMLInputElement;
-  }) => {
+  const handleUpdateSampleEnd = (end: number) => {
     props.chain.setSlice({
       ...slice(),
-      end: event.currentTarget.valueAsNumber,
+      end: Math.max(slice().start + 0.00001, end),
     });
   };
 
@@ -117,10 +113,8 @@ export const VideoSlice = (props: {
     props.onClickSlice(slice());
   };
 
-  const handleUpdateSequenceLength = (event: {
-    currentTarget: HTMLInputElement;
-  }) => {
-    props.onUpdateSequenceLength(slice(), event.currentTarget.valueAsNumber);
+  const handleUpdateSequenceLength = (steps: number) => {
+    props.onUpdateSequenceLength(slice(), steps);
   };
 
   const handleRemoveSlice = () => {
@@ -193,67 +187,49 @@ export const VideoSlice = (props: {
           />
           <FormattedTime timeInSeconds={slice().start} /> -{' '}
           <FormattedTime timeInSeconds={slice().end} />
-          <input
-            class="lcd"
-            type="number"
-            step="1"
-            min="1"
-            max="1024"
+          <MoogKnobWithLabel
+            label="Steps"
+            step={1}
+            min={1}
+            max={1024}
+            speed={1}
             value={currentPattern()?.steps?.length}
             onChange={handleUpdateSequenceLength}
           />
-          {/* <span class="lcd">{slice().volume}</span> */}
-          Volume:
-          <input
-            type="number"
-            min="0"
-            max="2"
-            step="0.01"
+          <MoogKnobWithLabel
+            min={0}
+            max={2}
             value={slice().volume}
-            onChange={(event) => {
+            onChange={(volume: number) => {
               props.chain.setSlice({
                 ...slice(),
-                volume: event.currentTarget.valueAsNumber,
+                volume,
               });
             }}
-            style="-webkit-appearance: slider-vertical"
-            className="lcd"
+            label="Volume"
           />
-          {/* <span class="lcd">{slice().playbackSpeed}</span> */}
-          Pitch:
-          <input
-            type="number"
-            min="0"
-            max="3"
-            step="0.01"
+          <MoogKnobWithLabel
+            min={0}
+            max={3}
             value={slice().playbackSpeed}
             onChange={handleUpdatePlaybackSpeed}
-            className="lcd"
-            //style="-webkit-appearance: slider-vertical"
+            label="Pitch"
           />
-          Start:
-          <input
-            type="number"
-            //min="0"
-            //max="3"
-            step="0.001"
+          <MoogKnobWithLabel
+            min={0}
+            max={props.chain.getSampler().buffer.duration}
+            speed={0.1}
             value={slice().start}
             onChange={handleUpdateSampleStart}
-            className="lcd"
-            style="width: 200px"
-            //style="-webkit-appearance: slider-vertical"
+            label="Start"
           />
-          End:
-          <input
-            type="number"
-            //min="0"
-            //max="3"
-            step="0.001"
+          <MoogKnobWithLabel
+            min={0}
+            max={props.chain.getSampler().buffer.duration}
+            speed={0.1}
             value={slice().end}
             onChange={handleUpdateSampleEnd}
-            className="lcd"
-            style="width: 200px"
-            //style="-webkit-appearance: slider-vertical"
+            label="End"
           />
           Reverse:
           <input
