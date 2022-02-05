@@ -6,6 +6,8 @@ import webpack from 'webpack';
 import webpackPaths from './webpack.paths';
 import { dependencies as externals } from '../../release/app/package.json';
 
+const IS_DEVELOP = process.env.NODE_ENV === 'development';
+
 const configuration: webpack.Configuration = {
   externals: [...Object.keys(externals || {})],
 
@@ -17,10 +19,11 @@ const configuration: webpack.Configuration = {
         test: /\.[jt]sx?$/,
         exclude: /node_modules/,
         use: {
-          loader: 'ts-loader',
+          loader: 'babel-loader',
           options: {
-            // Remove this line to enable type checking in webpack builds
-            transpileOnly: true,
+            cacheDirectory: true,
+            cacheCompression: !IS_DEVELOP,
+            compact: !IS_DEVELOP,
           },
         },
       },

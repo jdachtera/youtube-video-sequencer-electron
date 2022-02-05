@@ -1,4 +1,4 @@
-import { ChangeEvent, useCallback } from 'react';
+import { For, Match, Switch } from 'solid-js';
 
 export type Action =
   | {
@@ -17,37 +17,31 @@ export type Action =
       value: boolean;
     };
 
-const SequencerPlayAction: React.FC<{
+const SequencerPlayAction = (props: {
   action: { type: 'PLAY' } & Action;
   onChange: (action: Action) => void;
-}> = ({ action, onChange }) => {
-  const handleChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      onChange({ ...action, velocity: +event.target.value });
-    },
-    [action, onChange]
-  );
+}) => {
+  const handleChange = (event: { currentTarget: HTMLInputElement }) => {
+    props.onChange({ ...props.action, velocity: +event.currentTarget.value });
+  };
 
   return (
     <input
       type="number"
       step="1"
-      value={action.velocity}
+      value={props.action.velocity}
       onChange={handleChange}
     />
   );
 };
 
-const SequencerSetPlaybackSpeedAction: React.FC<{
+const SequencerSetPlaybackSpeedAction = (props: {
   action: Action & { type: 'SET_PLAYBACK_SPEED' };
   onChange: (action: Action) => void;
-}> = ({ action, onChange }) => {
-  const handleChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      onChange({ ...action, value: +event.target.value });
-    },
-    [action, onChange]
-  );
+}) => {
+  const handleChange = (event: { currentTarget: HTMLInputElement }) => {
+    props.onChange({ ...props.action, value: +event.currentTarget.value });
+  };
 
   return (
     <input
@@ -55,44 +49,58 @@ const SequencerSetPlaybackSpeedAction: React.FC<{
       min="0.01"
       max="3"
       step="0.01"
-      value={action.value}
+      value={props.action.value}
       onChange={handleChange}
     />
   );
 };
 
-const SequencerSetReverseAction: React.FC<{
+const SequencerSetReverseAction = (props: {
   action: Action & { type: 'SET_REVERSE' };
   onChange: (action: Action) => void;
-}> = ({ action, onChange }) => {
-  const handleChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      onChange({ ...action, value: event.target.checked });
-    },
-    [action, onChange]
-  );
+}) => {
+  const handleChange = (event: { currentTarget: HTMLInputElement }) => {
+    props.onChange({ ...props.action, value: event.currentTarget.checked });
+  };
 
   return (
-    <input type="checkbox" checked={action.value} onChange={handleChange} />
+    <input
+      type="checkbox"
+      checked={props.action.value}
+      onChange={handleChange}
+    />
   );
 };
 
-const SequencerActionFields: React.FC<{
+const SequencerActionFields = (props: {
   action: Action;
   onChange: (action: Action) => void;
-}> = ({ action, onChange }) => {
-  switch (action.type) {
-    case 'PLAY':
-      return <SequencerPlayAction action={action} onChange={onChange} />;
-    case 'SET_PLAYBACK_SPEED':
-      return (
-        <SequencerSetPlaybackSpeedAction action={action} onChange={onChange} />
-      );
-    case 'SET_REVERSE':
-      return <SequencerSetReverseAction action={action} onChange={onChange} />;
-    default:
-      return null;
-  }
+}) => {
+  return (
+    <Switch>
+      <Match when={props.action.type === 'PLAY' && props.action}>
+        {(action) => (
+          <SequencerPlayAction action={action} onChange={props.onChange} />
+        )}
+      </Match>
+      <Match when={props.action.type === 'SET_PLAYBACK_SPEED' && props.action}>
+        {(action) => (
+          <SequencerSetPlaybackSpeedAction
+            action={action}
+            onChange={props.onChange}
+          />
+        )}
+      </Match>
+      <Match when={props.action.type === 'SET_REVERSE' && props.action}>
+        {(action) => (
+          <SequencerSetReverseAction
+            action={action}
+            onChange={props.onChange}
+          />
+        )}
+      </Match>
+    </Switch>
+  );
 };
 
 export function createNewAction(actionType: Action['type']): Action {
@@ -116,46 +124,43 @@ const actionTypes: Action['type'][] = [
   'SET_REVERSE',
 ];
 
-const SequencerAction: React.FC<{
+export const SequencerAction = (props: {
   action: Action;
   onChange: (newAction: Action | null, previousAction: Action) => void;
-}> = ({ action, onChange }) => {
-  const handleChange = useCallback(
-    (newAction: Action | null) => {
-      onChange(newAction, action);
-    },
-    [action, onChange]
-  );
+}) => {
+  const handleChange = (newAction: Action | null) => {
+    props.onChange(newAction, props.action);
+  };
 
-  const handleRemoveAction = useCallback(() => {
+  const handleRemoveAction = () => {
     handleChange(null);
-  }, [handleChange]);
+  };
 
-  const handleActionTypeChange = useCallback(
-    (event: ChangeEvent<HTMLSelectElement>) => {
-      const actionType = event.target.value;
-      if (actionTypes.includes(actionType as Action['type'])) {
-        handleChange(createNewAction(actionType as Action['type']));
-      }
-    },
-    [handleChange]
-  );
+  const handleActionTypeChange = (event: {
+    currentTarget: HTMLSelectElement;
+  }) => {
+    const actionType = event.currentTarget.value;
+    if (actionTypes.includes(actionType as Action['type'])) {
+      handleChange(createNewAction(actionType as Action['type']));
+    }
+  };
 
   return (
     <div>
       <select onChange={handleActionTypeChange}>
-        {actionTypes.map((actionType) => (
-          <option
-            key={actionType}
-            value={actionType}
-            selected={action.type === actionType}
-          >
-            {actionType}
-          </option>
-        ))}
+        <For each={actionTypes}>
+          {(actionType) => (
+            <option
+              value={actionType}
+              selected={props.action.type === actionType}
+            >
+              {actionType}
+            </option>
+          )}
+        </For>
       </select>
 
-      <SequencerActionFields action={action} onChange={handleChange} />
+      <SequencerActionFields action={props.action} onChange={handleChange} />
 
       <button type="button" onClick={handleRemoveAction}>
         Remove Action
@@ -163,5 +168,3 @@ const SequencerAction: React.FC<{
     </div>
   );
 };
-
-export default SequencerAction;

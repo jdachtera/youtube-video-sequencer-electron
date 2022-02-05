@@ -1,59 +1,129 @@
-import React, { useCallback } from 'react';
+import { css } from 'solid-styled-components';
 import { Action } from './SequencerAction';
+import { useAppTheme } from './theme';
 
 export type Step = {
   actions: Action[];
 };
 
-const SequencerStep: React.FC<{
+type SequencerStepProps = {
   step: Step;
   isSelected: boolean;
   isCurrent: boolean;
   onClick?: (step: Step) => void;
-  onDoubleClick?: (step: Step) => void;
-  onAuxClick?: (step: Step) => void;
-}> = ({
-  step,
-  isSelected,
-  isCurrent,
-  onClick = () => {},
-  onDoubleClick = () => {},
-  onAuxClick = () => {},
-}) => {
-  const handleClick = useCallback(() => {
-    onClick(step);
-  }, [step, onClick]);
-
-  const handleDoubleClick = useCallback(() => {
-    onDoubleClick(step);
-  }, [step, onDoubleClick]);
-
-  const handleAuxClick = useCallback(() => {
-    onAuxClick(step);
-  }, [step, onAuxClick]);
-
-  return (
-    <li
-      className={
-      `
-      sequencer-step-${
-        // eslint-disable-next-line no-nested-ternary
-        step.actions.length
-          ? step.actions.find(({ type }) => type === 'PLAY')
-            ? 'play'
-            : 'active'
-          : 'inactive'
-      }
-      sequencer-step ${isCurrent? 'sequencer-step-current' : ''} ${isSelected  ? 'sequencer-step-selected' : ''}
-      `
-      }
-      onClick={handleClick}
-      onDoubleClick={handleDoubleClick}
-      onAuxClick={handleAuxClick}
-    >
-      &nbsp;
-    </li>
-  );
+  onDblClick?: (step: Step) => void;
 };
 
-export default SequencerStep;
+const sequencerStepBaseStyles = css`
+  display: inline-block;
+  user-select: none;
+  width: 30px;
+  height: 30px;
+  margin: 2px;
+  border-radius: 4px;
+  border: 3px outset #eee;
+  //box-shadow: 0px 0px 1px 1px rgb(198, 198, 198);
+  background: rgb(198, 198, 198);
+  background: linear-gradient(
+    138deg,
+    rgb(219, 204, 174) 10%,
+    rgba(255, 255, 255, 1) 100%
+  );
+  &:nth-of-type(8n+5),
+  &:nth-of-type(8n+6),
+  &:nth-of-type(8n+7),
+  &:nth-of-type(8n+8)
+
+  //&:nth-of-type(10n+6),
+  //&:nth-of-type(10n+7),
+  //&:nth-of-type(10n+8)
+  {
+    /* background: red !important; */
+    background: linear-gradient(
+      138deg,
+      rgb(182, 176, 164) 10%,
+      rgba(255, 255, 255, 1) 100%
+    );
+  }
+`;
+
+const sequencerStepActiveStyles = css`
+  box-shadow: 0px 0px 6px #ee8624;
+  border: 3px outset #ee5724;
+  background: rgb(254, 243, 241);
+  background: radial-gradient(
+    circle,
+    rgb(255, 184, 143) 10%,
+    rgb(255, 122, 78) 80%
+  );
+  &:nth-of-type(8n+5),
+  &:nth-of-type(8n+6),
+  &:nth-of-type(8n+7),
+  &:nth-of-type(8n+8)
+
+  //&:nth-of-type(10n+6),
+  //&:nth-of-type(10n+7),
+  //&:nth-of-type(10n+8)
+  {
+    /* background: red !important; */
+    border: 3px outset #52c723;
+
+    background: radial-gradient(
+      circle,
+      rgb(229, 255, 143) 10%,
+      rgb(24, 255, 36) 80%
+    );
+  }
+`;
+
+const sequencerStepHalfActiveStyles = css`
+  box-shadow: 0px 0px 3px white;
+  border: 3px outset #ff6f41;
+  background: rgb(254, 243, 241);
+  background: radial-gradient(
+    circle,
+    rgb(255, 238, 0) 0%,
+    rgb(255, 65, 2) 100%
+  );
+`;
+
+const sequencerStepIsCurrentStyles = css`
+  box-shadow: 0px 0px 4px white;
+  border: 3px outset #ffffff !important;
+  background: rgb(254, 243, 241) !important;
+  background: radial-gradient(
+    circle,
+    rgb(255, 255, 255) 0%,
+    #e2e2e2 80%
+  ) !important;
+`;
+
+const sequencerStepIsSelectedStyles = () => {
+  const theme = useAppTheme();
+
+  return css`
+    box-shadow: 0px 0px 6px white;
+    border: 3px outset white;
+    background-color: ${theme.colors.primary};
+  `;
+};
+
+export const SequencerStep = (props: SequencerStepProps) => (
+  <li
+    classList={{
+      [sequencerStepBaseStyles]: true,
+      [sequencerStepActiveStyles]: !!props.step.actions.find(
+        ({ type }) => type === 'PLAY'
+      ),
+      [sequencerStepHalfActiveStyles]:
+        !!props.step.actions.length &&
+        !props.step.actions.find(({ type }) => type === 'PLAY'),
+      [sequencerStepIsCurrentStyles]: props.isCurrent,
+      [sequencerStepIsSelectedStyles()]: props.isSelected,
+    }}
+    onClick={() => props?.onClick?.(props.step)}
+    onDblClick={() => props?.onDblClick?.(props.step)}
+  >
+    &nbsp;
+  </li>
+);

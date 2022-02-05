@@ -8,7 +8,6 @@ import { spawn, execSync } from 'child_process';
 import baseConfig from './webpack.config.base';
 import webpackPaths from './webpack.paths';
 import checkNodeEnv from '../scripts/check-node-env';
-import ReactRefreshWebpackPlugin from '@pmmmwh/react-refresh-webpack-plugin';
 
 // When an ESLint server is running, we can't set the NODE_ENV so we'll check if it's
 // at the dev webpack config is not accidentally run in a production environment
@@ -129,8 +128,6 @@ const configuration: webpack.Configuration = {
       debug: true,
     }),
 
-    new ReactRefreshWebpackPlugin(),
-
     new HtmlWebpackPlugin({
       filename: path.join('index.html'),
       template: path.join(webpackPaths.srcRendererPath, 'index.ejs'),
@@ -162,6 +159,7 @@ const configuration: webpack.Configuration = {
     },
     historyApiFallback: {
       verbose: true,
+      disableDotRule: true,
     },
     onBeforeSetupMiddleware() {
       console.log('Starting Main Process...');

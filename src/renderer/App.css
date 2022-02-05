@@ -8,3 +8,38 @@ html, body, ol, ul {
 .video-js {
   width: 500px !important;
 }
+
+input[type=number]::-webkit-inner-spin-button {
+  opacity: 1;
+  background-color: red;
+  border: 8px solid red;
+  margin: 0;
+  padding: 0;
+  content: "\e823";
+  color: rgba(0, 0, 0, 0.54);
+}
+input[type=number]::-webkit-outher-spin-button {
+  opacity: 1;
+  background-color: red;
+  border: 8px solid red;
+  margin: 0;
+  padding: 0;
+}
+
+.slice {
+  user-select: none;
+}
+
+.wavesurfer-region {
+  z-index: 1 !important;
+  /* z-index: 9999 !important; */
+}
+
+.wavesurfer-handle {
+  opacity: 0;
+}
+
+
+.wavesurfer wave {
+  color: red !important;
+}
