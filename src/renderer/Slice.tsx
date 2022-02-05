@@ -65,25 +65,25 @@ export const VideoSlice = (props: {
   onRemoveSlice: (slice: Slice) => void;
   onUpdatePattern: (slice: Slice, pattern: Pattern) => void;
 }) => {
-  const theme = useAppTheme();
   const [slice, setSlice] = createSignal(untrack(() => props.chain.getSlice()));
   const currentPattern = createMemo(
     () => slice().patterns[props.currentPatternIndex]
   );
 
-  const handleUpdatePlaybackSpeed = (playbackSpeed: number) => {
-    props.chain.setSlice({
-      ...slice(),
-      playbackSpeed,
-    });
+  const sliceUpdateHandler = <Property extends keyof Slice>(
+    property: Property
+  ) => {
+    const chain = props.chain;
+    const currentSlice = slice();
+
+    return (value: Slice[Property]) =>
+      chain.setSlice({
+        ...currentSlice,
+        [property]: value,
+      });
   };
 
-  const handleUpdateSampleStart = (start: number) => {
-    props.chain.setSlice({
-      ...slice(),
-      start: Math.min(slice().end - 0.00001, start),
-    });
-  };
+  const handleUpdatePlaybackSpeed = sliceUpdateHandler('playbackSpeed');
 
   const handleUpdateSampleEnd = (end: number) => {
     props.chain.setSlice({

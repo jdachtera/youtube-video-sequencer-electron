@@ -22,5 +22,8 @@ module.exports = {
   moduleFileExtensions: [...defaults.moduleFileExtensions, 'ts', 'tsx', 'json'],
   moduleDirectories: ['node_modules', 'release/app/node_modules'],
   testPathIgnorePatterns: ['release/app/dist'],
-  setupFiles: ['./.erb/scripts/check-build-exists.ts'],
+  setupFiles: [
+    './.erb/scripts/check-build-exists.ts',
+    './.erb/scripts/setup-jest.ts',
+  ],
 };
