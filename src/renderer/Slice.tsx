@@ -96,8 +96,23 @@ export const VideoSlice = (props: {
     props.chain.setSlice({ ...slice(), reverse });
   };
 
-  const handleUpdateSolo = (solo: boolean) => {
-    props.chain.setSlice({ ...slice(), solo });
+  const handleUpdateSolo = (solo: boolean, altKey: boolean) => {
+    if (solo && !altKey) {
+      props.chain
+        .getSampler()
+        .getEngine()
+        .getSamplers()
+        .forEach((sampler) => {
+          sampler.chains.forEach((chain) => {
+            chain.setSlice({
+              ...chain.getSlice(),
+              solo: slice() === chain.getSlice(),
+            });
+          });
+        });
+    } else {
+      props.chain.setSlice({ ...slice(), solo });
+    }
   };
 
   const handleChainUpdated = () => {
@@ -195,7 +210,8 @@ export const VideoSlice = (props: {
             step={1}
             min={1}
             max={1024}
-            speed={1}
+            speed={0.1}
+            fineIsDefault
             value={currentPattern()?.steps?.length}
             onChange={handleUpdatePatternLength}
           />
@@ -221,7 +237,6 @@ export const VideoSlice = (props: {
           <MoogKnobWithLabel
             min={0}
             max={props.chain.getSampler().buffer.duration}
-            size={theme.sizes.knobSize / 2}
             speed={0.1}
             value={slice().start}
             onChange={handleUpdateSampleStart}
@@ -230,7 +245,6 @@ export const VideoSlice = (props: {
           <MoogKnobWithLabel
             min={0}
             max={props.chain.getSampler().buffer.duration}
-            size={theme.sizes.knobSize / 2}
             speed={0.1}
             value={slice().end}
             onChange={handleUpdateSampleEnd}

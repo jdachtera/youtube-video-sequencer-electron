@@ -6,6 +6,7 @@ import {
   JSXElement,
   mergeProps,
   splitProps,
+  untrack,
 } from 'solid-js';
 import MoogKnobSvg from './knob.svg';
 import ScrewHeadWithHole from '../../assets/svg/screw_head_with_hole.svg';
@@ -19,6 +20,7 @@ type KnobProps = {
   max?: number;
   step?: number;
   speed?: number;
+  fineIsDefault?: boolean;
   initialRotation?: number;
   onChange: (newValue: number) => void;
   style?: JSX.CSSProperties;
@@ -61,18 +63,30 @@ export const Knob = (props: KnobProps) => {
 
   const [isDragging, setIsDragging] = createSignal(false);
   const [lastPosition, setLastPosition] = createSignal({ x: 0, y: 0 });
+  const [internalValue, setInternalValue] = createSignal(
+    untrack(() => propsWithDefaults.value)
+  );
 
-  const handleChange = (value: number) => {
+  const handleChange = (percentIncrement: number, fine: boolean) => {
+    const multiplicator = fine ? 0.1 : 1;
+    const step = multiplicator * propsWithDefaults.step;
+    const speed = multiplicator * propsWithDefaults.speed;
+
+    const newValue = internalValue() + percentIncrement * speed * range();
+
+    const roundedValue =
+      step > 0 ? Math.round(newValue / step) * step : newValue;
+
     const clampedValue = Math.max(
       propsWithDefaults.min,
-      Math.min(propsWithDefaults.max, value)
+      Math.min(propsWithDefaults.max, roundedValue)
     );
-    const newValue =
-      propsWithDefaults.step > 0
-        ? Math.round(clampedValue / propsWithDefaults.step) *
-          propsWithDefaults.step
-        : clampedValue;
-    props.onChange(newValue);
+
+    setInternalValue(roundedValue);
+
+    if (clampedValue !== props.value) {
+      props.onChange(clampedValue);
+    }
   };
 
   const handleMouseMove = (event: MouseEvent) => {
@@ -81,9 +95,10 @@ export const Knob = (props: KnobProps) => {
       x: lastPosition().x - currentPosition.x,
       y: lastPosition().y - currentPosition.y,
     };
-    const speed = (event.altKey ? 0.1 : 1) * propsWithDefaults.speed;
+
     handleChange(
-      propsWithDefaults.value + (delta.y / window.innerHeight) * speed * range()
+      delta.y / window.innerHeight,
+      !props.fineIsDefault && event.altKey
     );
     setLastPosition(currentPosition);
   };
@@ -107,10 +122,9 @@ export const Knob = (props: KnobProps) => {
       {...imageProps}
       onWheel={(event) => {
         event.preventDefault();
-        const speed = (event.altKey ? 0.1 : 1) * propsWithDefaults.speed;
         handleChange(
-          propsWithDefaults.value +
-            (event.deltaY / window.screen.height / 5) * speed * range()
+          event.deltaY / window.screen.height / 5,
+          !props.fineIsDefault && event.altKey
         );
       }}
       onMouseDown={(event) => {
@@ -146,6 +160,8 @@ export const MoogKnobWithLabel = (
     <div
       class={css`
         display: inline-block;
+        vertical-align: top;
+        margin: ${theme.sizes.controlMargin}px;
       `}
     >
       <Label label={props.label} />
@@ -161,6 +177,7 @@ export const MoogKnobWithLabel = (
           class={css`
             width: ${mergedProps.size}px;
             display: block;
+            margin: 0 auto;
           `}
         />
       </div>

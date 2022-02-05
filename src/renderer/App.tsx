@@ -18,6 +18,7 @@ import { Sampler } from './engine/Sampler';
 import { SamplerView } from './SamplerView';
 import { normalizeData } from './engine/normalizeData';
 import { theme } from './theme';
+import { MoogKnobWithLabel } from './Knob';
 
 const engine = new Engine(Transport);
 
@@ -34,12 +35,12 @@ export function App() {
     setIsPlaying(!isPlaying());
   };
 
-  const handleTempoChange = (event: { currentTarget: HTMLInputElement }) => {
-    engine.setBpm(+event.currentTarget.value);
+  const handleTempoChange = (bpm: number) => {
+    engine.setBpm(bpm);
   };
 
-  const handleSwingChange = (event: { currentTarget: HTMLInputElement }) => {
-    engine.setSwing(+event.currentTarget.value);
+  const handleSwingChange = (swing: number) => {
+    engine.setSwing(swing);
   };
 
   const handleSamplerChanged = () => {
@@ -216,20 +217,19 @@ export function App() {
             <button type="button" onClick={togglePlay}>
               {isPlaying() ? 'Stop' : 'Play'}
             </button>
-            Tempo:
-            <input
-              type="number"
-              min="20"
-              max="280"
+            :
+            <MoogKnobWithLabel
+              label="Tempo"
+              min={20}
+              max={280}
+              step={1}
               value={bpm()}
               onChange={handleTempoChange}
             />
-            Swing:
-            <input
-              type="number"
-              min="0"
-              max="1"
-              step="0.05"
+            <MoogKnobWithLabel
+              label="Swing"
+              min={0}
+              max={1}
               value={swing()}
               onChange={handleSwingChange}
             />

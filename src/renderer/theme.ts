@@ -11,6 +11,7 @@ export const theme = {
     labelBorderRadius: '3px',
     knobSize: 80,
     toggleSize: 40,
+    controlMargin: 3,
   },
 };
 

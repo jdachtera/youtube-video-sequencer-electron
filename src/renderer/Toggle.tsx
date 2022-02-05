@@ -9,7 +9,7 @@ import { useAppTheme } from './theme';
 export const Toggle = (
   props: {
     checked: boolean;
-    onChange: (checked: boolean) => void;
+    onChange: (checked: boolean, altKey: boolean) => void;
     label?: string;
     size?: number;
     checkedImage?: string;
@@ -32,6 +32,8 @@ export const Toggle = (
     <div
       class={css`
         display: inline-block;
+        vertical-align: top;
+        margin: ${theme.sizes.controlMargin}px;
       `}
     >
       <Label label={props.label} />
@@ -42,13 +44,14 @@ export const Toggle = (
             ? propsWithDefaults.checkedImage
             : propsWithDefaults.uncheckedImage
         }
-        onClick={() => {
-          props.onChange(!props.checked);
+        onClick={(event) => {
+          props.onChange(!props.checked, event.altKey);
         }}
         class={[
           css`
             display: block;
             height: ${propsWithDefaults.size}px;
+            margin: 0 auto;
           `,
           props.class ?? '',
         ].join(' ')}
