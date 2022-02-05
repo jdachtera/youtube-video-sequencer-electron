@@ -4,6 +4,7 @@ import { SequencerAction, Action, createNewAction } from './SequencerAction';
 import { SequencerStep, Step } from './SequencerStep';
 import './Sequencer.scss';
 import { SliceChain } from './engine/SliceChain';
+import { css } from 'solid-styled-components';
 
 const createDefaultAction = (allSteps: Step[]): Action => {
   const firstStepWithPlayAction = allSteps.find((step) =>
@@ -87,7 +88,12 @@ export const Sequencer = (props: {
 
   return (
     <div>
-      <ul class="sequencer-steps">
+      <ul class={css`
+        box-shadow: inset 0 0 3px 2px #222;
+        border-radius: 4px;
+        padding: 3px;
+        max-width: 640px;
+      `}>
         <Index each={props.steps}>
           {(step) => (
             <SequencerStep

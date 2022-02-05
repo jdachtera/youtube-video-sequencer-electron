@@ -43,3 +43,8 @@ input[type=number]::-webkit-outher-spin-button {
 .wavesurfer wave {
   color: red !important;
 }
+
+
+#path1209 {
+  stroke: red;
+}

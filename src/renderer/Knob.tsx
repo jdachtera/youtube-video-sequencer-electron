@@ -118,7 +118,9 @@ export const Knob = (props: KnobProps) => {
   });
 
   return (
-    <div style={{position: 'relative'}}>
+    <div style={{position: 'relative', padding: '10px'}}>
+      <div style={{position: 'relative'}}>
+
       <img
         {...imageProps}
         onWheel={(event) => {
@@ -151,6 +153,20 @@ export const Knob = (props: KnobProps) => {
           justify-content: center;
           align-items: center;
           pointer-events: none;
+          border: 2px outset #555;
+          border-radius: 100%;
+          box-shadow: 0 0 4px 2px #222;
+      `}></div>
+      <div class={css`
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 0;
+          bottom: 0;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          pointer-events: none;
       `}>
         <div class={css`
           background:conic-gradient(
@@ -168,9 +184,10 @@ export const Knob = (props: KnobProps) => {
           height: 55%;
           border-radius: 100%;
           pointer-events: none;
-          border: 1px inset white;
+          border: 1px inset #eee;
           box-shadow: 2px 1px 8px 3px rgba(0,0,0,0.2);
           `}/>
+        </div>
       </div>
     </div>
   );
@@ -208,6 +225,10 @@ export const MoogKnobWithLabel = (
           background-repeat: no-repeat;
           width:  ${mergedProps.size}px;
           height: ${mergedProps.size}px;
+          min-width: ${mergedProps.size}px;
+          min-height: ${mergedProps.size}px;
+          max-width: ${mergedProps.size}px;
+          max-height: ${mergedProps.size}px;
         `}
       >
         <Knob

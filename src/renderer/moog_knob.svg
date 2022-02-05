@@ -68,14 +68,6 @@
        copies_to_360="true"
        mirror_copies="false"
        split_items="false" />
-    <inkscape:path-effect
-       effect="gears"
-       id="path-effect2188"
-       is_visible="true"
-       lpeversion="1"
-       teeth="8"
-       phi="3.8"
-       min_radius="3.7" />
   </defs>
   <g
      inkscape:label="Layer 1"

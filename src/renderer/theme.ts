@@ -9,7 +9,7 @@ export const theme = {
   },
   sizes: {
     labelBorderRadius: '3px',
-    knobSize: 120,
+    knobSize: 100,
     toggleSize: 50,
     controlMargin: 10,
   },
