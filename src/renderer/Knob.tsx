@@ -58,8 +58,6 @@ export const Knob = (props: KnobProps) => {
 
   const range = createMemo(() => propsWithDefaults.max - propsWithDefaults.min);
 
-  createEffect(() => console.log({ range: range() }));
-
   const [isDragging, setIsDragging] = createSignal(false);
   const [lastPosition, setLastPosition] = createSignal({ x: 0, y: 0 });
 
@@ -109,7 +107,6 @@ export const Knob = (props: KnobProps) => {
       onWheel={(event) => {
         event.preventDefault();
         const speed = (event.altKey ? 0.1 : 1) * propsWithDefaults.speed;
-        console.log(speed);
         handleChange(
           propsWithDefaults.value +
             (event.deltaY / window.screen.height / 5) * speed * range()

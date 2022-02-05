@@ -76,7 +76,6 @@ export const VideoSlice = (props: {
   };
 
   const handleUpdateSampleStart = (start: number) => {
-    console.log({ start });
     props.chain.setSlice({
       ...slice(),
       start: Math.min(slice().end - 0.00001, start),
