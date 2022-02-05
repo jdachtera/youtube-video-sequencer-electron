@@ -5,7 +5,6 @@ import {
   createMemo,
   untrack,
   For,
-  createEffect,
 } from 'solid-js';
 
 import { css } from 'solid-styled-components';
@@ -18,7 +17,6 @@ import { Action } from './SequencerAction';
 import type { SliceChain } from './engine/SliceChain';
 import { MoogKnobWithLabel } from './Knob';
 import { useAppTheme } from './theme';
-import { debounce } from 'ts-debounce';
 
 export type Pattern = {
   subdivision: number;

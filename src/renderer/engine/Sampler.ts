@@ -3,6 +3,7 @@ import { TypedEmitter } from 'tiny-typed-emitter';
 import { SliceChain } from './SliceChain';
 import type { Engine } from './Engine';
 import type { Slice } from '../Slice';
+import { loadCachedVideo, storeCachedVideo } from 'blobStore';
 
 declare const yt: {
   getYouTubeVideoSource: (url: string) => Promise<string>;
@@ -53,7 +54,6 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
 
     this.gain.toDestination();
     this.gain.gain.value = volume;
-
     this.hasLoadedPromise = this.load();
 
     this.addSlicesWhenLoaded(slices);
@@ -73,15 +73,16 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
   }
 
   private async load() {
-    let sourceUrl;
-    try {
-      sourceUrl = await yt.getYouTubeVideoSource(this.url);
-    } catch (e) {
-      console.dir(e);
-      throw e;
+    const cachedBlob = await loadCachedVideo(this.url);
+
+    if (cachedBlob) {
+      this.buffer.fromArray(cachedBlob);
+      return;
     }
 
+    const sourceUrl = await yt.getYouTubeVideoSource(this.url);
     await this.buffer.load(sourceUrl);
+    await storeCachedVideo(this.url, this.buffer.toArray());
   }
 
   async hasLoaded() {
