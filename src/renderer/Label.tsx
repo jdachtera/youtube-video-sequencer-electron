@@ -16,7 +16,6 @@ export const Label = (props: { label?: JSXElement; size?: number }) => {
         border-radius: ${theme.sizes.labelBorderRadius};
         text-align: center;
         font-size: ${size() / 5}px;
-        
       `}
     >
       {props.label}

@@ -70,20 +70,19 @@ export const VideoSlice = (props: {
     () => slice().patterns[props.currentPatternIndex]
   );
 
-  const sliceUpdateHandler = <Property extends keyof Slice>(
-    property: Property
-  ) => {
-    const chain = props.chain;
-    const currentSlice = slice();
-
-    return (value: Slice[Property]) =>
-      chain.setSlice({
-        ...currentSlice,
-        [property]: value,
-      });
+  const handleUpdatePlaybackSpeed = (playbackSpeed: number) => {
+    props.chain.setSlice({
+      ...slice(),
+      playbackSpeed,
+    });
   };
 
-  const handleUpdatePlaybackSpeed = sliceUpdateHandler('playbackSpeed');
+  const handleUpdateSampleStart = (start: number) => {
+    props.chain.setSlice({
+      ...slice(),
+      start: Math.min(slice().end + 0.00001, start),
+    });
+  };
 
   const handleUpdateSampleEnd = (end: number) => {
     props.chain.setSlice({
