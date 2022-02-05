@@ -10,6 +10,7 @@ export const theme = {
   sizes: {
     labelBorderRadius: '3px',
     knobSize: 80,
+    toggleSize: 40,
   },
 };
 

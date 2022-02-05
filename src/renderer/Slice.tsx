@@ -17,6 +17,7 @@ import { Action } from './SequencerAction';
 import type { SliceChain } from './engine/SliceChain';
 import { MoogKnobWithLabel } from './Knob';
 import { useAppTheme } from './theme';
+import { Toggle } from './Toggle';
 
 export type Pattern = {
   subdivision: number;
@@ -91,12 +92,12 @@ export const VideoSlice = (props: {
     });
   };
 
-  const handleUpdateReverse = (event: { currentTarget: HTMLInputElement }) => {
-    props.chain.setSlice({ ...slice(), reverse: event.currentTarget.checked });
+  const handleUpdateReverse = (reverse: boolean) => {
+    props.chain.setSlice({ ...slice(), reverse });
   };
 
-  const handleUpdateSolo = (event: { currentTarget: HTMLInputElement }) => {
-    props.chain.setSlice({ ...slice(), solo: event.currentTarget.checked });
+  const handleUpdateSolo = (solo: boolean) => {
+    props.chain.setSlice({ ...slice(), solo });
   };
 
   const handleChainUpdated = () => {
@@ -177,6 +178,7 @@ export const VideoSlice = (props: {
             width: '100%',
             //display: 'flex',
             alignItems: 'center',
+            'vertical-align': 'top',
             padding: '8px',
           }}
         >
@@ -234,15 +236,13 @@ export const VideoSlice = (props: {
             onChange={handleUpdateSampleEnd}
             label="End"
           />
-          Reverse:
-          <input
-            type="checkbox"
+          <Toggle
+            label="Reverse"
             checked={slice().reverse}
             onChange={handleUpdateReverse}
           />
-          Solo:
-          <input
-            type="checkbox"
+          <Toggle
+            label="Solo"
             checked={slice().solo}
             onChange={handleUpdateSolo}
           />

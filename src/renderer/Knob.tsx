@@ -11,6 +11,7 @@ import MoogKnobSvg from './knob.svg';
 import ScrewHeadWithHole from '../../assets/svg/screw_head_with_hole.svg';
 import { css } from 'solid-styled-components';
 import { useAppTheme } from './theme';
+import { Label } from './Label';
 
 type KnobProps = {
   value?: number;
@@ -132,34 +133,25 @@ export const MoogKnobWithLabel = (
   }
 ) => {
   const theme = useAppTheme();
-  const mergedProps = mergeProps(props, {
-    src: MoogKnobSvg,
-    initialRotation: 280,
-  });
+  const mergedProps = mergeProps(
+    {
+      src: MoogKnobSvg,
+      initialRotation: 280,
+      size: theme.sizes.knobSize,
+    },
+    props
+  );
 
-  const size = createMemo(() => mergedProps.size ?? theme.sizes.knobSize);
   return (
     <div
       class={css`
         display: inline-block;
       `}
     >
-      <label
-        class={css`
-          display: block;
-          background: ${theme.colors.lcdBackground};
-          color: ${theme.colors.lcdText};
-          border: ${size() / 50}px ${theme.colors.lcdBorder} solid;
-          border-radius: ${theme.sizes.labelBorderRadius};
-          text-align: center;
-          font-size: ${size() / 5}px;
-        `}
-      >
-        {props.label}
-      </label>
+      <Label label={props.label} />
       <div
         class={css`
-          background-size: ${size()}px ${size()}px;
+          background-size: ${mergedProps.size}px ${mergedProps.size}px;
           background-image: url(${ScrewHeadWithHole});
           background-repeat: no-repeat;
         `}
@@ -167,7 +159,7 @@ export const MoogKnobWithLabel = (
         <Knob
           {...mergedProps}
           class={css`
-            width: ${size()}px;
+            width: ${mergedProps.size}px;
             display: block;
           `}
         />
@@ -185,11 +177,11 @@ export const MoogKnobWithLabel = (
           display: block;
           background: ${theme.colors.lcdBackground};
           color: ${theme.colors.lcdText};
-          border: ${size() / 50}px ${theme.colors.lcdBorder} solid;
+          border: ${mergedProps.size / 50}px ${theme.colors.lcdBorder} solid;
           border-radius: ${theme.sizes.labelBorderRadius};
           text-align: center;
-          width: ${size()}px;
-          font-size: ${size() / 5}px;
+          width: ${mergedProps.size}px;
+          font-size: ${mergedProps.size / 5}px;
         `}
       />
     </div>
