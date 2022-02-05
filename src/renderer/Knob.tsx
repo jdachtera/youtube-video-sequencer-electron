@@ -126,13 +126,18 @@ export const Knob = (props: KnobProps) => {
 };
 
 export const MoogKnobWithLabel = (
-  props: Omit<KnobProps, 'src' | 'initialRotation'> & { label?: JSXElement }
+  props: Omit<KnobProps, 'src' | 'initialRotation'> & {
+    label?: JSXElement;
+    size?: number;
+  }
 ) => {
   const theme = useAppTheme();
   const mergedProps = mergeProps(props, {
     src: MoogKnobSvg,
     initialRotation: 280,
   });
+
+  const size = createMemo(() => mergedProps.size ?? theme.sizes.knobSize);
   return (
     <div
       class={css`
@@ -144,17 +149,17 @@ export const MoogKnobWithLabel = (
           display: block;
           background: ${theme.colors.lcdBackground};
           color: ${theme.colors.lcdText};
-          border: ${theme.sizes.knobSize / 50}px ${theme.colors.lcdBorder} solid;
+          border: ${size() / 50}px ${theme.colors.lcdBorder} solid;
           border-radius: ${theme.sizes.labelBorderRadius};
           text-align: center;
-          font-size: ${theme.sizes.knobSize / 5}px;
+          font-size: ${size() / 5}px;
         `}
       >
         {props.label}
       </label>
       <div
         class={css`
-          background-size: ${theme.sizes.knobSize}px ${theme.sizes.knobSize}px;
+          background-size: ${size()}px ${size()}px;
           background-image: url(${ScrewHeadWithHole});
           background-repeat: no-repeat;
         `}
@@ -162,7 +167,7 @@ export const MoogKnobWithLabel = (
         <Knob
           {...mergedProps}
           class={css`
-            width: ${theme.sizes.knobSize}px;
+            width: ${size()}px;
             display: block;
           `}
         />
@@ -180,11 +185,11 @@ export const MoogKnobWithLabel = (
           display: block;
           background: ${theme.colors.lcdBackground};
           color: ${theme.colors.lcdText};
-          border: ${theme.sizes.knobSize / 50}px ${theme.colors.lcdBorder} solid;
+          border: ${size() / 50}px ${theme.colors.lcdBorder} solid;
           border-radius: ${theme.sizes.labelBorderRadius};
           text-align: center;
-          width: ${theme.sizes.knobSize}px;
-          font-size: ${theme.sizes.knobSize / 5}px;
+          width: ${size()}px;
+          font-size: ${size() / 5}px;
         `}
       />
     </div>

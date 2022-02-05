@@ -16,6 +16,7 @@ import { Sequencer } from './Sequencer';
 import { Action } from './SequencerAction';
 import type { SliceChain } from './engine/SliceChain';
 import { MoogKnobWithLabel } from './Knob';
+import { useAppTheme } from './theme';
 
 export type Pattern = {
   subdivision: number;
@@ -63,6 +64,7 @@ export const VideoSlice = (props: {
   onRemoveSlice: (slice: Slice) => void;
   onUpdatePattern: (slice: Slice, pattern: Pattern) => void;
 }) => {
+  const theme = useAppTheme();
   const [slice, setSlice] = createSignal(untrack(() => props.chain.getSlice()));
   const currentPattern = createMemo(
     () => slice().patterns[props.currentPatternIndex]
@@ -217,6 +219,7 @@ export const VideoSlice = (props: {
           <MoogKnobWithLabel
             min={0}
             max={props.chain.getSampler().buffer.duration}
+            size={theme.sizes.knobSize / 2}
             speed={0.1}
             value={slice().start}
             onChange={handleUpdateSampleStart}
@@ -225,6 +228,7 @@ export const VideoSlice = (props: {
           <MoogKnobWithLabel
             min={0}
             max={props.chain.getSampler().buffer.duration}
+            size={theme.sizes.knobSize / 2}
             speed={0.1}
             value={slice().end}
             onChange={handleUpdateSampleEnd}
