@@ -18,7 +18,8 @@ import { Sampler } from './engine/Sampler';
 import { SamplerView } from './SamplerView';
 import { normalizeData } from './engine/normalizeData';
 import { theme } from './theme';
-import { MoogKnobWithLabel } from './Knob';
+import { Knob, MoogKnobWithLabel } from './Knob';
+import { MoogKnobShader } from './Shader';
 
 const engine = new Engine(Transport);
 
@@ -226,12 +227,13 @@ export function App() {
               value={bpm()}
               onChange={handleTempoChange}
             />
-            <MoogKnobWithLabel
-              label="Swing"
+            <Knob
               min={0}
               max={1}
               value={swing()}
               onChange={handleSwingChange}
+              initialRotation={220}
+              component={MoogKnobShader}
             />
             Pattern:
             <input
