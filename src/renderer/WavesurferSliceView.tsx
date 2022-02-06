@@ -5,6 +5,7 @@ import {
   onCleanup,
   untrack,
 } from 'solid-js';
+import { css } from 'solid-styled-components';
 
 import { debounce } from 'ts-debounce';
 
@@ -144,9 +145,9 @@ export const WavesurferSliceView = (props: WavesurferSliceViewProps) => {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     // (wavesurfer as any).enableDragSelection({
-      // drag: true,
-      // loop: true,
-      // resize: true,
+    // drag: true,
+    // loop: true,
+    // resize: true,
     // });
 
     // wavesurfer.regions.clear();
@@ -174,9 +175,13 @@ export const WavesurferSliceView = (props: WavesurferSliceViewProps) => {
     //(wavesurfer as any).loadDecodedBuffer(props.chain.getPlayer().buffer.toMono().get());
   });
 
+  const updateBuffer = () => {
+    wavesurfer.loadDecodedBuffer(props.chain.getPlayer().buffer.toMono().get());
+  };
+
   onMount(() => {
-    console.log(props.chain.getPlayer().buffer.toMono().get());
-    props.chain.on('chain-updated', () => (wavesurfer.loadDecodedBuffer(props.chain.getPlayer().buffer.toMono().get())));
+    updateBuffer();
+    props.chain.on('chain-updated', updateBuffer);
     // props.sampler.on('chain-added', handleChainAdded);
     // props.sampler.on('chain-removed', handleChainRemoved);
     // props.sampler.on('chain-updated', handleChainUpdated);
@@ -184,6 +189,7 @@ export const WavesurferSliceView = (props: WavesurferSliceViewProps) => {
   });
 
   onCleanup(() => {
+    props.chain.off('chain-updated', updateBuffer);
     // props.sampler.off('chain-added', handleChainAdded);
     // props.sampler.off('chain-removed', handleChainRemoved);
     // props.sampler.off('chain-updated', handleChainUpdated);
@@ -203,7 +209,11 @@ export const WavesurferSliceView = (props: WavesurferSliceViewProps) => {
   // createEffect(() => updateWavesurferZoomDebounced(zoom()));
 
   return (
-    <>
+    <div
+      class={css`
+        width: 500px;
+      `}
+    >
       <div ref={waveformRef} class="lcd" style={{ margin: '2px' }} />
       <div ref={timelineRef} class="lcd" style={{ margin: '2px' }} />
       {/* <input
@@ -214,6 +224,6 @@ export const WavesurferSliceView = (props: WavesurferSliceViewProps) => {
         max="200"
         step="10"
       /> */}
-    </>
+    </div>
   );
 };
