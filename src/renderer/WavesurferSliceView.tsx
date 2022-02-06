@@ -171,15 +171,17 @@ export const WavesurferSliceView = (props: WavesurferSliceViewProps) => {
   onMount(async () => {
     // await props.chain.hasLoaded();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (wavesurfer as any).loadDecodedBuffer(props.chain.getPlayer().buffer.toMono().get());
+    //(wavesurfer as any).loadDecodedBuffer(props.chain.getPlayer().buffer.toMono().get());
   });
 
-  // onMount(() => {
-  //   // props.sampler.on('chain-added', handleChainAdded);
-  //   // props.sampler.on('chain-removed', handleChainRemoved);
-  //   // props.sampler.on('chain-updated', handleChainUpdated);
-  //   // props.sampler.on('zoom-updated', setZoom);
-  // });
+  onMount(() => {
+    console.log(props.chain.getPlayer().buffer.toMono().get());
+    props.chain.on('chain-updated', () => (wavesurfer.loadDecodedBuffer(props.chain.getPlayer().buffer.toMono().get())));
+    // props.sampler.on('chain-added', handleChainAdded);
+    // props.sampler.on('chain-removed', handleChainRemoved);
+    // props.sampler.on('chain-updated', handleChainUpdated);
+    // props.sampler.on('zoom-updated', setZoom);
+  });
 
   onCleanup(() => {
     // props.sampler.off('chain-added', handleChainAdded);
