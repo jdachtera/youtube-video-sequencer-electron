@@ -132,6 +132,99 @@ export const Knob = (props: KnobProps) => {
   );
 };
 
+const MoogKnob = (
+  props: Omit<KnobProps, 'component'> & {
+    size?: number;
+  }
+) => {
+  const theme = useAppTheme();
+  const [ownProps, knobProps] = splitProps(props, ['size']);
+
+  const size = createMemo(() => ownProps.size ?? theme.sizes.knobSize);
+
+  return (
+    <Knob
+      {...knobProps}
+      initialRotation={280}
+      component={(props: { rotation: number }) => (
+        <div style={{ position: 'relative', padding: '10px' }}>
+          <div style={{ position: 'relative' }}>
+            <img
+              {...props}
+              src={MoogKnobSvg}
+              width={size()}
+              class={css`
+                width: ${size()}px;
+                height: ${size()}px;
+                display: block;
+                margin: 0 auto;
+              `}
+              style={{
+                transform: `rotate(${props.rotation}deg)`,
+                margin: 0,
+                width: '100%',
+                height: '100%',
+              }}
+            />
+            <div
+              class={css`
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: 0;
+                bottom: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                pointer-events: none;
+                border: 2px outset #555;
+                border-radius: 100%;
+                box-shadow: 0 0 4px 2px #222;
+              `}
+            ></div>
+            <div
+              class={css`
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: 0;
+                bottom: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                pointer-events: none;
+              `}
+            >
+              <div
+                class={css`
+                  background: conic-gradient(
+                    from 16deg at 50% 50%,
+                    rgba(189, 189, 189, 1) 0%,
+                    rgba(255, 255, 255, 0.71) 24%,
+                    rgba(189, 189, 189, 1) 49%,
+                    rgba(255, 255, 255, 0.6) 75%,
+                    rgba(191, 191, 191, 1) 100%
+                  );
+                  //background-image: conic-gradient(#eee, #ddd, #aaa, #eee, #ddd, #aaa, #eee);
+                  z-index: 999;
+                  //width: 48px;
+                  //height: 48px;
+                  width: 55%;
+                  height: 55%;
+                  border-radius: 100%;
+                  pointer-events: none;
+                  border: 1px inset #eee;
+                  box-shadow: 2px 1px 8px 3px rgba(0, 0, 0, 0.2);
+                `}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    />
+  );
+};
+
 export const MoogKnobWithLabel = (
   props: Omit<KnobProps, 'component'> & {
     label?: JSXElement;
@@ -164,85 +257,7 @@ export const MoogKnobWithLabel = (
           max-height: ${size()}px;
         `}
       >
-        <Knob
-          {...knobProps}
-          initialRotation={280}
-          component={(props: { rotation: number }) => (
-            <div style={{ position: 'relative', padding: '10px' }}>
-              <div style={{ position: 'relative' }}>
-                <img
-                  {...props}
-                  src={MoogKnobSvg}
-                  width={theme.sizes.knobSize}
-                  class={css`
-                    width: ${size()}px;
-                    height: ${size()}px;
-                    display: block;
-                    margin: 0 auto;
-                  `}
-                  style={{
-                    transform: `rotate(${props.rotation}deg)`,
-                    margin: 0,
-                    width: '100%',
-                    height: '100%',
-                  }}
-                />
-                <div
-                  class={css`
-                    position: absolute;
-                    left: 0;
-                    right: 0;
-                    top: 0;
-                    bottom: 0;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    pointer-events: none;
-                    border: 2px outset #555;
-                    border-radius: 100%;
-                    box-shadow: 0 0 4px 2px #222;
-                  `}
-                ></div>
-                <div
-                  class={css`
-                    position: absolute;
-                    left: 0;
-                    right: 0;
-                    top: 0;
-                    bottom: 0;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    pointer-events: none;
-                  `}
-                >
-                  <div
-                    class={css`
-                      background: conic-gradient(
-                        from 16deg at 50% 50%,
-                        rgba(189, 189, 189, 1) 0%,
-                        rgba(255, 255, 255, 0.71) 24%,
-                        rgba(189, 189, 189, 1) 49%,
-                        rgba(255, 255, 255, 0.6) 75%,
-                        rgba(191, 191, 191, 1) 100%
-                      );
-                      //background-image: conic-gradient(#eee, #ddd, #aaa, #eee, #ddd, #aaa, #eee);
-                      z-index: 999;
-                      //width: 48px;
-                      //height: 48px;
-                      width: 55%;
-                      height: 55%;
-                      border-radius: 100%;
-                      pointer-events: none;
-                      border: 1px inset #eee;
-                      box-shadow: 2px 1px 8px 3px rgba(0, 0, 0, 0.2);
-                    `}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-        />
+        <MoogKnob {...knobProps} size={size()} />
       </div>
       <input
         type="number"
