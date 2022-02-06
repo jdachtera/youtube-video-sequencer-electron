@@ -1,4 +1,5 @@
 import {
+  Component,
   createEffect,
   createMemo,
   createSignal,
@@ -9,10 +10,10 @@ import {
   untrack,
 } from 'solid-js';
 import MoogKnobSvg from './moog_knob.svg';
-import ScrewHeadWithHole from '../../assets/svg/screw_head_with_hole.svg';
 import { css } from 'solid-styled-components';
 import { useAppTheme } from './theme';
 import { Label } from './Label';
+import { Dynamic } from 'solid-js/web';
 
 type KnobProps = {
   value?: number;
@@ -24,20 +25,14 @@ type KnobProps = {
   initialRotation?: number;
   onChange: (newValue: number) => void;
   style?: JSX.CSSProperties;
-} & Omit<JSX.IntrinsicElements['img'], 'style' | 'onChange'>;
+  component: Component<{
+    onWheel: (event: WheelEvent) => void;
+    onMouseDown: (event: MouseEvent) => void;
+    rotation: number;
+  }>;
+};
 
 export const Knob = (props: KnobProps) => {
-  const [ownProps, imageProps] = splitProps(props, [
-    'value',
-    'min',
-    'max',
-    'step',
-    'speed',
-    'onChange',
-    'style',
-    'initialRotation',
-  ]);
-
   const propsWithDefaults = mergeProps(
     {
       value: 0,
@@ -47,7 +42,7 @@ export const Knob = (props: KnobProps) => {
       speed: 1,
       initialRotation: 0,
     },
-    ownProps
+    props
   );
 
   const rotation = createMemo(
@@ -118,96 +113,35 @@ export const Knob = (props: KnobProps) => {
   });
 
   return (
-    <div style={{position: 'relative', padding: '10px'}}>
-      <div style={{position: 'relative'}}>
-
-      <img
-        {...imageProps}
-        onWheel={(event) => {
-          event.preventDefault();
-          handleChange(
-            event.deltaY / window.screen.height / 5,
-            !props.fineIsDefault && event.altKey
-          );
-        }}
-        onMouseDown={(event) => {
-          event.preventDefault();
-          setLastPosition({ x: event.x, y: event.y });
-          setIsDragging(true);
-        }}
-        style={{
-          ...props.style,
-          transform: `rotate(${rotation()}deg)`,
-          margin: 0,
-          width: '100%',
-          height: '100%',
-        }}
-      />
-      <div class={css`
-          position: absolute;
-          left: 0;
-          right: 0;
-          top: 0;
-          bottom: 0;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          pointer-events: none;
-          border: 2px outset #555;
-          border-radius: 100%;
-          box-shadow: 0 0 4px 2px #222;
-      `}></div>
-      <div class={css`
-          position: absolute;
-          left: 0;
-          right: 0;
-          top: 0;
-          bottom: 0;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          pointer-events: none;
-      `}>
-        <div class={css`
-          background:conic-gradient(
-            from 16deg at 50% 50%,
-            rgba(189, 189, 189, 1) 0%,
-            rgba(255, 255, 255, 0.71) 24%,
-            rgba(189, 189, 189, 1) 49%,
-            rgba(255, 255, 255, 0.6) 75%,
-            rgba(191, 191, 191, 1) 100%);
-          //background-image: conic-gradient(#eee, #ddd, #aaa, #eee, #ddd, #aaa, #eee);
-          z-index: 999;
-          //width: 48px;
-          //height: 48px;
-          width: 55%;
-          height: 55%;
-          border-radius: 100%;
-          pointer-events: none;
-          border: 1px inset #eee;
-          box-shadow: 2px 1px 8px 3px rgba(0,0,0,0.2);
-          `}/>
-        </div>
-      </div>
-    </div>
+    <Dynamic
+      onWheel={(event: WheelEvent) => {
+        event.preventDefault();
+        handleChange(
+          event.deltaY / window.screen.height / 5,
+          !props.fineIsDefault && event.altKey
+        );
+      }}
+      onMouseDown={(event: MouseEvent) => {
+        event.preventDefault();
+        setLastPosition({ x: event.x, y: event.y });
+        setIsDragging(true);
+      }}
+      rotation={rotation()}
+      component={props.component}
+    />
   );
 };
 
 export const MoogKnobWithLabel = (
-  props: Omit<KnobProps, 'src' | 'initialRotation'> & {
+  props: Omit<KnobProps, 'component'> & {
     label?: JSXElement;
     size?: number;
   }
 ) => {
   const theme = useAppTheme();
-  const mergedProps = mergeProps(
-    {
-      src: MoogKnobSvg,
-      initialRotation: 30,
-      size: theme.sizes.knobSize,
-    },
-    props
-  );
+  const [ownProps, knobProps] = splitProps(props, ['size', 'label']);
+
+  const size = createMemo(() => ownProps.size ?? theme.sizes.knobSize);
 
   return (
     <div
@@ -220,25 +154,94 @@ export const MoogKnobWithLabel = (
       <Label label={props.label} />
       <div
         class={css`
-          background-size: ${mergedProps.size}px ${mergedProps.size}px;
-          /* background-image: url(${ScrewHeadWithHole}); */
+          background-size: ${size()}px ${size()}px;
           background-repeat: no-repeat;
-          width:  ${mergedProps.size}px;
-          height: ${mergedProps.size}px;
-          min-width: ${mergedProps.size}px;
-          min-height: ${mergedProps.size}px;
-          max-width: ${mergedProps.size}px;
-          max-height: ${mergedProps.size}px;
+          width: ${size()}px;
+          height: ${size()}px;
+          min-width: ${size()}px;
+          min-height: ${size()}px;
+          max-width: ${size()}px;
+          max-height: ${size()}px;
         `}
       >
         <Knob
-          {...mergedProps}
-          class={css`
-            width: ${mergedProps.size}px;
-            height: ${mergedProps.size}px;
-            display: block;
-            margin: 0 auto;
-          `}
+          {...knobProps}
+          initialRotation={280}
+          component={(props: { rotation: number }) => (
+            <div style={{ position: 'relative', padding: '10px' }}>
+              <div style={{ position: 'relative' }}>
+                <img
+                  {...props}
+                  src={MoogKnobSvg}
+                  width={theme.sizes.knobSize}
+                  class={css`
+                    width: ${size()}px;
+                    height: ${size()}px;
+                    display: block;
+                    margin: 0 auto;
+                  `}
+                  style={{
+                    transform: `rotate(${props.rotation}deg)`,
+                    margin: 0,
+                    width: '100%',
+                    height: '100%',
+                  }}
+                />
+                <div
+                  class={css`
+                    position: absolute;
+                    left: 0;
+                    right: 0;
+                    top: 0;
+                    bottom: 0;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    pointer-events: none;
+                    border: 2px outset #555;
+                    border-radius: 100%;
+                    box-shadow: 0 0 4px 2px #222;
+                  `}
+                ></div>
+                <div
+                  class={css`
+                    position: absolute;
+                    left: 0;
+                    right: 0;
+                    top: 0;
+                    bottom: 0;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    pointer-events: none;
+                  `}
+                >
+                  <div
+                    class={css`
+                      background: conic-gradient(
+                        from 16deg at 50% 50%,
+                        rgba(189, 189, 189, 1) 0%,
+                        rgba(255, 255, 255, 0.71) 24%,
+                        rgba(189, 189, 189, 1) 49%,
+                        rgba(255, 255, 255, 0.6) 75%,
+                        rgba(191, 191, 191, 1) 100%
+                      );
+                      //background-image: conic-gradient(#eee, #ddd, #aaa, #eee, #ddd, #aaa, #eee);
+                      z-index: 999;
+                      //width: 48px;
+                      //height: 48px;
+                      width: 55%;
+                      height: 55%;
+                      border-radius: 100%;
+                      pointer-events: none;
+                      border: 1px inset #eee;
+                      box-shadow: 2px 1px 8px 3px rgba(0, 0, 0, 0.2);
+                    `}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         />
       </div>
       <input
@@ -248,17 +251,17 @@ export const MoogKnobWithLabel = (
         max={props.max ?? 10}
         step={props.step}
         onInput={(event) => {
-          mergedProps.onChange(+event.currentTarget.value);
+          knobProps.onChange(+event.currentTarget.value);
         }}
         class={css`
           display: block;
           background: ${theme.colors.lcdBackground};
           color: ${theme.colors.lcdText};
-          border: ${mergedProps.size / 50}px ${theme.colors.lcdBorder} solid;
+          border: ${size() / 50}px ${theme.colors.lcdBorder} solid;
           border-radius: ${theme.sizes.labelBorderRadius};
           text-align: center;
-          width: ${mergedProps.size}px;
-          font-size: ${mergedProps.size / 5}px;
+          width: ${size()}px;
+          font-size: ${size() / 5}px;
         `}
       />
     </div>
