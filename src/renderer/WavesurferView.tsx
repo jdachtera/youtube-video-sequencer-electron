@@ -128,7 +128,7 @@ export const WavesurferView = (props: WavesurferViewProps) => {
         TimelinePlugin.create({
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           container: timelineRef!,
-          zoomDebounce: 200,
+          zoomDebounce: 100,
         }),
       ],
       waveColor: '#222',

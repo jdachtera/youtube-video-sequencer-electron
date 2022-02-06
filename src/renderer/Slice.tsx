@@ -10,14 +10,19 @@ import {
 import { css } from 'solid-styled-components';
 import { Step } from './SequencerStep';
 
-import RackEar from './RackEar';
+import RackEar, { RackEar2 } from './RackEar';
+
+import screwHead from './svg/screw_head.svg'
+
+import { WavesurferSliceView } from './WavesurferSliceView';
 
 import { Sequencer } from './Sequencer';
 import { Action } from './SequencerAction';
 import type { SliceChain } from './engine/SliceChain';
-import { MoogKnobWithLabel } from './Knob';
+import { MoogKnobWithLabel, NumberInputWithLabel } from './Knob';
 import { useAppTheme } from './theme';
 import { Toggle } from './Toggle';
+import { read } from 'fs';
 
 export type Pattern = {
   subdivision: number;
@@ -176,35 +181,102 @@ export const VideoSlice = (props: {
 
   return (
     <li
-      style={{ background: slice().color }}
+      // style={{ background: slice().color }}
       class={css`
-        box-shadow: inset 0 0 5px #000;
+        display: flex;
+        align-items: center;
+        padding: 0;
+        margin: 0;
+        box-shadow: 0px 0px 2px inset #222;
+        border-radius: 4px;
+        margin-bottom: 2px;
+        background-color: ${slice().color};
       `}
       classList={{
-        slice: true,
         'slice-active': props.isSelected,
       }}
     >
       <div style={{ display: 'flex', width: '100%' }}>
         <RackEar />
+        <div>
+
         <div
-          style={{
-            width: '100%',
-            //display: 'flex',
-            alignItems: 'center',
-            'vertical-align': 'top',
-            padding: '8px',
-          }}
+          class={css`
+            width: 100%;
+            display: flex;
+            align-items: center;
+            vertical-align: top;
+            padding: 8px;
+            border: 1px solid white;
+          `}
         >
-          <input
-            onChange={handleUpdateName}
-            class="lcd"
-            style={{ margin: '8px', width: '300px' }}
-            value={slice().name}
-          />
+          <div class={css`
+            border: 1px solid yellow;
+            display: flex;
+            flex-direction: column;
+            padding: 2px;
+          `}>
+          <div class={css`
+            display: flex;
+            border: 1px solid red;
+          `}>
+          <RackEar2/>
+          <div class={css`
+              display: inline-flex;
+              flex-direction: column;
+              background: #b3b3b3;
+              color: rgba(37, 37, 37, 0.774);
+              font-size: 20px;
+              border: 2px inset #ffffffac;
+              font-family: 'chesstype';
+              box-shadow: inset 1px 1px 5px 1px #53535386;
+              border-radius: 4px;
+              text-shadow: 1px 1px 1px rgba(51, 51, 51, 0.5);
+          `}>
+            <div class={css`
+              border: 1px solid red;
+            `}>
+              <span>NAME:</span>
+              <input
+                onChange={handleUpdateName}
+                class={css`
+                  background: none;
+                  border: none;
+                  `}
+                value={slice().name}
+                />
+              </div>
+              <div class={css`
+              border: 1px solid red;
+            `}>
+              <span>STEPS</span>
+              </div>
+          </div>
+            <RackEar2/>
+            </div>
+            <button type="button" onMouseDown={handleClickSlice} class={css`
+            border: 2px outset white;
+            padding: 10px;
+            border-radius: 2px;
+            box-shadow: 0 0 1px 2px #333;
+            background: radial-gradient(#c2c2c2, #fff);
+            font-family: 'oswald';
+            font-weight: bold;
+            font-size: 14px;
+            &:active {
+              border: 2px inset white;
+            }
+          `}>
+            PLAY
+          </button>
+          </div>
+          <WavesurferSliceView
+              chain={props.chain}
+              center={3}
+            />
           <FormattedTime timeInSeconds={slice().start} /> -{' '}
           <FormattedTime timeInSeconds={slice().end} />
-          <MoogKnobWithLabel
+          <NumberInputWithLabel
             label="Steps"
             step={1}
             min={1}
@@ -259,15 +331,15 @@ export const VideoSlice = (props: {
             checked={slice().solo}
             onChange={handleUpdateSolo}
           />
-          <button type="button" onClick={handleClickSlice}>
-            Play
-          </button>
+
           <button type="button" onClick={handleRemoveSlice}>
             Remove slice
           </button>
           <button type="button" onClick={handleCloneSlice}>
             Clone slice
           </button>
+          </div>
+          <div>
           <select
             value={currentPattern()?.subdivision ?? 16}
             onChange={handleUpdateSubdivision}
@@ -296,6 +368,7 @@ export const VideoSlice = (props: {
               onToggleStep={onToggleStep}
             />
           </div>
+        </div>
         </div>
         <RackEar />
       </div>

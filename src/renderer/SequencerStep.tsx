@@ -22,13 +22,13 @@ const sequencerStepBaseStyles = css`
   margin: 2px;
   border-radius: 4px;
   border: 3px outset #eee;
-  //box-shadow: 0px 0px 1px 1px rgb(198, 198, 198);
   background: rgb(198, 198, 198);
   background: linear-gradient(
     138deg,
     rgb(219, 204, 174) 10%,
     rgba(255, 255, 255, 1) 100%
   );
+  &:active { border: 3px inset white; };
   &:nth-of-type(8n+5),
   &:nth-of-type(8n+6),
   &:nth-of-type(8n+7),
@@ -55,7 +55,7 @@ const sequencerStepActiveStyles = css`
     circle,
     rgb(255, 184, 143) 10%,
     rgb(255, 122, 78) 80%
-  );
+  ) !important;
   &:nth-of-type(8n+5),
   &:nth-of-type(8n+6),
   &:nth-of-type(8n+7),

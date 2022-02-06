@@ -171,9 +171,10 @@ export const SamplerView = (props: { sampler: Sampler }) => {
 
             <ol class={css`
               box-shadow: inset 0px 0px 8px black;
-              padding: 5px;
+              padding: 2px;
               border-radius: 5px;
               margin-top: 10px;
+              background-color: #111;
             `}>
               <For each={chains()}>
                 {(chain) => (

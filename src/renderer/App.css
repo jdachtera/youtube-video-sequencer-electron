@@ -48,3 +48,16 @@ input[type=number]::-webkit-outher-spin-button {
 #path1209 {
   stroke: red;
 }
+
+
+@font-face {
+  font-family: 'chesstype';
+  font-weight: 500;
+  src: url('../../assets/fonts/ChessType.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'oswald';
+  font-weight: 400;
+  src: url('../../assets/fonts/Oswald.ttf') format('truetype');
+}

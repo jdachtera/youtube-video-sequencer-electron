@@ -105,7 +105,7 @@ export const Sequencer = (props: {
           )}
         </Index>
       </ul>
-      <div>
+      {/* <div>
         <Show when={selectedStep()}>
           {(step) => (
             <div>
@@ -125,7 +125,7 @@ export const Sequencer = (props: {
             </div>
           )}
         </Show>
-      </div>
+      </div> */}
     </div>
   );
 };

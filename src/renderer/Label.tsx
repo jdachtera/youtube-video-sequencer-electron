@@ -10,12 +10,18 @@ export const Label = (props: { label?: JSXElement; size?: number }) => {
     <label
       class={css`
         display: block;
-        background: ${theme.colors.lcdBackground};
-        color: ${theme.colors.lcdText};
-        border: ${size() / 50}px ${theme.colors.lcdBorder} solid;
-        border-radius: ${theme.sizes.labelBorderRadius};
+        background: none;
+        color: ${theme.colors.labelColor};
+        /* border: ${size() / 50}px ${theme.colors.lcdBorder} solid; */
+        //border: none;
+        //border-radius: ${theme.sizes.labelBorderRadius};
         text-align: center;
         font-size: ${size() / 5}px;
+        font-family: 'Oswald';
+        text-transform: uppercase;
+        text-shadow: none;
+        border: none;
+        border-radius: none;
       `}
     >
       {props.label}
