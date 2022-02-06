@@ -2,13 +2,13 @@ import { createMemo, JSXElement } from 'solid-js';
 import { css } from 'solid-styled-components';
 import { useAppTheme } from './theme';
 
-export const Label = (props: { label?: JSXElement; size?: number }) => {
+export const Label = (props: { label?: JSXElement; size?: number, class?: string }) => {
   const theme = useAppTheme();
   const size = createMemo(() => props.size ?? theme.sizes.knobSize);
 
   return (
     <label
-      class={css`
+      class={[css`
         display: block;
         background: none;
         color: ${theme.colors.labelColor};
@@ -22,7 +22,7 @@ export const Label = (props: { label?: JSXElement; size?: number }) => {
         text-shadow: none;
         border: none;
         border-radius: none;
-      `}
+      `, props.class ?? ''].join(' ')}
     >
       {props.label}
     </label>

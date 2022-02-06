@@ -11,7 +11,7 @@ import { css } from 'solid-styled-components';
 import { Step } from './SequencerStep';
 
 import RackEar, { RackEar2 } from './RackEar';
-import { LCDLabel, PowerSwitch } from './UI';
+import { LCDLabel, PowerSwitch, ScrewRow, ModuleFrame, ButtonWithLabel } from './UI';
 import screwHead from './svg/screw_head.svg'
 
 import { WavesurferSliceView } from './WavesurferSliceView';
@@ -60,6 +60,7 @@ const FormattedTime = (props: { timeInSeconds: number }) => {
       .padStart(2, '0')}`}</>
   );
 };
+
 
 export const VideoSlice = (props: {
   chain: SliceChain;
@@ -196,141 +197,258 @@ export const VideoSlice = (props: {
         'slice-active': props.isSelected,
       }}
     >
-      <div style={{ display: 'flex', width: '100%' }}>
+      <div class={css`
+        display: flex;
+        width: 100%;
+      `}>
         <RackEar />
-        <div>
-          <Toggle
-            label="Mains"
-            checked={slice().solo}
-            onChange={handleUpdateSolo}
-          />
-          <div
-            class={css`
-              width: 100%;
-              display: flex;
-              align-items: center;
-              vertical-align: top;
-              padding: 8px;
-            `}
-          >
-            <div class={css`
-              display: flex;
-              flex-direction: column;
-              padding: 2px;
-            `}>
-            <div class={css`
-              display: flex;
-            `}>
-          <RackEar2/>
+        <div class={css`
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+          padding: 20px;
+        `}>
           <div class={css`
-              display: inline-flex;
-              flex-direction: column;
-              background: #949494;
-              color: rgb(63, 63, 63);
-              font-size: 20px;
-              border: 2px inset #ffffffac;
-              box-shadow: inset 2px 2px 5px 1px #000000c1;
-              border-radius: 4px;
-              text-shadow: 1px 1px 1px rgba(119, 119, 119, 0.849);
-              padding: 8px;
-          `}>
-            <LCDLabel>Sample</LCDLabel>
-            <WavesurferSliceView
-              chain={props.chain}
-              center={1}
-            />
-            <div class={css`
             display: flex;
             align-items: center;
-            `}>
-              <LCDLabel>Name</LCDLabel>
-              <input
-                onChange={handleUpdateName}
-                class={css`
-                  background: none;
-                  border: none;
-                  font-family: '7seg';
-                  color: #444;
-                  `}
-                value={slice().name}
-                />
-              </div>
-              <div class={css`
-                display: flex;
-                align-items: center;
-              `}>
-              <LCDLabel>Steps</LCDLabel>
-              <NumberInput
-                label='steps'
-                step={1}
-                min={1}
-                max={1024}
-                speed={0.1}
-                fineIsDefault
-                value={currentPattern()?.steps?.length}
-                onInput={handleUpdatePatternLength}
-              />
-              </div>
-              <div class={css`
-                display: flex;
-                justify-content: space-between;
-              `}>
-
-              <div class={css`
-                display: flex;
-                align-items: center;
-              `}>
-              <LCDLabel>Start</LCDLabel>
-              <NumberInput
-                label='steps'
-                step={1}
-                min={1}
-                max={1024}
-                speed={0.1}
-                fineIsDefault
-                value={slice().start}
-                onChange={handleUpdateSampleStart}
-              />
-              </div>
-                <div class={css`
-                  display: flex;
-                  align-items: center;
-                `}>
-                <LCDLabel>End</LCDLabel>
-                <NumberInput
-                  label='steps'
-                  step={1}
-                  min={1}
-                  max={1024}
-                  speed={0.1}
-                  fineIsDefault
-                  value={slice().end}
-                  onChange={handleUpdateSampleEnd}
-                />
-                </div>
-              </div>
-
-          </div>
-            <RackEar2/>
-            </div>
-            <button type="button" onMouseDown={handleClickSlice} class={css`
-            border: 2px outset white;
-            padding: 10px;
-            border-radius: 2px;
-            box-shadow: 0 0 1px 2px #333;
-            background: radial-gradient(#c2c2c2, #fff);
-            font-family: 'oswald';
-            font-weight: bold;
-            font-size: 14px;
-            margin-top: 10px;
-            width: 50px;
-            &:active {
-              border: 2px inset white;
-            }
           `}>
-            PLAY
-          </button>
-          </div>
+            <div class={css`
+              height: 100%;
+              display: flex;
+              flex-direction: column;
+              justify-content: flex-start;
+              padding-right: 50px;
+            `}>
+              {/* <ModuleFrame> */}
+                <Toggle
+                  label="Mains"
+                  checked={slice().solo}
+                  onChange={handleUpdateSolo}
+                  />
+              {/* </ModuleFrame> */}
+            </div>
+            <div
+              class={css`
+                width: 100%;
+                display: flex;
+                padding: 8px;
+
+                `}>
+              <div class={css`
+                display: flex;
+                flex-direction: column;
+                padding: 2px;
+                `}>
+                  <div class={css`
+                    display: flex;
+                    flex-direction: column;
+
+                `}>
+                    <ModuleFrame>
+                      <div class={css`
+                          display: flex;
+                          flex-direction: column;
+                          background: radial-gradient(#cfcfcf, #b3b3b3);
+                          color: rgb(63, 63, 63);
+                          font-size: 20px;
+                          border: 3px inset #ffffffac;
+                          box-shadow: inset 2px 2px 5px 1px #000000c1;
+                          border-radius: 4px;
+                          text-shadow: 1px 1px 1px rgba(119, 119, 119, 0.849);
+                          padding: 8px;
+                          margin-right: 20px;
+                          margin-left: 20px;
+                          `}>
+                        <LCDLabel>Sample</LCDLabel>
+                        <WavesurferSliceView
+                          chain={props.chain}
+                          center={1}
+                          />
+                        <div class={css`
+                        display: flex;
+                        align-items: center;
+                        `}>
+                          <LCDLabel>Name</LCDLabel>
+                          <input
+                            onChange={handleUpdateName}
+                            class={css`
+                              background: none;
+                              border: none;
+                              font-family: '7seg';
+                              color: #444;
+                              `}
+                            value={slice().name}
+                            />
+                          </div>
+                          <div class={css`
+                            display: flex;
+                            align-items: center;
+                            `}>
+                          <LCDLabel>Steps</LCDLabel>
+                          <NumberInput
+                            label='steps'
+                            step={1}
+                            min={1}
+                            max={1024}
+                            speed={0.1}
+                            fineIsDefault
+                            value={currentPattern()?.steps?.length}
+                            onInput={handleUpdatePatternLength}
+                            />
+                          </div>
+                          <div class={css`
+                            display: flex;
+                            align-items: center;
+                            `}>
+                          <LCDLabel>Sample Duration</LCDLabel>
+                          <NumberInput
+                            label='duration'
+                            step={1}
+                            min={1}
+                            max={1024}
+                            speed={0.1}
+                            fineIsDefault
+                            value={currentPattern()?.steps?.length}
+                            onInput={handleUpdatePatternLength}
+                            />
+                          </div>
+                          <div class={css`
+                            display: flex;
+                            align-items: center;
+                            `}>
+                          <LCDLabel>Current Time</LCDLabel>
+                          <NumberInput
+                            label='duration'
+                            step={1}
+                            min={1}
+                            max={1024}
+                            speed={0.1}
+                            fineIsDefault
+                            value={currentPattern()?.steps?.length}
+                            onInput={handleUpdatePatternLength}
+                            />
+                          </div>
+                          <div class={css`
+                            display: flex;
+                            align-items: center;
+                            `}>
+                          <LCDLabel>Playback Speed</LCDLabel>
+                          <NumberInput
+                            label='volume'
+                            step={1}
+                            min={1}
+                            max={1024}
+                            speed={0.1}
+                            fineIsDefault
+                            value={currentPattern()?.steps?.length}
+                            onInput={handleUpdatePatternLength}
+                            />
+                          </div>
+                          <div class={css`
+                            display: flex;
+                            align-items: center;
+                            `}>
+                          <LCDLabel>Volume</LCDLabel>
+                          <NumberInput
+                            label='volume'
+                            step={1}
+                            min={1}
+                            max={1024}
+                            speed={0.1}
+                            fineIsDefault
+                            value={currentPattern()?.steps?.length}
+                            onInput={handleUpdatePatternLength}
+                            />
+                          </div>
+                          <div class={css`
+                            display: flex;
+                            justify-content: space-between;
+                            `}>
+
+                          <div class={css`
+                            display: flex;
+                            align-items: center;
+                            `}>
+                          <LCDLabel>Start</LCDLabel>
+                          <NumberInput
+                            label='steps'
+                            step={1}
+                            min={1}
+                            max={1024}
+                            speed={0.1}
+                            fineIsDefault
+                            value={slice().start}
+                            onChange={handleUpdateSampleStart}
+                            />
+                          </div>
+                            <div class={css`
+                              display: flex;
+                              align-items: center;
+                              `}>
+                            <LCDLabel minWidth='20px'>End</LCDLabel>
+                            <NumberInput
+                              label='steps'
+                              step={1}
+                              min={1}
+                              max={1024}
+                              speed={0.1}
+                              fineIsDefault
+                              value={slice().end}
+                              onChange={handleUpdateSampleEnd}
+                              />
+                            </div>
+                          </div>
+                      </div>
+                      <div class={css`
+                        display: flex;
+                        justify-content: space-between;
+                      `}>
+                        <MoogKnobWithLabel
+                          min={0}
+                          max={props.chain.getSampler().buffer.duration}
+                          speed={0.1}
+                          step={0.01}
+                          value={slice().start}
+                          onChange={handleUpdateSampleStart}
+                          label="Start"
+                          />
+                          <MoogKnobWithLabel
+                          min={0}
+                          max={props.chain.getSampler().buffer.duration}
+                          speed={0.1}
+                          step={0.01}
+                          value={slice().end}
+                          onChange={handleUpdateSampleEnd}
+                          label="End"
+                          />
+                        </div>
+                    </ModuleFrame>
+
+                  </div>
+
+                </div>
+                  <div class={css`
+                      display: flex;
+                      flex-direction: column;
+                      padding-left: 60px;
+                      align-items: flex-start;
+                      `}>
+                    <ModuleFrame>
+                      <div class={css`
+                      display: flex;
+                      flex-direction: column;
+                      align-items: flex-start;
+                      `}>
+                      <ButtonWithLabel onClick={handleClickSlice} label="Audition Sample"/>
+                      <ButtonWithLabel onClick={handleClickSlice} label="Reverse"/>
+                      <ButtonWithLabel onClick={handleClickSlice} label="Delete"/>
+                      <ButtonWithLabel onClick={handleClickSlice} label="Clone"/>
+                      </div>
+                    </ModuleFrame>
+                  </div>
+            </div>
+          <ModuleFrame>
+          <div>
 
           <FormattedTime timeInSeconds={slice().start} /> -{' '}
           <FormattedTime timeInSeconds={slice().end} />
@@ -344,7 +462,7 @@ export const VideoSlice = (props: {
             fineIsDefault
             value={currentPattern()?.steps?.length}
             onChange={handleUpdatePatternLength}
-          />
+            />
           <MoogKnobWithLabel
             min={0}
             max={2}
@@ -356,14 +474,14 @@ export const VideoSlice = (props: {
               });
             }}
             label="Volume"
-          />
+            />
           <MoogKnobWithLabel
             min={0}
             max={3}
             value={slice().playbackSpeed}
             onChange={handleUpdatePlaybackSpeed}
             label="Pitch"
-          />
+            />
           <MoogKnobWithLabel
             min={0}
             max={props.chain.getSampler().buffer.duration}
@@ -372,7 +490,7 @@ export const VideoSlice = (props: {
             value={slice().start}
             onChange={handleUpdateSampleStart}
             label="Start"
-          />
+            />
           <MoogKnobWithLabel
             min={0}
             max={props.chain.getSampler().buffer.duration}
@@ -381,54 +499,65 @@ export const VideoSlice = (props: {
             value={slice().end}
             onChange={handleUpdateSampleEnd}
             label="End"
-          />
+            />
           <Toggle
             label="Reverse"
             checked={slice().reverse}
             onChange={handleUpdateReverse}
-          />
+            />
           <Toggle
             label="Solo"
             checked={slice().solo}
             onChange={handleUpdateSolo}
-          />
-
+            />
+          </div>
+          </ModuleFrame>
           <button type="button" onClick={handleRemoveSlice}>
             Remove slice
           </button>
           <button type="button" onClick={handleCloneSlice}>
             Clone slice
           </button>
-          </div>
-          <div>
           <select
             value={currentPattern()?.subdivision ?? 16}
             onChange={handleUpdateSubdivision}
-          >
+            >
             <For each={subdivisions}>
               {(subdivision) => (
                 <option value={subdivision}>{subdivision}</option>
-              )}
+                )}
             </For>
           </select>
           <select
             value={currentPattern()?.subdivisionType ?? 'n'}
             onChange={handleUpdateSubdivisionType}
-          >
+            >
             <For each={subdivisionTypes}>
               {(subdivisionType) => (
                 <option value={subdivisionType}>{subdivisionType}</option>
-              )}
+                )}
             </For>
           </select>
+          </div>
           <div class={css`
           `}>
-            <Sequencer
-              steps={slice().patterns[props.currentPatternIndex].steps}
-              chain={props.chain}
-              onChange={handleUpdateSteps}
-              onToggleStep={onToggleStep}
-            />
+          <div class={css`
+            display: inline-flex;
+            flex-direction: column;
+            `}>
+            <ModuleFrame>
+              <div class={css`
+                margin-left: 20px;
+                margin-right: 20px;
+                `}>
+              <Sequencer
+                steps={slice().patterns[props.currentPatternIndex].steps}
+                chain={props.chain}
+                onChange={handleUpdateSteps}
+                onToggleStep={onToggleStep}
+                />
+              </div>
+            </ModuleFrame>
           </div>
         </div>
         </div>

@@ -12,6 +12,7 @@ import RackEar from './RackEar';
 import { Sampler } from './engine/Sampler';
 import { WavesurferView } from './WavesurferView';
 import { SliceChain } from './engine/SliceChain';
+import { ModuleFrame } from './UI';
 
 export const SamplerView = (props: { sampler: Sampler }) => {
   const [selectedSlice, setSelectedSlice] = createSignal<Slice>();
@@ -149,25 +150,18 @@ export const SamplerView = (props: { sampler: Sampler }) => {
           }}
         >
           <div>Length: {length()}s</div>
-          <div class="flex flex-col w-full">
-            <div class="mb-2 w-full">
-              <label class="mr-2 w-full">Youtube URL</label>
-              <input
-                class="border w-2/3 lcd"
-                type="text"
-                disabled
-                value={props.sampler.url}
-              />
+          <div class="">
+            <div class="">{props.sampler.url}</div>
               <button type="button" onClick={handleRemoveSampler}>
                 Remove sampler
               </button>
-            </div>
-
+            <ModuleFrame>
             <WavesurferView
               sampler={props.sampler}
               center={waveformCenter()}
               onRegionClick={handleClickRegion}
-            />
+              />
+            </ModuleFrame>
 
             <ol class={css`
               box-shadow: inset 0px 0px 8px black;

@@ -55,7 +55,7 @@ const sequencerStepActiveStyles = css`
     circle,
     rgb(255, 184, 143) 10%,
     rgb(255, 122, 78) 80%
-  ) !important;
+  );
   &:nth-of-type(8n+5),
   &:nth-of-type(8n+6),
   &:nth-of-type(8n+7),
@@ -109,7 +109,22 @@ const sequencerStepIsSelectedStyles = () => {
 };
 
 export const SequencerStep = (props: SequencerStepProps) => (
-  <li
+  <li class={css`
+    list-style: none;
+    user-select: none;
+    display: inline-flex;
+    padding: 3px;
+  `}>
+    <div class={css`
+      padding: 1px;
+      border: 3px inset #ffffffd6;
+      border-radius: 7px;
+      background: #555;
+      box-shadow: inset 0 0 2px 2px #222;
+      display: inline-flex;
+    `}>
+
+    <div
     classList={{
       [sequencerStepBaseStyles]: true,
       [sequencerStepActiveStyles]: !!props.step.actions.find(
@@ -125,5 +140,8 @@ export const SequencerStep = (props: SequencerStepProps) => (
     onDblClick={() => props?.onDblClick?.(props.step)}
   >
     &nbsp;
+  </div>
+  </div>
+
   </li>
 );
