@@ -5,6 +5,7 @@ import {
   onCleanup,
   untrack,
 } from 'solid-js';
+import { renderToStringAsync } from 'solid-js/web';
 import { css } from 'solid-styled-components';
 
 import { debounce } from 'ts-debounce';
@@ -132,15 +133,15 @@ export const WavesurferSliceView = (props: WavesurferSliceViewProps) => {
       //     zoomDebounce: 100,
       //   }),
       // ],
-      waveColor: '#222',
-      progressColor: '#222',
+      waveColor: '#adadad',
+      progressColor: '#ff0000',
       cursorColor: '#4353FF',
-      normalize: true,
-      barWidth: 1,
-      barRadius: 1,
+      normalize: false,
+      barWidth: 2,
+      barRadius: 2,
       cursorWidth: 0,
-      height: 100,
-      barGap: 1,
+      height: 70,
+      barGap: 0,
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -211,11 +212,18 @@ export const WavesurferSliceView = (props: WavesurferSliceViewProps) => {
   return (
     <div
       class={css`
-        width: 500px;
+        width: 300px;
+        overflow: hidden;
       `}
     >
-      <div ref={waveformRef} class="lcd" style={{ margin: '2px' }} />
-      <div ref={timelineRef} class="lcd" style={{ margin: '2px' }} />
+      <div ref={waveformRef} class={css`
+        padding: 4px;
+        background-color: #464646;
+        text-shadow: 1px 1px red;
+        wave {
+          overflow: hidden !important;
+        };
+      `}/>
       {/* <input
         onChange={handleZoomChanged}
         value={zoom()}

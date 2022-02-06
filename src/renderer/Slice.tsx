@@ -11,7 +11,7 @@ import { css } from 'solid-styled-components';
 import { Step } from './SequencerStep';
 
 import RackEar, { RackEar2 } from './RackEar';
-
+import { LCDLabel, PowerSwitch } from './UI';
 import screwHead from './svg/screw_head.svg'
 
 import { WavesurferSliceView } from './WavesurferSliceView';
@@ -19,7 +19,7 @@ import { WavesurferSliceView } from './WavesurferSliceView';
 import { Sequencer } from './Sequencer';
 import { Action } from './SequencerAction';
 import type { SliceChain } from './engine/SliceChain';
-import { MoogKnobWithLabel, NumberInputWithLabel } from './Knob';
+import { MoogKnobWithLabel, NumberInput, NumberInputWithLabel } from './Knob';
 import { useAppTheme } from './theme';
 import { Toggle } from './Toggle';
 import { read } from 'fs';
@@ -199,58 +199,117 @@ export const VideoSlice = (props: {
       <div style={{ display: 'flex', width: '100%' }}>
         <RackEar />
         <div>
-
-        <div
-          class={css`
-            width: 100%;
-            display: flex;
-            align-items: center;
-            vertical-align: top;
-            padding: 8px;
-            border: 1px solid white;
-          `}
-        >
-          <div class={css`
-            border: 1px solid yellow;
-            display: flex;
-            flex-direction: column;
-            padding: 2px;
-          `}>
-          <div class={css`
-            display: flex;
-            border: 1px solid red;
-          `}>
+          <Toggle
+            label="Mains"
+            checked={slice().solo}
+            onChange={handleUpdateSolo}
+          />
+          <div
+            class={css`
+              width: 100%;
+              display: flex;
+              align-items: center;
+              vertical-align: top;
+              padding: 8px;
+            `}
+          >
+            <div class={css`
+              display: flex;
+              flex-direction: column;
+              padding: 2px;
+            `}>
+            <div class={css`
+              display: flex;
+            `}>
           <RackEar2/>
           <div class={css`
               display: inline-flex;
               flex-direction: column;
-              background: #b3b3b3;
-              color: rgba(37, 37, 37, 0.774);
+              background: #949494;
+              color: rgb(63, 63, 63);
               font-size: 20px;
               border: 2px inset #ffffffac;
-              font-family: 'chesstype';
-              box-shadow: inset 1px 1px 5px 1px #53535386;
+              box-shadow: inset 2px 2px 5px 1px #000000c1;
               border-radius: 4px;
-              text-shadow: 1px 1px 1px rgba(51, 51, 51, 0.5);
+              text-shadow: 1px 1px 1px rgba(119, 119, 119, 0.849);
+              padding: 8px;
           `}>
+            <LCDLabel>Sample</LCDLabel>
+            <WavesurferSliceView
+              chain={props.chain}
+              center={1}
+            />
             <div class={css`
-              border: 1px solid red;
+            display: flex;
+            align-items: center;
             `}>
-              <span>NAME:</span>
+              <LCDLabel>Name</LCDLabel>
               <input
                 onChange={handleUpdateName}
                 class={css`
                   background: none;
                   border: none;
+                  font-family: '7seg';
+                  color: #444;
                   `}
                 value={slice().name}
                 />
               </div>
               <div class={css`
-              border: 1px solid red;
-            `}>
-              <span>STEPS</span>
+                display: flex;
+                align-items: center;
+              `}>
+              <LCDLabel>Steps</LCDLabel>
+              <NumberInput
+                label='steps'
+                step={1}
+                min={1}
+                max={1024}
+                speed={0.1}
+                fineIsDefault
+                value={currentPattern()?.steps?.length}
+                onInput={handleUpdatePatternLength}
+              />
               </div>
+              <div class={css`
+                display: flex;
+                justify-content: space-between;
+              `}>
+
+              <div class={css`
+                display: flex;
+                align-items: center;
+              `}>
+              <LCDLabel>Start</LCDLabel>
+              <NumberInput
+                label='steps'
+                step={1}
+                min={1}
+                max={1024}
+                speed={0.1}
+                fineIsDefault
+                value={slice().start}
+                onChange={handleUpdateSampleStart}
+              />
+              </div>
+                <div class={css`
+                  display: flex;
+                  align-items: center;
+                `}>
+                <LCDLabel>End</LCDLabel>
+                <NumberInput
+                  label='steps'
+                  step={1}
+                  min={1}
+                  max={1024}
+                  speed={0.1}
+                  fineIsDefault
+                  value={slice().end}
+                  onChange={handleUpdateSampleEnd}
+                />
+                </div>
+              </div>
+
           </div>
             <RackEar2/>
             </div>
@@ -263,6 +322,8 @@ export const VideoSlice = (props: {
             font-family: 'oswald';
             font-weight: bold;
             font-size: 14px;
+            margin-top: 10px;
+            width: 50px;
             &:active {
               border: 2px inset white;
             }
@@ -270,13 +331,11 @@ export const VideoSlice = (props: {
             PLAY
           </button>
           </div>
-          <WavesurferSliceView
-              chain={props.chain}
-              center={3}
-            />
+
           <FormattedTime timeInSeconds={slice().start} /> -{' '}
           <FormattedTime timeInSeconds={slice().end} />
-          <NumberInputWithLabel
+          <div>{props.chain.getPlayer().now()}</div>
+          <MoogKnobWithLabel
             label="Steps"
             step={1}
             min={1}
@@ -309,6 +368,7 @@ export const VideoSlice = (props: {
             min={0}
             max={props.chain.getSampler().buffer.duration}
             speed={0.1}
+            step={0.01}
             value={slice().start}
             onChange={handleUpdateSampleStart}
             label="Start"
@@ -317,6 +377,7 @@ export const VideoSlice = (props: {
             min={0}
             max={props.chain.getSampler().buffer.duration}
             speed={0.1}
+            step={0.01}
             value={slice().end}
             onChange={handleUpdateSampleEnd}
             label="End"
@@ -360,7 +421,8 @@ export const VideoSlice = (props: {
               )}
             </For>
           </select>
-          <div style={{ marginLeft: 'auto' }}>
+          <div class={css`
+          `}>
             <Sequencer
               steps={slice().patterns[props.currentPatternIndex].steps}
               chain={props.chain}

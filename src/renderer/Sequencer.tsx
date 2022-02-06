@@ -91,6 +91,7 @@ export const Sequencer = (props: {
       <ul class={css`
         box-shadow: inset 0 0 3px 2px #222;
         border-radius: 4px;
+        border: 2px inset white;
         padding: 3px;
         max-width: 640px;
       `}>

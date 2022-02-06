@@ -8,23 +8,19 @@ html, body, ol, ul {
 .video-js {
   width: 500px !important;
 }
-
-input[type=number]::-webkit-inner-spin-button {
+input[type=number] {
+  text-align: left;
+}
+/* input[type=number]::-webkit-inner-spin-button {
   opacity: 1;
-  background-color: red;
-  border: 8px solid red;
   margin: 0;
   padding: 0;
-  content: "\e823";
-  color: rgba(0, 0, 0, 0.54);
 }
 input[type=number]::-webkit-outher-spin-button {
   opacity: 1;
-  background-color: red;
-  border: 8px solid red;
   margin: 0;
   padding: 0;
-}
+} */
 
 .slice {
   user-select: none;
@@ -60,4 +56,11 @@ input[type=number]::-webkit-outher-spin-button {
   font-family: 'oswald';
   font-weight: 400;
   src: url('../../assets/fonts/Oswald.ttf') format('truetype');
+}
+
+
+@font-face {
+  font-family: '7seg';
+  font-weight: 400;
+  src: url('../../assets/fonts/DSEG14Classic-Bold.ttf') format('truetype');
 }

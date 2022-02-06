@@ -151,10 +151,13 @@ export const NumberInput = (
       knobProps.onChange(+event.currentTarget.value);
     }}
     class={css`
-      display: block;
-      background: ${theme.colors.lcdBackground};
+      display: flex;
+      justify-content: center;
+      background: none;
       color: ${theme.colors.lcdText};
-      font-family: ${theme.fonts.lcdFont};
+      border: none;
+      font-family: '7seg';
+      font-size: '20px';
     `}
   />
   )

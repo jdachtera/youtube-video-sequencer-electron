@@ -7,6 +7,7 @@ import {
 } from 'solid-js';
 
 import { debounce } from 'ts-debounce';
+import { css } from 'solid-styled-components';
 
 import Wavesurfer from 'wavesurfer.js';
 import RegionsPlugin, { Region } from 'wavesurfer.js/src/plugin/regions';
@@ -202,8 +203,14 @@ export const WavesurferView = (props: WavesurferViewProps) => {
 
   return (
     <>
-      <div ref={waveformRef} class="lcd" style={{ margin: '2px' }} />
-      <div ref={timelineRef} class="lcd" style={{ margin: '2px' }} />
+      <div ref={waveformRef} style={{ margin: '2px' }} class={css`
+        border: 3px inset white;
+        border-radius: 4px;
+        background: white;
+      `}/>
+      <div ref={timelineRef} style={{ margin: '2px' }} class={css`
+        color: white;
+      `}/>
       <input
         onChange={handleZoomChanged}
         value={zoom()}
