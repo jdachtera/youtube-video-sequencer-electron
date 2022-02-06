@@ -7,6 +7,7 @@ import {
   splitProps,
   untrack,
 } from 'solid-js';
+import { css } from 'solid-styled-components';
 import * as THREE from 'three';
 import { Renderer } from 'three';
 
@@ -41,8 +42,9 @@ export const Shader = (
 
     function resizeRendererToDisplaySize(renderer: Renderer) {
       const canvas = renderer.domElement;
-      const width = canvas.clientWidth;
-      const height = canvas.clientHeight;
+      const pixelRatio = window.devicePixelRatio;
+      const width = (canvas.clientWidth * pixelRatio) | 0;
+      const height = (canvas.clientHeight * pixelRatio) | 0;
       const needResize = canvas.width !== width || canvas.height !== height;
       if (needResize) {
         renderer.setSize(width, height, false);
@@ -52,11 +54,13 @@ export const Shader = (
 
     function render(time: number) {
       if (!isMounted) return;
+
       time *= 0.001; // convert to seconds
 
       resizeRendererToDisplaySize(renderer);
 
       const canvas = renderer.domElement;
+
       if (ownProps.shaderParams.uniforms) {
         ownProps.shaderParams.uniforms.iResolution.value.set(
           canvas.width,
@@ -187,8 +191,11 @@ export const MoogKnobShader = (
   return (
     <Shader
       {...canvasProps}
-      width={80}
-      height={80}
+      class={css`
+        display: inline-block;
+        width: 80px;
+        height: 80px;
+      `}
       shaderParams={shaderParams}
     />
   );
