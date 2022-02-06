@@ -172,7 +172,7 @@ export const MoogKnobShader = (
 ) => {
   const [, canvasProps] = splitProps(props, ['rotation']);
 
-  const multiplicator = (1 / 360) * 6;
+  const multiplicator = (1 / 360) * Math.PI * 2;
 
   const uniforms = {
     iTime: { value: 0 },

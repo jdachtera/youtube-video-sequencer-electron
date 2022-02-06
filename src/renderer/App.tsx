@@ -232,7 +232,7 @@ export function App() {
               max={1}
               value={swing()}
               onChange={handleSwingChange}
-              initialRotation={220}
+              initialRotation={210}
               component={MoogKnobShader}
             />
             Pattern:
