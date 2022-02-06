@@ -54,13 +54,11 @@ export const Shader = (
 
     function render(time: number) {
       if (!isMounted) return;
-
       time *= 0.001; // convert to seconds
 
       resizeRendererToDisplaySize(renderer);
 
       const canvas = renderer.domElement;
-
       if (ownProps.shaderParams.uniforms) {
         ownProps.shaderParams.uniforms.iResolution.value.set(
           canvas.width,
