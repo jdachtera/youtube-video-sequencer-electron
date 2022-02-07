@@ -43,4 +43,4 @@ jobs:
         run: |
           yarn postinstall
           yarn build
-          yarn electron-builder --publish always --win --mac --linux --c.buildVersion='${{ steps.vars.outputs.sha_short }}"' --c.artifactName='${productName}-${buildVersion}-${arch}.${ext}'
+          yarn electron-builder --publish always --win --mac --linux --c.buildVersion='${{ github.head_ref }}.${{ github.sha }}' --c.artifactName='${productName}-${buildVersion}-${arch}.${ext}'
