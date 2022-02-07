@@ -25,6 +25,7 @@ export const normalizePatternData = (
 
 export const normalizeSliceData = (slice: Partial<Slice>): Slice => ({
   id: slice.id ?? createUniqueId(),
+  collapsed: slice.collapsed ?? false,
   name: slice.name ?? '',
   color: slice.color ?? 'red',
   start: slice.start ?? 0,

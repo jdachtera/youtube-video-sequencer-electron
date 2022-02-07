@@ -15,7 +15,7 @@ const screwStyle = css`
   width: 35px;
 `;
 
-const RackEar = (props) => {
+const RackEar = (props: { onClick?: (event: MouseEvent) => void }) => {
   return (
     <div class={rackEarStyle} onClick={props.onClick}>
       <img alt="screw" src={ScrewHeadWithHole} class={screwStyle} />
@@ -26,15 +26,17 @@ const RackEar = (props) => {
 
 export const RackEar2 = () => {
   return (
-    <div class={css`
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  `}>
-    <Screw/>
-    <Screw/>
-  </div>
-  )
-}
+    <div
+      class={css`
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      `}
+    >
+      <Screw />
+      <Screw />
+    </div>
+  );
+};
 
 export default RackEar;

@@ -139,12 +139,14 @@ export const SamplerView = (props: { sampler: Sampler }) => {
 
   return (
     <div>
-      <div class={css`
-        display: flex;
-        background-color: #b6b6b6;
-        box-shadow: inset 0 0 2px 1px #2c2c2c;
-        border-radius: 5px;
-      `}>
+      <div
+        class={css`
+          display: flex;
+          background-color: #b6b6b6;
+          box-shadow: inset 0 0 2px 1px #2c2c2c;
+          border-radius: 5px;
+        `}
+      >
         <RackEar />
         <div
           style={{
@@ -157,24 +159,26 @@ export const SamplerView = (props: { sampler: Sampler }) => {
           <div>Length: {length()}s</div>
           <div class="">
             <div class="">{props.sampler.url}</div>
-              <button type="button" onClick={handleRemoveSampler}>
-                Remove sampler
-              </button>
+            <button type="button" onClick={handleRemoveSampler}>
+              Remove sampler
+            </button>
             <ModuleFrame>
-            <WavesurferView
-              sampler={props.sampler}
-              center={waveformCenter()}
-              onRegionClick={handleClickRegion}
+              <WavesurferView
+                sampler={props.sampler}
+                center={waveformCenter()}
+                onRegionClick={handleClickRegion}
               />
             </ModuleFrame>
 
-            <ol class={css`
-              box-shadow: inset 0px 0px 8px black;
-              padding: 2px;
-              border-radius: 5px;
-              margin-top: 10px;
-              background-color: #111;
-            `}>
+            <ol
+              class={css`
+                box-shadow: inset 0px 0px 8px black;
+                padding: 2px;
+                border-radius: 5px;
+                margin-top: 10px;
+                background-color: #111;
+              `}
+            >
               <For each={chains()}>
                 {(chain) => (
                   <VideoSlice

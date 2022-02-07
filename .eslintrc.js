@@ -1,6 +1,6 @@
 module.exports = {
   parser: '@typescript-eslint/parser',
-  plugins: ['@typescript-eslint', 'promise', 'import', 'solid'],
+  plugins: ['prettier', '@typescript-eslint', 'promise', 'import', 'solid'],
   extends: [
     'eslint:recommended',
     'plugin:promise/recommended',
@@ -8,12 +8,14 @@ module.exports = {
     'plugin:import/recommended',
     'plugin:import/typescript',
     'plugin:solid/typescript',
+    'prettier',
   ],
   rules: {
     // A temporary hack related to IDE not resolving correct package.json
     'import/no-extraneous-dependencies': 'off',
     'import/no-unresolved': 'error',
     'no-unused-vars': 'off',
+    'prettier/prettier': 'error',
   },
   env: {
     browser: true,

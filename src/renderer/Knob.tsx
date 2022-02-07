@@ -133,69 +133,69 @@ export const Knob = (props: KnobProps) => {
 };
 
 export const NumberInput = (
-  props: Omit<KnobProps, 'component'> & {
+  props: Omit<KnobProps, 'component' | 'onChange'> & {
     value?: number;
-    onInput?: undefined;
-  }) => {
-
+    onChange?: (value: number) => void;
+    onInput?: (value: number) => void;
+    label?: string;
+  }
+) => {
   const theme = useAppTheme();
 
-  return(
+  return (
     <input
-    type="number"
-    value={props.value}
-    min={props.min ?? 0}
-    max={props.max ?? 10}
-    step={props.step}
-    onInput={(event) => {
-      knobProps.onChange(+event.currentTarget.value);
-    }}
-    class={css`
-      display: flex;
-      justify-content: center;
-      background: none;
-      color: ${theme.colors.lcdText};
-      border: none;
-      font-family: '7seg';
-      font-size: '20px';
-    `}
-  />
-  )
+      type="number"
+      value={props.value}
+      min={props.min ?? 0}
+      max={props.max ?? 10}
+      step={props.step}
+      onInput={(event) => {
+        props.onChange?.(+event.currentTarget.value);
+      }}
+      class={css`
+        display: flex;
+        justify-content: center;
+        background: none;
+        color: ${theme.colors.lcdText};
+        border: none;
+        font-family: '7seg';
+        font-size: '20px';
+      `}
+    />
+  );
 };
 
 export const NumberInputWithLabel = (
   props: Omit<KnobProps, 'component'> & {
     label?: JSXElement;
-  }) => {
-
+  }
+) => {
   const theme = useAppTheme();
 
-  return(
-    <div class={css`
-      border: 1px solid red;
-      display: inline-flex;
-    `}>
-
-    <Label label={props.label} class={css`
-      margin-right: 4px;
-    `}/>
-    <NumberInput
-    value={props.value}
-    min={props.min ?? 0}
-    max={props.max ?? 10}
-    step={props.step}
-    onInput={(event) => {
-      knobProps.onChange(+event.currentTarget.value);
-    }}
-    class={css`
-      display: inline-block;
-      background: ${theme.colors.lcdBackground};
-      color: ${theme.colors.lcdText};
-      font-family: ${theme.fonts.lcdFont};
-    `}
-  />
-  </div>
-  )
+  return (
+    <div
+      class={css`
+        border: 1px solid red;
+        display: inline-flex;
+      `}
+    >
+      <Label
+        label={props.label}
+        class={css`
+          margin-right: 4px;
+        `}
+      />
+      <NumberInput
+        value={props.value}
+        min={props.min ?? 0}
+        max={props.max ?? 10}
+        step={props.step}
+        onInput={(value) => {
+          props.onChange(value);
+        }}
+      />
+    </div>
+  );
 };
 
 const MoogKnob = (
@@ -213,7 +213,14 @@ const MoogKnob = (
       {...knobProps}
       initialRotation={30}
       component={(props: { rotation: number }) => (
-        <div style={{ position: 'relative', padding: '10px', width: size(), height: size() }}>
+        <div
+          style={{
+            position: 'relative',
+            padding: '10px',
+            width: size(),
+            height: size(),
+          }}
+        >
           <div style={{ position: 'relative' }}>
             <img
               {...props}
@@ -245,7 +252,7 @@ const MoogKnob = (
                 pointer-events: none;
                 order: 1px outset #555;
                 border-radius: 100%;
-                box-shadow: 4px 4px 8px 4px rgba(0,0,0,0.4);
+                box-shadow: 4px 4px 8px 4px rgba(0, 0, 0, 0.4);
               `}
             ></div>
             <div
