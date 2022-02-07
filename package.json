@@ -1,5 +1,5 @@
 {
-  "name": "electron-react-boilerplate",
+  "name": "youtube-video-sequencer-electron",
   "description": "Youtube video Sequencer",
   "scripts": {
     "build": "concurrently \"yarn run build:main\" \"yarn run build:renderer\"",
