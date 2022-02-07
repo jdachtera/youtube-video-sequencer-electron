@@ -12,6 +12,7 @@ import { debounce } from 'ts-debounce';
 import bufferToWav from 'audiobuffer-to-wav';
 
 import './App.css';
+import { css } from 'solid-styled-components';
 import { Engine } from './engine/Engine';
 import { Sampler } from './engine/Sampler';
 
@@ -253,9 +254,20 @@ export function App() {
             Clear all
           </button>
           Load JSON: <input type="file" onChange={loadJSON} accept=".json" />
+          <div class={css`
+            padding: 10px;
+          `}>
+            <div class={css`
+              padding: 3px;
+              background-color: #555;
+              box-shadow: inset 0 0 2px 1px #222;
+              border-radius: 5px;
+            `}>
           <For each={samplers()}>
             {(sampler) => <SamplerView sampler={sampler} />}
           </For>
+          </div>
+          </div>
         </ErrorBoundary>
       </div>
     </ThemeProvider>

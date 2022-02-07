@@ -34,7 +34,7 @@ export const WavesurferView = (props: WavesurferViewProps) => {
 
   const scrollZoom = (event: WheelEvent) => {
     event.preventDefault();
-    props.sampler.setZoom(Math.min(Math.max(zoom() + event.deltaY, 1), 300));
+    props.sampler.setZoom(Math.min(Math.max(zoom() + event.deltaY, 1), 400));
   };
 
   const handleChainAdded = (chain: SliceChain) => {

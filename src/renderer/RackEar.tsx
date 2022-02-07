@@ -6,7 +6,7 @@ import { Screw } from './UI';
 const rackEarStyle = css`
   display: flex;
   flex-direction: column;
-  box-shadow: 0px 0px 2px #222;
+  box-shadow: 0px 0px 1px 1px #3f3f3fae;
   justify-content: space-between;
 `;
 
@@ -15,9 +15,9 @@ const screwStyle = css`
   width: 35px;
 `;
 
-const RackEar = () => {
+const RackEar = (props) => {
   return (
-    <div class={rackEarStyle}>
+    <div class={rackEarStyle} onClick={props.onClick}>
       <img alt="screw" src={ScrewHeadWithHole} class={screwStyle} />
       <img alt="screw" src={ScrewHeadWithHole} class={screwStyle} />
     </div>

@@ -139,7 +139,12 @@ export const SamplerView = (props: { sampler: Sampler }) => {
 
   return (
     <div>
-      <div style={{ display: 'flex' }}>
+      <div class={css`
+        display: flex;
+        background-color: #b6b6b6;
+        box-shadow: inset 0 0 2px 1px #2c2c2c;
+        border-radius: 5px;
+      `}>
         <RackEar />
         <div
           style={{

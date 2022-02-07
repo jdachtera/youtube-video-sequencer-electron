@@ -41,6 +41,7 @@ export type Slice = {
   patterns: Pattern[];
   name: string;
   solo: boolean;
+  collapsed: boolean;
 };
 
 const subdivisions = [
@@ -101,6 +102,10 @@ export const VideoSlice = (props: {
     props.chain.setSlice({ ...slice(), reverse });
   };
 
+  const toggleReverse = () => {
+    props.chain.setSlice({ ...slice(), reverse: slice().reverse ? false : true });
+  };
+
   const handleUpdateSolo = (solo: boolean, altKey: boolean) => {
     if (solo && !altKey) {
       props.chain
@@ -146,6 +151,13 @@ export const VideoSlice = (props: {
   const handleUpdateSteps = (steps: Step[]) => {
     props.onUpdatePattern(slice(), { ...currentPattern(), steps });
   };
+
+  const toggleCollapse = () => {
+    props.chain.setSlice({
+      ...slice(),
+      collapsed: slice().collapsed ? false : true
+    })
+  }
 
   const handleCloneSlice = () => {
     const sliceData = slice();
@@ -201,7 +213,7 @@ export const VideoSlice = (props: {
         display: flex;
         width: 100%;
       `}>
-        <RackEar />
+        <RackEar onClick={toggleCollapse}/>
         <div class={css`
           display: flex;
           flex-direction: column;
@@ -211,7 +223,8 @@ export const VideoSlice = (props: {
           <div class={css`
             display: flex;
             align-items: center;
-          `}>
+            display: ${slice().collapsed ? 'none' : 'flex'};
+`}>
             <div class={css`
               height: 100%;
               display: flex;
@@ -440,7 +453,8 @@ export const VideoSlice = (props: {
                       align-items: flex-start;
                       `}>
                       <ButtonWithLabel onClick={handleClickSlice} label="Audition Sample"/>
-                      <ButtonWithLabel onClick={handleClickSlice} label="Reverse"/>
+                      <ButtonWithLabel onClick={toggleReverse} label="Reverse"/>
+                      <div>asdf{slice().collapsed}</div>
                       <ButtonWithLabel onClick={handleClickSlice} label="Delete"/>
                       <ButtonWithLabel onClick={handleClickSlice} label="Clone"/>
                       </div>
