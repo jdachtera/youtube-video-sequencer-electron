@@ -203,14 +203,8 @@ export const WavesurferView = (props: WavesurferViewProps) => {
 
   return (
     <>
-      <div ref={waveformRef} style={{ margin: '2px' }} class={css`
-        border: 3px inset white;
-        border-radius: 4px;
-        background: white;
-      `}/>
-      <div ref={timelineRef} style={{ margin: '2px' }} class={css`
-        color: white;
-      `}/>
+      <div ref={waveformRef} style={{ margin: '2px' }} />
+      <div ref={timelineRef} style={{ margin: '2px' }} />
       <input
         onChange={handleZoomChanged}
         value={zoom()}

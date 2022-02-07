@@ -8,11 +8,19 @@ import { VideoSlice, Slice, Pattern } from './Slice';
 
 import { css } from 'solid-styled-components';
 
-import RackEar from './RackEar';
 import { Sampler } from './engine/Sampler';
 import { WavesurferView } from './WavesurferView';
 import { SliceChain } from './engine/SliceChain';
-import { ModuleFrame } from './UI';
+import {
+  ModuleFrame,
+  RackMountHole,
+  Device,
+  LCD,
+  LCDFrame,
+  LCDLine,
+  RackEar,
+  AkaiButton,
+} from './UI';
 
 export const SamplerView = (props: { sampler: Sampler }) => {
   const [selectedSlice, setSelectedSlice] = createSignal<Slice>();
@@ -139,13 +147,20 @@ export const SamplerView = (props: { sampler: Sampler }) => {
 
   return (
     <div>
-      <div class={css`
-        display: flex;
-        background-color: #b6b6b6;
-        box-shadow: inset 0 0 2px 1px #2c2c2c;
-        border-radius: 5px;
-      `}>
-        <RackEar />
+      <Device>
+        <AkaiButton />
+        <ModuleFrame>
+          <LCDFrame>
+            <LCD>
+              <LCDLine>foo</LCDLine>
+              <WavesurferView
+                sampler={props.sampler}
+                center={waveformCenter()}
+                onRegionClick={handleClickRegion}
+              />
+            </LCD>
+          </LCDFrame>
+        </ModuleFrame>
         <div
           style={{
             borderBottom: '1px solid #222',
@@ -157,24 +172,20 @@ export const SamplerView = (props: { sampler: Sampler }) => {
           <div>Length: {length()}s</div>
           <div class="">
             <div class="">{props.sampler.url}</div>
-              <button type="button" onClick={handleRemoveSampler}>
-                Remove sampler
-              </button>
-            <ModuleFrame>
-            <WavesurferView
-              sampler={props.sampler}
-              center={waveformCenter()}
-              onRegionClick={handleClickRegion}
-              />
-            </ModuleFrame>
+            <button type="button" onClick={handleRemoveSampler}>
+              Remove sampler
+            </button>
+            <ModuleFrame></ModuleFrame>
 
-            <ol class={css`
-              box-shadow: inset 0px 0px 8px black;
-              padding: 2px;
-              border-radius: 5px;
-              margin-top: 10px;
-              background-color: #111;
-            `}>
+            <ol
+              class={css`
+                box-shadow: inset 0px 0px 8px black;
+                padding: 2px;
+                border-radius: 5px;
+                margin-top: 10px;
+                background-color: #111;
+              `}
+            >
               <For each={chains()}>
                 {(chain) => (
                   <VideoSlice
@@ -191,8 +202,7 @@ export const SamplerView = (props: { sampler: Sampler }) => {
             </ol>
           </div>
         </div>
-        <RackEar />
-      </div>
+      </Device>
     </div>
   );
 };
