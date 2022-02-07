@@ -17,7 +17,7 @@ import { Engine } from './engine/Engine';
 import { Sampler } from './engine/Sampler';
 
 import { SamplerView } from './SamplerView';
-import { normalizeData } from './engine/normalizeData';
+import { DeepPartial, normalizeData } from './engine/normalizeData';
 import { theme } from './theme';
 import { MoogKnobWithLabel } from './Knob';
 
@@ -82,7 +82,9 @@ export function App() {
 
         if (!fileContents) return;
         try {
-          const parsedData = JSON.parse(fileContents);
+          const parsedData = JSON.parse(fileContents) as Partial<
+            ReturnType<Engine['serialize']>
+          >;
 
           engine.dispose();
           engine.load(normalizeData(parsedData));
@@ -173,12 +175,14 @@ export function App() {
   });
 
   onMount(() => {
-    let parsedData;
+    let parsedData: DeepPartial<ReturnType<Engine['serialize']>> | undefined;
     const storedDataString = localStorage.getItem(`track`);
 
     if (storedDataString) {
       try {
-        parsedData = JSON.parse(storedDataString);
+        parsedData = JSON.parse(storedDataString) as
+          | DeepPartial<ReturnType<Engine['serialize']>>
+          | undefined;
       } catch {
         //
       }

@@ -4,10 +4,7 @@ module.exports = {
   extends: [
     'eslint:recommended',
     'plugin:promise/recommended',
-    'plugin:@typescript-eslint/recommended',
     'plugin:import/recommended',
-    'plugin:import/typescript',
-    'plugin:solid/typescript',
     'prettier',
   ],
   rules: {
@@ -41,4 +38,22 @@ module.exports = {
       '@typescript-eslint/parser': ['.ts', '.tsx'],
     },
   },
+  overrides: [
+    {
+      files: ['*.ts', '*.tsx'],
+      extends: [
+        'plugin:@typescript-eslint/recommended',
+        'plugin:@typescript-eslint/recommended-requiring-type-checking',
+        'plugin:import/typescript',
+        'plugin:solid/typescript',
+      ],
+      rules: {
+        '@typescript-eslint/require-await': 'off',
+        '@typescript-eslint/no-floating-promises': 'off',
+        '@typescript-eslint/no-misused-promises': 'off',
+        '@typescript-eslint/no-unsafe-member-access': 'off',
+        '@typescript-eslint/no-unsafe-call': 'off',
+      },
+    },
+  ],
 };
