@@ -1,18 +1,37 @@
 {
-  "name": "electron-react-boilerplate",
-  "version": "4.5.0",
-  "description": "A foundation for scalable desktop apps",
+  "name": "youtube-video-sequencer-electron",
+  "description": "Youtube video Sequencer",
+  "version": "1.0.0",
   "main": "./dist/main/main.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jdachtera/youtube-video-sequencer-electron.git"
+  },
   "author": {
-    "name": "Electron React Boilerplate Maintainers",
-    "email": "electronreactboilerplate@gmail.com",
-    "url": "https://github.com/electron-react-boilerplate"
+    "name": "Youtube Video Sequencer",
+    "email": "jascha.dachtera@gmail.com",
+    "url": "https://github.com/jdachtera/youtube-video-sequencer-electron"
+  },
+  "contributors": [
+    {
+      "name": "Jascha Dachtera",
+      "email": "jascha.dachtera@gmail.com",
+      "url": "https://github.com/jdachtera"
+    },
+    {
+      "name": "Christian Sandner",
+      "email": "chris@pyracom.de",
+      "url": "https://github.com/pyracom"
+    }
+  ],
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/jdachtera/youtube-video-sequencer-electron/issues"
   },
   "scripts": {
     "electron-rebuild": "node -r ts-node/register ../../.erb/scripts/electron-rebuild.js",
     "link-modules": "node -r ts-node/register ../../.erb/scripts/link-modules.ts",
-    "postinstall": "npm run electron-rebuild && npm run link-modules"
+    "postinstall": "yarn electron-rebuild && yarn link-modules"
   },
-  "dependencies": {},
-  "license": "MIT"
+  "dependencies": {}
 }

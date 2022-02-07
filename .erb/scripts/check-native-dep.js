@@ -36,11 +36,9 @@ ${chalk.whiteBright.bgGreen.bold('npm uninstall your-package')}
  ${chalk.bold(
    'Then, instead of installing the package to the root "./package.json":'
  )}
-${chalk.whiteBright.bgRed.bold('npm install your-package')}
+${chalk.whiteBright.bgRed.bold('yarn add your-package')}
  ${chalk.bold('Install the package to "./release/app/package.json"')}
-${chalk.whiteBright.bgGreen.bold(
-  'cd ./release/app && npm install your-package'
-)}
+${chalk.whiteBright.bgGreen.bold('cd ./release/app && yarn add your-package')}
  Read more about native dependencies at:
 ${chalk.bold(
   'https://electron-react-boilerplate.js.org/docs/adding-dependencies/#module-structure'
