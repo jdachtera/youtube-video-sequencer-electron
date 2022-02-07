@@ -30,8 +30,8 @@
     ]
   },
   "build": {
-    "productName": "ElectronReact",
-    "appId": "org.erb.ElectronReact",
+    "productName": "YoutubeVideoSequencer",
+    "appId": "com.ratstudio.YoutubeVideoSequencer",
     "asar": true,
     "asarUnpack": "**\\*.{node,dll}",
     "files": [
@@ -90,7 +90,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/electron-react-boilerplate/electron-react-boilerplate.git"
+    "url": "git+https://github.com/jdachtera/youtube-video-sequencer-electron.git"
   },
   "author": {
     "name": "Youtube Video Sequencer",
@@ -109,9 +109,9 @@
       "url": "https://github.com/pyracom"
     }
   ],
-  "license": "MIT",
+  "license": "NO",
   "bugs": {
-    "url": "https://github.com/electron-react-boilerplate/electron-react-boilerplate/issues"
+    "url": "https://github.com/jdachtera/youtube-video-sequencer-electron/issues"
   },
   "keywords": [
     "electron",
@@ -124,7 +124,7 @@
     "hot",
     "reload"
   ],
-  "homepage": "https://github.com/electron-react-boilerplate/electron-react-boilerplate#readme",
+  "homepage": "https://github.com/jdachtera/youtube-video-sequencer-electron#readme",
   "devDependencies": {
     "@babel/core": "^7.16.12",
     "@babel/preset-env": "^7.16.11",
@@ -216,9 +216,6 @@
   "devEngines": {
     "node": ">=14.x",
     "npm": ">=7.x"
-  },
-  "collective": {
-    "url": "https://opencollective.com/electron-react-boilerplate-594"
   },
   "browserslist": [],
   "prettier": {
