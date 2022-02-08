@@ -16,7 +16,7 @@ export const theme = {
   },
   fonts: {
     lcdFont: 'chesstype',
-  }
+  },
 };
 
 export const useAppTheme = () => useTheme() as Theme;

@@ -216,14 +216,17 @@ export const WavesurferSliceView = (props: WavesurferSliceViewProps) => {
         overflow: hidden;
       `}
     >
-      <div ref={waveformRef} class={css`
-        padding: 4px;
-        background-color: #464646;
-        text-shadow: 1px 1px red;
-        wave {
-          overflow: hidden !important;
-        };
-      `}/>
+      <div
+        ref={waveformRef}
+        class={css`
+          padding: 4px;
+          background-color: #464646;
+          text-shadow: 1px 1px red;
+          wave {
+            overflow: hidden !important;
+          }
+        `}
+      />
       {/* <input
         onChange={handleZoomChanged}
         value={zoom()}

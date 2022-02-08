@@ -77,6 +77,7 @@ export const WavesurferView = (props: WavesurferViewProps) => {
 
     const slice: Slice = {
       id: region.id,
+      collapsed: false,
       start: region.start,
       end: region.end,
       playbackSpeed: 1,

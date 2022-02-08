@@ -4,7 +4,35 @@ import { PropAliases } from 'solid-js/web';
 import { css } from 'solid-styled-components';
 import { Label } from './Label';
 import ScrewHead from './svg/screw_head.svg';
-export const LCDLabel = (props) => {
+
+import { PropsWithChildren } from 'solid-js';
+
+const rackEarStyle = css`
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0px 0px 1px 1px #3f3f3fae;
+  justify-content: space-between;
+`;
+
+const akaiButtonStyles = css`
+  border: 2px outset white;
+  border-radius: 3px;
+  box-shadow: 0 0 3px 2px #555333;
+  background: radial-gradient(#ddd, #fff);
+  display: inline-block;
+  padding: 1px;
+  div {
+    border: 4px outset white;
+    border-radius: 5px;
+    height: 10px;
+    width: 20px;
+  }
+  &:active {
+    border: 2px inset white;
+  }
+`;
+
+export const LCDLabel = (props: PropsWithChildren<{ minWidth?: string }>) => {
   return (
     <span
       class={css`
@@ -20,17 +48,17 @@ export const LCDLabel = (props) => {
   );
 };
 
-export const LCDLine = (props) => {
+export const LCDLine = (props: PropsWithChildren) => {
   return <div>{props.children}</div>;
 };
 
-export const PowerSwitch = (props) => {
+export const PowerSwitch = () => {
   return <div>poweronoff</div>;
 };
 
-export const RackEar = (props) => {
+export const RackEar = (props: PropsWithChildren<{ onClick?: () => void }>) => {
   return (
-    <div class={rackEarStyle} onClick={props.onClick}>
+    <div class={css``} onClick={props.onClick}>
       <RackMountHole
         class={css`
           margin: 10px;
@@ -66,7 +94,12 @@ export const RackEar2 = () => {
   );
 };
 
-export const ButtonWithLabel = (props) => {
+export const ButtonWithLabel = (
+  props: PropsWithChildren<{
+    onClick: (event: MouseEvent) => void;
+    label: string;
+  }>
+) => {
   return (
     <div
       class={css`
@@ -122,23 +155,46 @@ export const ButtonWithLabel = (props) => {
   );
 };
 
-export const LCDFrame = (props) => {
+export const LCDFrame = (props: PropsWithChildren) => {
   return (
     <div
       class={css`
-        background-color: black;
+        position: relative;
         padding: 60px;
-        border-radius: 15px;
+        border-radius: 12px;
         padding-right: 160px;
-        border: 2px outset #333;
+        background-color: black;
       `}
     >
+      <div
+        class={css`
+          position: absolute;
+          background-color: none;
+          border: 2px outset #666;
+          padding: 60px;
+          top: 0;
+          left: 0;
+          bottom: 0;
+          right: 0;abe
+          border-radius: 12px;
+          padding-right: 160px;
+          background: radial-gradient(
+            ellipse at -66% 90%,
+            rgba(0, 0, 0, 0) 71%,
+            rgba(196, 228, 255, 0.472) 72%,
+            rgb(109 255 249 / 24%) 78%,
+            rgba(0, 0, 0, 0) 93%
+          );
+          z-index: 999;
+          pointer-events: none;
+        `}
+      ></div>
       {props.children}
     </div>
   );
 };
 
-export const Device = (props) => {
+export const Device = (props: PropsWithChildren<{ class?: string }>) => {
   return (
     <div
       class={[
@@ -161,7 +217,7 @@ export const Device = (props) => {
   );
 };
 
-export const LCD = (props) => {
+export const LCD = (props: PropsWithChildren) => {
   return (
     <div
       class={css`
@@ -182,7 +238,13 @@ export const LCD = (props) => {
   );
 };
 
-export const RackMountHole = (props) => {
+export const RackMountHole = (
+  props: PropsWithChildren<{
+    class?: string;
+    height?: string;
+    width?: string;
+  }>
+) => {
   return (
     <div
       class={[
@@ -205,7 +267,7 @@ export const RackMountHole = (props) => {
   );
 };
 
-export const Engraving = (props) => {
+export const Engraving = (props: PropsWithChildren<{ class?: string }>) => {
   return (
     <div
       class={[
@@ -223,7 +285,7 @@ export const Engraving = (props) => {
   );
 };
 
-export const Screw = (props) => {
+export const Screw = (props: { width?: string; class?: string }) => {
   return (
     <img
       src={ScrewHead}
@@ -239,18 +301,7 @@ export const Screw = (props) => {
   );
 };
 
-export const ScrewRow = (props) => {
-  const renderScrews = (props) => {
-    let count = props.count ?? 1;
-    count.forEach(() => {
-      return (
-        <Engraving>
-          <Screw />
-        </Engraving>
-      );
-    });
-  };
-
+export const ScrewRow = () => {
   return (
     <div
       class={css`
@@ -270,11 +321,11 @@ export const ScrewRow = (props) => {
   );
 };
 
-export const PlasticButton = (props) => {
+export const PlasticButton = () => {
   return <div></div>;
 };
 
-export const ModuleFrame = (props) => {
+export const ModuleFrame = (props: PropsWithChildren) => {
   return (
     <div
       class={css`
@@ -301,40 +352,10 @@ export const ModuleFrame = (props) => {
   );
 };
 
-export const AkaiButton = (props) => {
+export const AkaiButton = () => {
   return (
     <div class={akaiButtonStyles}>
       <div></div>
     </div>
   );
 };
-
-const rackEarStyle = css`
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0px 0px 1px 1px #3f3f3fae;
-  justify-content: space-between;
-`;
-
-const screwStyle = css`
-  margin: 8px;
-  width: 35px;
-`;
-
-const akaiButtonStyles = css`
-  border: 2px outset white;
-  border-radius: 3px;
-  box-shadow: 0 0 3px 2px #555333;
-  background: radial-gradient(#ddd, #fff);
-  display: inline-block;
-  padding: 1px;
-  div {
-    border: 4px outset white;
-    border-radius: 5px;
-    height: 10px;
-    width: 20px;
-  }
-  &:active {
-    border: 2px inset white;
-  }
-`;

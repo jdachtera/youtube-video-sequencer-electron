@@ -1,5 +1,5 @@
 {
-  "name": "electron-react-boilerplate",
+  "name": "youtube-video-sequencer-electron",
   "description": "Youtube video Sequencer",
   "scripts": {
     "build": "concurrently \"yarn run build:main\" \"yarn run build:renderer\"",
@@ -7,7 +7,7 @@
     "build:renderer": "cross-env NODE_ENV=production TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.renderer.prod.ts",
     "rebuild": "electron-rebuild --parallel --types prod,dev,optional --module-dir release/app",
     "lint": "cross-env NODE_ENV=development eslint . --ext .js,.jsx,.ts,.tsx",
-    "package": "ts-node ./.erb/scripts/clean.js dist && yarn run build && electron-builder build -wl --publish never",
+    "package": "ts-node ./.erb/scripts/clean.js dist && npm run build && electron-builder build --publish never",
     "postinstall": "ts-node .erb/scripts/check-native-dep.js && electron-builder install-app-deps && cross-env NODE_ENV=development TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.renderer.dev.dll.ts && opencollective-postinstall",
     "start": "ts-node ./.erb/scripts/check-port-in-use.js && yarn run start:renderer",
     "start:main": "cross-env NODE_ENV=development electron -r ts-node/register/transpile-only ./src/main/main.ts",
@@ -30,8 +30,8 @@
     ]
   },
   "build": {
-    "productName": "ElectronReact",
-    "appId": "org.erb.ElectronReact",
+    "productName": "YoutubeVideoSequencer",
+    "appId": "com.ratstudio.YoutubeVideoSequencer",
     "asar": true,
     "asarUnpack": "**\\*.{node,dll}",
     "files": [
@@ -90,7 +90,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/electron-react-boilerplate/electron-react-boilerplate.git"
+    "url": "git+https://github.com/jdachtera/youtube-video-sequencer-electron.git"
   },
   "author": {
     "name": "Youtube Video Sequencer",
@@ -109,9 +109,9 @@
       "url": "https://github.com/pyracom"
     }
   ],
-  "license": "MIT",
+  "license": "UNLICENSED",
   "bugs": {
-    "url": "https://github.com/electron-react-boilerplate/electron-react-boilerplate/issues"
+    "url": "https://github.com/jdachtera/youtube-video-sequencer-electron/issues"
   },
   "keywords": [
     "electron",
@@ -124,7 +124,7 @@
     "hot",
     "reload"
   ],
-  "homepage": "https://github.com/electron-react-boilerplate/electron-react-boilerplate#readme",
+  "homepage": "https://github.com/jdachtera/youtube-video-sequencer-electron#readme",
   "devDependencies": {
     "@babel/core": "^7.16.12",
     "@babel/preset-env": "^7.16.11",
@@ -156,6 +156,7 @@
     "electron-notarize": "^1.1.1",
     "electron-rebuild": "^3.2.5",
     "eslint": "^8.8.0",
+    "eslint-config-prettier": "^8.3.0",
     "eslint-import-resolver-typescript": "^2.5.0",
     "eslint-import-resolver-webpack": "^0.13.2",
     "eslint-plugin-compat": "^4.0.0",
@@ -198,9 +199,12 @@
     "electron-debug": "^3.2.0",
     "electron-log": "^4.4.4",
     "electron-updater": "^4.6.4",
+    "eslint-plugin-prettier": "^4.0.0",
+    "graphql": "^16.3.0",
     "history": "^5.2.0",
     "idb": "^7.0.0",
     "regenerator-runtime": "^0.13.9",
+    "solid-dismiss": "^1.0.27",
     "solid-js": "^1.3.4",
     "solid-styled-components": "^0.27.4",
     "tiny-typed-emitter": "^2.1.0",
@@ -212,9 +216,6 @@
   "devEngines": {
     "node": ">=14.x",
     "npm": ">=7.x"
-  },
-  "collective": {
-    "url": "https://opencollective.com/electron-react-boilerplate-594"
   },
   "browserslist": [],
   "prettier": {

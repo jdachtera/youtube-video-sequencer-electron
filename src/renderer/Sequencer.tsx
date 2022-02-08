@@ -88,12 +88,14 @@ export const Sequencer = (props: {
 
   return (
     <div>
-      <ul class={css`
-        border-radius: 4px;
-        padding: 3px;
-        max-width: 864px;
-        background: none;
-      `}>
+      <ul
+        class={css`
+          border-radius: 4px;
+          padding: 3px;
+          max-width: 864px;
+          background: none;
+        `}
+      >
         <Index each={props.steps}>
           {(step) => (
             <SequencerStep

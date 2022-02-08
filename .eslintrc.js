@@ -1,19 +1,18 @@
 module.exports = {
   parser: '@typescript-eslint/parser',
-  plugins: ['@typescript-eslint', 'promise', 'import', 'solid'],
+  plugins: ['prettier', '@typescript-eslint', 'promise', 'import', 'solid'],
   extends: [
     'eslint:recommended',
     'plugin:promise/recommended',
-    'plugin:@typescript-eslint/recommended',
     'plugin:import/recommended',
-    'plugin:import/typescript',
-    'plugin:solid/typescript',
+    'prettier',
   ],
   rules: {
     // A temporary hack related to IDE not resolving correct package.json
     'import/no-extraneous-dependencies': 'off',
     'import/no-unresolved': 'error',
     'no-unused-vars': 'off',
+    'prettier/prettier': 'error',
   },
   env: {
     browser: true,
@@ -39,4 +38,22 @@ module.exports = {
       '@typescript-eslint/parser': ['.ts', '.tsx'],
     },
   },
+  overrides: [
+    {
+      files: ['*.ts', '*.tsx'],
+      extends: [
+        'plugin:@typescript-eslint/recommended',
+        'plugin:@typescript-eslint/recommended-requiring-type-checking',
+        'plugin:import/typescript',
+        'plugin:solid/typescript',
+      ],
+      rules: {
+        '@typescript-eslint/require-await': 'off',
+        '@typescript-eslint/no-floating-promises': 'off',
+        '@typescript-eslint/no-misused-promises': 'off',
+        '@typescript-eslint/no-unsafe-member-access': 'off',
+        '@typescript-eslint/no-unsafe-call': 'off',
+      },
+    },
+  ],
 };

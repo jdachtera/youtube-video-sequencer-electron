@@ -14,11 +14,11 @@ jobs:
       - name: Check out Git repository
         uses: actions/checkout@v1
 
-      - name: Install Node.js and NPM
+      - name: Install Node.js and Yarn
         uses: actions/setup-node@v2
         with:
           node-version: 16
-          cache: npm
+          cache: yarn
 
       - name: yarn install
         run: |
@@ -28,7 +28,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          yarn run package
-          yarn run lint
-          yarn exec tsc
+          yarn package
+          yarn lint
+          yarn tsc --noEmit
           yarn test

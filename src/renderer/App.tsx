@@ -6,18 +6,18 @@ import {
   For,
   ErrorBoundary,
 } from 'solid-js';
-import { ThemeProvider } from 'solid-styled-components';
+import { ThemeProvider, css } from 'solid-styled-components';
 import { Offline, Transport } from 'tone';
 import { debounce } from 'ts-debounce';
 import bufferToWav from 'audiobuffer-to-wav';
 
 import './App.css';
-import { css } from 'solid-styled-components';
+
 import { Engine } from './engine/Engine';
 import { Sampler } from './engine/Sampler';
 
 import { SamplerView } from './SamplerView';
-import { normalizeData } from './engine/normalizeData';
+import { DeepPartial, normalizeData } from './engine/normalizeData';
 import { theme } from './theme';
 import { MoogKnobWithLabel } from './Knob';
 
@@ -82,7 +82,9 @@ export function App() {
 
         if (!fileContents) return;
         try {
-          const parsedData = JSON.parse(fileContents);
+          const parsedData = JSON.parse(fileContents) as Partial<
+            ReturnType<Engine['serialize']>
+          >;
 
           engine.dispose();
           engine.load(normalizeData(parsedData));
@@ -173,12 +175,14 @@ export function App() {
   });
 
   onMount(() => {
-    let parsedData;
+    let parsedData: DeepPartial<ReturnType<Engine['serialize']>> | undefined;
     const storedDataString = localStorage.getItem(`track`);
 
     if (storedDataString) {
       try {
-        parsedData = JSON.parse(storedDataString);
+        parsedData = JSON.parse(storedDataString) as
+          | DeepPartial<ReturnType<Engine['serialize']>>
+          | undefined;
       } catch {
         //
       }
@@ -254,19 +258,23 @@ export function App() {
             Clear all
           </button>
           Load JSON: <input type="file" onChange={loadJSON} accept=".json" />
-          <div class={css`
-            padding: 10px;
-          `}>
-            <div class={css`
-              padding: 3px;
-              background-color: #555;
-              box-shadow: inset 0 0 2px 1px #222;
-              border-radius: 5px;
-            `}>
-          <For each={samplers()}>
-            {(sampler) => <SamplerView sampler={sampler} />}
-          </For>
-          </div>
+          <div
+            class={css`
+              padding: 10px;
+            `}
+          >
+            <div
+              class={css`
+                padding: 3px;
+                background-color: #555;
+                box-shadow: inset 0 0 2px 1px #222;
+                border-radius: 5px;
+              `}
+            >
+              <For each={samplers()}>
+                {(sampler) => <SamplerView sampler={sampler} />}
+              </For>
+            </div>
           </div>
         </ErrorBoundary>
       </div>

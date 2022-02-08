@@ -28,7 +28,9 @@ const sequencerStepBaseStyles = css`
     rgb(219, 204, 174) 10%,
     rgba(255, 255, 255, 1) 100%
   );
-  &:active { border: 3px inset white; };
+  &:active {
+    border: 3px inset white;
+  }
   &:nth-of-type(8n+5),
   &:nth-of-type(8n+6),
   &:nth-of-type(8n+7),
@@ -109,39 +111,41 @@ const sequencerStepIsSelectedStyles = () => {
 };
 
 export const SequencerStep = (props: SequencerStepProps) => (
-  <li class={css`
-    list-style: none;
-    user-select: none;
-    display: inline-flex;
-    padding: 3px;
-  `}>
-    <div class={css`
-      padding: 1px;
-      border: 3px inset #ffffffd6;
-      border-radius: 7px;
-      background: #555;
-      box-shadow: inset 0 0 2px 2px #222;
+  <li
+    class={css`
+      list-style: none;
+      user-select: none;
       display: inline-flex;
-    `}>
-
-    <div
-    classList={{
-      [sequencerStepBaseStyles]: true,
-      [sequencerStepActiveStyles]: !!props.step.actions.find(
-        ({ type }) => type === 'PLAY'
-      ),
-      [sequencerStepHalfActiveStyles]:
-        !!props.step.actions.length &&
-        !props.step.actions.find(({ type }) => type === 'PLAY'),
-      [sequencerStepIsCurrentStyles]: props.isCurrent,
-      [sequencerStepIsSelectedStyles()]: props.isSelected,
-    }}
-    onClick={() => props?.onClick?.(props.step)}
-    onDblClick={() => props?.onDblClick?.(props.step)}
+      padding: 3px;
+    `}
   >
-    &nbsp;
-  </div>
-  </div>
-
+    <div
+      class={css`
+        padding: 1px;
+        border: 3px inset #ffffffd6;
+        border-radius: 7px;
+        background: #555;
+        box-shadow: inset 0 0 2px 2px #222;
+        display: inline-flex;
+      `}
+    >
+      <div
+        classList={{
+          [sequencerStepBaseStyles]: true,
+          [sequencerStepActiveStyles]: !!props.step.actions.find(
+            ({ type }) => type === 'PLAY'
+          ),
+          [sequencerStepHalfActiveStyles]:
+            !!props.step.actions.length &&
+            !props.step.actions.find(({ type }) => type === 'PLAY'),
+          [sequencerStepIsCurrentStyles]: props.isCurrent,
+          [sequencerStepIsSelectedStyles()]: props.isSelected,
+        }}
+        onClick={() => props?.onClick?.(props.step)}
+        onDblClick={() => props?.onDblClick?.(props.step)}
+      >
+        &nbsp;
+      </div>
+    </div>
   </li>
 );
