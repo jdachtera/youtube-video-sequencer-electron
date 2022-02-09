@@ -15,7 +15,7 @@ import './App.css';
 
 import { Engine } from './engine/Engine';
 import { Sampler } from './engine/Sampler';
-
+import { Sequencer } from './Sequencer';
 import { SamplerView } from './SamplerView';
 import { DeepPartial, normalizeData } from './engine/normalizeData';
 import { theme } from './theme';
@@ -273,6 +273,24 @@ export function App() {
             >
               <For each={samplers()}>
                 {(sampler) => <SamplerView sampler={sampler} />}
+              </For>
+              <For each={samplers()}>
+                {(sampler) => (
+                  <div>
+                    samplerhereasdas
+                    <For each={Array.from(sampler.getChains())}>
+                      {() => (
+                        <div>
+                          chain here
+                          {/* <Sequencer
+                            steps={chain.getSlice().patterns[0].steps}
+                            chain={chain}
+                          /> */}
+                        </div>
+                      )}
+                    </For>
+                  </div>
+                )}
               </For>
             </div>
           </div>
