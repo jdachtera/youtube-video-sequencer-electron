@@ -7,7 +7,6 @@ import {
 } from 'solid-js';
 
 import { debounce } from 'ts-debounce';
-import { css } from 'solid-styled-components';
 
 import Wavesurfer from 'wavesurfer.js';
 import RegionsPlugin, { Region } from 'wavesurfer.js/src/plugin/regions';

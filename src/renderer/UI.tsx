@@ -1,6 +1,3 @@
-import { count } from 'console';
-import { randomBytes } from 'crypto';
-import { PropAliases } from 'solid-js/web';
 import { css } from 'solid-styled-components';
 import { Label } from './Label';
 import ScrewHead from './svg/screw_head.svg';
@@ -58,7 +55,7 @@ export const PowerSwitch = () => {
 
 export const RackEar = (props: PropsWithChildren<{ onClick?: () => void }>) => {
   return (
-    <div class={css``} onClick={props.onClick}>
+    <div class={rackEarStyle} onClick={() => props.onClick?.()}>
       <RackMountHole
         class={css`
           margin: 10px;
@@ -123,7 +120,7 @@ export const ButtonWithLabel = (
         >
           <button
             type="button"
-            onMouseDown={props.onClick}
+            onMouseDown={(event) => props.onClick(event)}
             class={css`
               border: 2px outset white;
               padding: 6px;
@@ -175,7 +172,7 @@ export const LCDFrame = (props: PropsWithChildren) => {
           top: 0;
           left: 0;
           bottom: 0;
-          right: 0;abe
+          right: 0;
           border-radius: 12px;
           padding-right: 160px;
           background: radial-gradient(
