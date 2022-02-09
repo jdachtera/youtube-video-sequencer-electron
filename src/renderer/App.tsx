@@ -10,6 +10,7 @@ import { ThemeProvider, css } from 'solid-styled-components';
 import { Offline, Transport } from 'tone';
 import { debounce } from 'ts-debounce';
 import bufferToWav from 'audiobuffer-to-wav';
+import { ApolloProvider } from '@merged/solid-apollo';
 
 import './App.css';
 
@@ -20,6 +21,8 @@ import { SamplerView } from './SamplerView';
 import { DeepPartial, normalizeData } from './engine/normalizeData';
 import { theme } from './theme';
 import { MoogKnobWithLabel } from './Knob';
+import { LoginForm, LoginModal } from './LoginModal';
+import { apolloClient } from './apolloClient';
 
 const engine = new Engine(Transport);
 
@@ -212,72 +215,75 @@ export function App() {
 
   return (
     <ThemeProvider theme={theme}>
-      <div class="App">
-        <ErrorBoundary
-          fallback={(err, reset) => (
-            <div onClick={reset}>Error: {err.toString()}</div>
-          )}
-        >
-          <div class="main-controls">
-            <button type="button" onClick={togglePlay}>
-              {isPlaying() ? 'Stop' : 'Play'}
-            </button>
-            :
-            <MoogKnobWithLabel
-              label="Tempo"
-              min={20}
-              max={280}
-              step={1}
-              value={bpm()}
-              onChange={handleTempoChange}
-            />
-            <MoogKnobWithLabel
-              label="Swing"
-              min={0}
-              max={1}
-              value={swing()}
-              onChange={handleSwingChange}
-            />
-            Pattern:
-            <input
-              type="number"
-              min="0"
-              step="1"
-              value={currentPatternIndex()}
-              onChange={handleCurrentPatternIndexChange}
-            />
-            <input type="text" onInput={addSampler} />
-          </div>
-          <button type="button" onClick={renderToWavefile}>
-            Download WAV
-          </button>
-          <button type="button" onClick={exportJSON}>
-            Export JSON
-          </button>
-          <button type="button" onClick={clear}>
-            Clear all
-          </button>
-          Load JSON: <input type="file" onChange={loadJSON} accept=".json" />
-          <div
-            class={css`
-              padding: 10px;
-            `}
+      <ApolloProvider client={apolloClient}>
+        <div class="App">
+          <LoginModal />
+          <ErrorBoundary
+            fallback={(err, reset) => (
+              <div onClick={reset}>Error: {err.toString()}</div>
+            )}
           >
+            <div class="main-controls">
+              <button type="button" onClick={togglePlay}>
+                {isPlaying() ? 'Stop' : 'Play'}
+              </button>
+              :
+              <MoogKnobWithLabel
+                label="Tempo"
+                min={20}
+                max={280}
+                step={1}
+                value={bpm()}
+                onChange={handleTempoChange}
+              />
+              <MoogKnobWithLabel
+                label="Swing"
+                min={0}
+                max={1}
+                value={swing()}
+                onChange={handleSwingChange}
+              />
+              Pattern:
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={currentPatternIndex()}
+                onChange={handleCurrentPatternIndexChange}
+              />
+              <input type="text" onInput={addSampler} />
+            </div>
+            <button type="button" onClick={renderToWavefile}>
+              Download WAV
+            </button>
+            <button type="button" onClick={exportJSON}>
+              Export JSON
+            </button>
+            <button type="button" onClick={clear}>
+              Clear all
+            </button>
+            Load JSON: <input type="file" onChange={loadJSON} accept=".json" />
             <div
               class={css`
-                padding: 3px;
-                background-color: #555;
-                box-shadow: inset 0 0 2px 1px #222;
-                border-radius: 5px;
+                padding: 10px;
               `}
             >
-              <For each={samplers()}>
-                {(sampler) => <SamplerView sampler={sampler} />}
-              </For>
+              <div
+                class={css`
+                  padding: 3px;
+                  background-color: #555;
+                  box-shadow: inset 0 0 2px 1px #222;
+                  border-radius: 5px;
+                `}
+              >
+                <For each={samplers()}>
+                  {(sampler) => <SamplerView sampler={sampler} />}
+                </For>
+              </div>
             </div>
-          </div>
-        </ErrorBoundary>
-      </div>
+          </ErrorBoundary>
+        </div>
+      </ApolloProvider>
     </ThemeProvider>
   );
 }
