@@ -30,6 +30,7 @@ import { MoogKnobWithLabel, NumberInput, NumberInputWithLabel } from './Knob';
 import { useAppTheme } from './theme';
 import { Toggle } from './Toggle';
 import { read } from 'fs';
+import { ShareSliceButton } from './ShareSliceButton';
 
 export type Pattern = {
   subdivision: number;
@@ -503,6 +504,7 @@ export const VideoSlice = (props: {
                       label="Delete"
                     />
                     <ButtonWithLabel onClick={handleClickSlice} label="Clone" />
+                    <ShareSliceButton chain={props.chain} />
                   </div>
                 </ModuleFrame>
               </div>

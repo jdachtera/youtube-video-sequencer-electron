@@ -1,53 +1,22 @@
 import { ApolloError, gql } from '@apollo/client';
-import { createEffect, createSignal, onCleanup, onMount, Show } from 'solid-js';
-import { EventEmitter } from 'events';
+import { createSignal, Show, Suspense } from 'solid-js';
 import { createMutation, createQuery } from '@merged/solid-apollo';
-
-class AuthStore extends EventEmitter {
-  getAccessToken() {
-    return localStorage.getItem('accessToken');
-  }
-
-  setAccessToken(accessToken: string) {
-    localStorage.setItem('accessToken', accessToken);
-    this.emit('change', accessToken);
-  }
-
-  removeAccessToken() {
-    localStorage.removeItem('accessToken');
-    this.emit('change');
-  }
-}
-
-export const authStore = new AuthStore();
+import { authStore, useIsLoggedIn } from './auth';
 
 export const LoginModal = () => {
-  const [isLogggedIn, setIsLoggedIn] = createSignal(false);
+  const isLoggedIn = useIsLoggedIn();
 
-  const handleAuthTokenChanged = () => {
-    setIsLoggedIn(!!authStore.getAccessToken());
-  };
-
-  handleAuthTokenChanged();
-  onMount(() => {
-    authStore.on('change', handleAuthTokenChanged);
-  });
-
-  onCleanup(() => {
-    authStore.off('change', handleAuthTokenChanged);
-  });
-
-  createEffect(() => {
-    console.log(isLogggedIn());
-  });
-
-  return <>{isLogggedIn() ? <LoggedIn /> : <LoginForm />}</>;
+  return (
+    <Suspense fallback={<>Loading...</>}>
+      <Show when={isLoggedIn()} fallback={<LoginForm />}>
+        <LoggedIn />
+      </Show>
+    </Suspense>
+  );
 };
 
 const LoggedIn = () => {
-  const handleLogout = () => {
-    authStore.removeAccessToken();
-  };
+  const handleLogout = () => authStore.removeAccessToken();
 
   const data = createQuery<{
     user: { id: StringConstructor; username: string };
@@ -68,7 +37,7 @@ const LoggedIn = () => {
   );
 };
 
-export const LoginForm = () => {
+const LoginForm = () => {
   const [error, setError] = createSignal<Error>();
   const [usernameOrEmail, setUsernameOrEmail] = createSignal('');
   const [password, setPassword] = createSignal('');

@@ -21,7 +21,7 @@ import { SamplerView } from './SamplerView';
 import { DeepPartial, normalizeData } from './engine/normalizeData';
 import { theme } from './theme';
 import { MoogKnobWithLabel } from './Knob';
-import { LoginForm, LoginModal } from './LoginModal';
+import { LoginModal } from './LoginModal';
 import { apolloClient } from './apolloClient';
 
 const engine = new Engine(Transport);
