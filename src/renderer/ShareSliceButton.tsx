@@ -1,13 +1,24 @@
 import { createMutation, gql } from '@merged/solid-apollo';
 import Dismiss from 'solid-dismiss';
-import { createSignal, Show } from 'solid-js';
+import { createSignal, onCleanup, onMount, Show, untrack } from 'solid-js';
 import { css } from 'solid-styled-components';
 
 import { useIsLoggedIn } from './auth';
 import { SliceChain } from './engine/SliceChain';
 import { ButtonWithLabel } from './UI';
 
+const useSlice = (chain: SliceChain) => {
+  const [slice, setSlice] = createSignal(chain.getSlice());
+
+  const handleChange = () => setSlice(chain.getSlice());
+
+  onMount(() => chain.on('chain-updated', handleChange));
+  onCleanup(() => chain.off('chain-updated', handleChange));
+  return slice;
+};
+
 export const ShareSliceButton = (props: { chain: SliceChain }) => {
+  const slice = useSlice(untrack(() => props.chain));
   const isLoggedIn = useIsLoggedIn();
   const [mutate] = createMutation(gql`
     mutation AddSlice($data: CreateSliceInput!) {
@@ -34,9 +45,7 @@ export const ShareSliceButton = (props: { chain: SliceChain }) => {
 
   return (
     <div style="position: relative;">
-      <ButtonWithLabel ref={btnEl} label="Share">
-        Button
-      </ButtonWithLabel>
+      <ButtonWithLabel ref={btnEl} label="Share" />
 
       <Show when={isLoggedIn()}>
         <Dismiss menuButton={btnEl} open={open} setOpen={setOpen} cursorKeys>
@@ -52,7 +61,18 @@ export const ShareSliceButton = (props: { chain: SliceChain }) => {
               color: black;
             `}
           >
-            Tags:{' '}
+            Name:
+            <input
+              type="text"
+              value={slice().name}
+              onInput={(event) => {
+                props.chain.setSlice({
+                  ...slice(),
+                  name: event.currentTarget.value,
+                });
+              }}
+            />
+            Tags:
             <input
               type="text"
               value={tagNames().join(',')}
@@ -62,14 +82,25 @@ export const ShareSliceButton = (props: { chain: SliceChain }) => {
             />
             <button
               onClick={async () => {
-                const slice = props.chain.getSlice();
+                if (!slice().name) {
+                  alert('Please enter a name before sharing the slcie');
+                  return;
+                }
+
+                if (tagNames().length < 2) {
+                  alert(
+                    'Please enter at least two tags before sharing the slcie'
+                  );
+                  return;
+                }
+
                 await mutate({
                   variables: {
                     data: {
-                      title: slice.name,
+                      title: slice().name,
                       sourceUrl: props.chain.getSampler().url,
-                      start: slice.start,
-                      end: slice.end,
+                      start: slice().start,
+                      end: slice().end,
                       tagNames: tagNames(),
                     },
                   },

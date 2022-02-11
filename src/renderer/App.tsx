@@ -23,6 +23,7 @@ import { theme } from './theme';
 import { MoogKnobWithLabel } from './Knob';
 import { LoginModal } from './LoginModal';
 import { apolloClient } from './apolloClient';
+import { FindSlicesButton } from './FindSlicesButton';
 
 const engine = new Engine(Transport);
 
@@ -218,6 +219,7 @@ export function App() {
       <ApolloProvider client={apolloClient}>
         <div class="App">
           <LoginModal />
+          <FindSlicesButton engine={engine} />
           <ErrorBoundary
             fallback={(err, reset) => (
               <div onClick={reset}>Error: {err.toString()}</div>
