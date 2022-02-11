@@ -15,6 +15,7 @@ interface SamplerEvents {
   'chain-updated': (chain: SliceChain) => void;
   'zoom-updated': (zoom: number) => void;
   'volume-updated': (volume: number) => void;
+  'chain-playback-started': () => void;
   change: () => void;
 }
 
@@ -36,7 +37,7 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
   constructor({
     engine,
     url,
-    zoom,
+    zoom = 100,
     volume = 1,
     slices,
   }: {

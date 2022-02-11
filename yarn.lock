@@ -8934,6 +8934,11 @@ solid-dismiss@^1.0.27:
   resolved "https://registry.yarnpkg.com/solid-dismiss/-/solid-dismiss-1.0.27.tgz#4e9720a81f7758edf0605a1ed2adc0c5ce33e068"
   integrity sha512-y9g7SeoiXADA2UwFtqpTr3m8BsQNEoQESHO/jpjHDZMSCN1T2cq0XmbsMEsih0YUbkdW3pwhyrfq55DUtKaSFg==
 
+solid-icons@^0.3.3:
+  version "0.3.3"
+  resolved "https://registry.yarnpkg.com/solid-icons/-/solid-icons-0.3.3.tgz#2bbec35509c1a5cba6fa749d6bfb602a1dd428fd"
+  integrity sha512-lZ2d83D6KIv10sXaGZcUvymlAt/mCxGYGsbfXZbRvSH7Ojb7cmS6MRlZxcSrXKY0ntGobquN9xRjWoK0hOUqQA==
+
 solid-jest@^0.2.0:
   version "0.2.0"
   resolved "https://registry.yarnpkg.com/solid-jest/-/solid-jest-0.2.0.tgz#3534a3a36151a3d19ef50fa63623ba79c1e0b25f"

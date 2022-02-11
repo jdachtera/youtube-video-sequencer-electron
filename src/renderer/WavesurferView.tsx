@@ -33,7 +33,7 @@ export const WavesurferView = (props: WavesurferViewProps) => {
 
   const scrollZoom = (event: WheelEvent) => {
     event.preventDefault();
-    props.sampler.setZoom(Math.min(Math.max(zoom() + event.deltaY, 1), 400));
+    props.sampler.setZoom(Math.min(Math.max(zoom() + event.deltaY, 1), 800));
   };
 
   const handleChainAdded = (chain: SliceChain) => {
@@ -76,7 +76,7 @@ export const WavesurferView = (props: WavesurferViewProps) => {
 
     const slice: Slice = {
       id: region.id,
-      collapsed: false,
+      collapsed: true,
       start: region.start,
       end: region.end,
       playbackSpeed: 1,
@@ -116,6 +116,10 @@ export const WavesurferView = (props: WavesurferViewProps) => {
     }
   };
 
+  const startPlayback = () => {
+    wavesurfer.play();
+  };
+
   const handleRegionRemoved = (region: Region) => {
     props.sampler.removeChain(region.id);
   };
@@ -129,18 +133,24 @@ export const WavesurferView = (props: WavesurferViewProps) => {
         TimelinePlugin.create({
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           container: timelineRef!,
-          zoomDebounce: 100,
+          zoomDebounce: 1,
+          timeInterval: (pxPersec: number) => {
+            return 0.2;
+          },
+          height: 30,
         }),
       ],
       waveColor: '#222',
-      progressColor: '#222',
+      progressColor: '#ff2f2f',
       cursorColor: '#4353FF',
       normalize: true,
       barWidth: 1,
       barRadius: 1,
-      cursorWidth: 0,
+      cursorWidth: 2,
       height: 100,
       barGap: 1,
+      partialRender: true,
+      scrollParent: true,
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -189,10 +199,7 @@ export const WavesurferView = (props: WavesurferViewProps) => {
     props.sampler.off('zoom-updated', setZoom);
   });
 
-  createEffect(() => {
-    if (!wavesurfer) return;
-    wavesurfer.seekAndCenter(props.center);
-  });
+  createEffect(() => wavesurfer?.seekAndCenter(props.center));
 
   const updateWavesurferZoomDebounced = debounce(
     (newZoom: number) => wavesurfer.zoom(newZoom),
@@ -205,14 +212,14 @@ export const WavesurferView = (props: WavesurferViewProps) => {
     <>
       <div ref={waveformRef} style={{ margin: '2px' }} />
       <div ref={timelineRef} style={{ margin: '2px' }} />
-      <input
+      {/* <input
         onChange={handleZoomChanged}
         value={zoom()}
         type="number"
         min="1"
         max="200"
         step="10"
-      />
+      /> */}
     </>
   );
 };

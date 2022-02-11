@@ -5,6 +5,7 @@ import {
   createMemo,
   untrack,
   For,
+  Show,
 } from 'solid-js';
 
 import { css } from 'solid-styled-components';
@@ -12,12 +13,15 @@ import { Step } from './SequencerStep';
 
 import {
   LCDLabel,
+  LCD,
   PowerSwitch,
   ScrewRow,
   ModuleFrame,
   ButtonWithLabel,
   RackEar,
   RackEar2,
+  RackMountHole,
+  Screw,
 } from './UI';
 import screwHead from './svg/screw_head.svg';
 
@@ -69,7 +73,7 @@ const FormattedTime = (props: { timeInSeconds: number }) => {
   );
 };
 
-export const VideoSlice = (props: {
+export const SampleSlice = (props: {
   chain: SliceChain;
   currentPatternIndex: number;
   isSelected: boolean;
@@ -213,6 +217,7 @@ export const VideoSlice = (props: {
         border-radius: 4px;
         margin-bottom: 2px;
         background-color: ${slice().color};
+        transition: all 2s ease;
       `}
       classList={{
         'slice-active': props.isSelected,
@@ -224,7 +229,8 @@ export const VideoSlice = (props: {
           width: 100%;
         `}
       >
-        <RackEar onClick={toggleCollapse} />
+        <RackEar onClick={toggleCollapse} collapsed={slice().collapsed} />
+
         <div
           class={css`
             display: flex;
@@ -233,6 +239,18 @@ export const VideoSlice = (props: {
             padding: 20px;
           `}
         >
+          <div
+            class={css`
+              display: flex;
+              align-items: center;
+              display: ${slice().collapsed ? 'flex' : 'none'};
+            `}
+          >
+            <LCD>
+              <WavesurferSliceView chain={props.chain} center={1} height={30} />
+            </LCD>
+          </div>
+
           <div
             class={css`
               display: flex;
@@ -598,7 +616,11 @@ export const VideoSlice = (props: {
               </For>
             </select>
           </div>
-          <div class={css``}>
+          <div
+            class={css`
+              display: ${slice().collapsed ? 'none' : 'flex'};
+            `}
+          >
             <div
               class={css`
                 display: inline-flex;
@@ -623,7 +645,7 @@ export const VideoSlice = (props: {
             </div>
           </div>
         </div>
-        <RackEar />
+        <RackEar collapsed={slice().collapsed} />
       </div>
     </li>
   );

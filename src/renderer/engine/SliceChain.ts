@@ -10,6 +10,8 @@ export interface SliceChainEvents {
   'chain-updated': (updatedChain: SliceChain) => void;
   'volume-updated': (volume: number) => void;
   'playback-speed-updated': (playbackSpeed: number) => void;
+  'player-started': () => void;
+  'player-stopped': () => void;
 }
 
 export class SliceChain extends TypedEmitter<SliceChainEvents> {
@@ -178,6 +180,7 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
 
   play(time?: number) {
     this.player.start(time);
+    this.emit('player-started');
   }
 
   getSequence() {

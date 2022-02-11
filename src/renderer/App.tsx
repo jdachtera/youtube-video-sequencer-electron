@@ -20,6 +20,9 @@ import { SamplerView } from './SamplerView';
 import { DeepPartial, normalizeData } from './engine/normalizeData';
 import { theme } from './theme';
 import { MoogKnobWithLabel } from './Knob';
+import { createChainsSignal } from './createChainsSignal';
+import { Device, LCD, ScreenPrintBackground } from './UI';
+import { Label } from './Label';
 
 const engine = new Engine(Transport);
 
@@ -269,29 +272,54 @@ export function App() {
                 background-color: #555;
                 box-shadow: inset 0 0 2px 1px #222;
                 border-radius: 5px;
+                display: flex;
+                flex-direction: column;
               `}
             >
-              <For each={samplers()}>
-                {(sampler) => <SamplerView sampler={sampler} />}
-              </For>
-              <For each={samplers()}>
-                {(sampler) => (
-                  <div>
-                    samplerhereasdas
-                    <For each={Array.from(sampler.getChains())}>
-                      {() => (
-                        <div>
-                          chain here
-                          {/* <Sequencer
-                            steps={chain.getSlice().patterns[0].steps}
-                            chain={chain}
-                          /> */}
-                        </div>
-                      )}
-                    </For>
-                  </div>
-                )}
-              </For>
+              <div>
+                <For each={samplers()}>
+                  {(sampler) => <SamplerView sampler={sampler} />}
+                </For>
+              </div>
+              <Device background={'#bd945e'}>
+                <div>
+                  <For
+                    each={samplers()}
+                    fallback={<div>loading sampler...</div>}
+                  >
+                    {(sampler) => {
+                      const chains = createChainsSignal(sampler);
+                      return (
+                        <For
+                          each={chains()}
+                          fallback={<div>loading chains..</div>}
+                        >
+                          {(chain) => (
+                            <div
+                              class={css`
+                                display: flex;
+                                align-items: center;
+                              `}
+                            >
+                              <LCD>foo</LCD>
+                              <Label label={chain.getSlice().name} />
+                              <ScreenPrintBackground
+                                background={chain.getSlice().color}
+                              >
+                                {/* <Sequencer
+                                  steps={chain.getSlice().patterns[0].steps}
+                                  chain={chain}
+
+                                /> */}
+                              </ScreenPrintBackground>
+                            </div>
+                          )}
+                        </For>
+                      );
+                    }}
+                  </For>
+                </div>
+              </Device>
             </div>
           </div>
         </ErrorBoundary>

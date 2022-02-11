@@ -17,8 +17,8 @@ type SequencerStepProps = {
 const sequencerStepBaseStyles = css`
   display: inline-block;
   user-select: none;
-  width: 30px;
-  height: 30px;
+  width: 20px;
+  height: 20px;
   margin: 2px;
   border-radius: 4px;
   border: 3px outset #eee;
@@ -122,7 +122,7 @@ export const SequencerStep = (props: SequencerStepProps) => (
     <div
       class={css`
         padding: 1px;
-        border: 3px inset #ffffffd6;
+        border: 3px inset #ffffff9d;
         border-radius: 7px;
         background: #555;
         box-shadow: inset 0 0 2px 2px #222;

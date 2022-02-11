@@ -20,6 +20,7 @@ import { Slice } from './Slice';
 type WavesurferSliceViewProps = {
   chain: SliceChain;
   center: number;
+  height?: number;
   // onRegionClick: (region: Region) => void;
 };
 
@@ -136,11 +137,11 @@ export const WavesurferSliceView = (props: WavesurferSliceViewProps) => {
       waveColor: '#adadad',
       progressColor: '#ff0000',
       cursorColor: '#4353FF',
-      normalize: false,
-      barWidth: 2,
+      normalize: true,
+      barWidth: 1,
       barRadius: 2,
-      cursorWidth: 0,
-      height: 70,
+      cursorWidth: 1,
+      height: props.height ?? 50,
       barGap: 0,
     });
 

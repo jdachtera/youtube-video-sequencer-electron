@@ -1,22 +1,16 @@
 import { css } from 'solid-styled-components';
 import { Label } from './Label';
 import ScrewHead from './svg/screw_head.svg';
+import { BiCompass } from 'solid-icons/bi';
 
-import { PropsWithChildren } from 'solid-js';
-
-const rackEarStyle = css`
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0px 0px 1px 1px #3f3f3fae;
-  justify-content: space-between;
-`;
+import { PropsWithChildren, For } from 'solid-js';
 
 const akaiButtonStyles = css`
   border: 2px outset white;
   border-radius: 3px;
   box-shadow: 0 0 3px 2px #555333;
   background: radial-gradient(#ddd, #fff);
-  display: inline-block;
+  display: inline-flex;
   padding: 1px;
   div {
     border: 4px outset white;
@@ -45,21 +39,33 @@ export const LCDLabel = (props: PropsWithChildren<{ minWidth?: string }>) => {
   );
 };
 
-export const LCDLine = (props: PropsWithChildren) => {
-  return <div>{props.children}</div>;
+export const LCDLine = (props: PropsWithChildren<{ class?: string }>) => {
+  return <div class={props.class ?? ''}>{props.children}</div>;
 };
 
 export const PowerSwitch = () => {
   return <div>poweronoff</div>;
 };
 
-export const RackEar = (props: PropsWithChildren<{ onClick?: () => void }>) => {
+export const RackEar = (
+  props: PropsWithChildren<{
+    onClick?: () => void;
+    collapsed?: boolean;
+    screwCount?: number;
+  }>
+) => {
+  const rackEarStyle = css`
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  `;
   return (
     <div class={rackEarStyle} onClick={() => props.onClick?.()}>
       <RackMountHole
         class={css`
           margin: 10px;
           margin-top: 20px;
+          margin-bottom: 20px;
         `}
       >
         <Screw width="25px" />
@@ -67,11 +73,26 @@ export const RackEar = (props: PropsWithChildren<{ onClick?: () => void }>) => {
       <RackMountHole
         class={css`
           margin: 10px;
+          margin-top: 20px;
           margin-bottom: 20px;
+          display: ${props.collapsed ? 'none' : 'flex'};
         `}
       >
         <Screw width="25px" />
       </RackMountHole>
+      {/* <For each={}>
+        {() => (
+          <RackMountHole
+            class={css`
+              margin: 10px;
+              margin-top: 20px;
+              margin-bottom: 20px;
+            `}
+          >
+            <Screw width="25px" />
+          </RackMountHole>
+        )}
+      </For> */}
     </div>
   );
 };
@@ -110,12 +131,14 @@ export const ButtonWithLabel = (
         class={css`
           box-shadow: 0px 0px 2px 2px #1f1f1fb0;
           border-radius: 2px;
+          display: flex;
         `}
       >
         <div
           class={css`
             border-radius: 3px;
             box-shadow: 4px 3px 5px 4px #13131349;
+            display: flex;
           `}
         >
           <button
@@ -152,13 +175,56 @@ export const ButtonWithLabel = (
   );
 };
 
+export const ScreenPrintBackground = (
+  props: PropsWithChildren<{
+    class?: string;
+    background?: string;
+    label?: string;
+  }>
+) => {
+  return (
+    <div
+      class={[
+        css`
+          background: ${props.background ?? '#ff9100'};
+          padding: 10px;
+          border-radius: 5px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+        `,
+        props.class ?? '',
+      ].join(' ')}
+    >
+      {props.label ? (
+        <span
+          class={css`
+            font-family: 'oswald';
+            color: black;
+            padding: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          `}
+        >
+          {props.label}
+        </span>
+      ) : (
+        ''
+      )}
+      <div>{props.children}</div>
+    </div>
+  );
+};
+
 export const LCDFrame = (props: PropsWithChildren) => {
   return (
     <div
       class={css`
         position: relative;
         padding: 60px;
-        border-radius: 12px;
+        border-radius: 8px;
         padding-right: 160px;
         background-color: black;
       `}
@@ -173,7 +239,7 @@ export const LCDFrame = (props: PropsWithChildren) => {
           left: 0;
           bottom: 0;
           right: 0;
-          border-radius: 12px;
+          border-radius: 8px;
           padding-right: 160px;
           background: radial-gradient(
             ellipse at -66% 90%,
@@ -191,17 +257,28 @@ export const LCDFrame = (props: PropsWithChildren) => {
   );
 };
 
-export const Device = (props: PropsWithChildren<{ class?: string }>) => {
+export const Device = (
+  props: PropsWithChildren<{ class?: string; background?: string }>
+) => {
   return (
     <div
       class={[
         css`
           display: flex;
+          background: ${props.background ?? '#969696'};
+          box-shadow: 0 0 2px 2px inset #222;
+          padding: 10px;
         `,
         props.class,
       ].join(' ')}
     >
       <RackEar />
+      <BiCompass
+        color="lavender"
+        size="64px"
+        className="custom-icon"
+        title="a11y"
+      />
       <div
         class={css`
           width: 100%;
@@ -349,10 +426,19 @@ export const ModuleFrame = (props: PropsWithChildren) => {
   );
 };
 
-export const AkaiButton = () => {
+export const AkaiButton = (
+  props: PropsWithChildren<{
+    onClick: () => void;
+    label?: string;
+  }>
+) => {
+  const handleClick = () => {
+    props.onClick();
+  };
+
   return (
-    <div class={akaiButtonStyles}>
+    <button class={akaiButtonStyles} onClick={handleClick}>
       <div></div>
-    </div>
+    </button>
   );
 };
