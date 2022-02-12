@@ -1,4 +1,4 @@
-import { createMemo, For, untrack } from 'solid-js';
+import { createMemo, For, untrack, JSX, splitProps } from 'solid-js';
 import { css } from 'solid-styled-components';
 import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
 import { Sampler } from './engine/Sampler';
@@ -10,7 +10,10 @@ import { Sequencer } from './Sequencer';
 import { Toggle } from './Toggle';
 import { LCD, ScreenPrintBackground } from './UI';
 
-export const PatternEditor = (props: { sampler: Sampler }) => {
+export const PatternEditor = (
+  allProps: { sampler: Sampler } & JSX.IntrinsicElements['div']
+) => {
+  const [props, divProps] = splitProps(allProps, ['sampler']);
   const chains = createSignalFromEventEmitter(
     untrack(() => props.sampler),
     ['chain-added', 'chain-removed'],
@@ -24,21 +27,29 @@ export const PatternEditor = (props: { sampler: Sampler }) => {
   );
 
   return (
-    <For each={chains()} fallback={<div>loading chains..</div>}>
-      {(chain) => (
-        <SlicePattern
-          chain={chain}
-          currentPatternIndex={currentPatternIndex()}
-        />
-      )}
-    </For>
+    <div {...divProps}>
+      <For each={chains()} fallback={<div>loading chains..</div>}>
+        {(chain) => (
+          <SlicePattern
+            chain={chain}
+            currentPatternIndex={currentPatternIndex()}
+          />
+        )}
+      </For>
+    </div>
   );
 };
 
-const SlicePattern = (props: {
-  chain: SliceChain;
-  currentPatternIndex: number;
-}) => {
+export const SlicePattern = (
+  allProps: {
+    chain: SliceChain;
+    currentPatternIndex: number;
+  } & JSX.IntrinsicElements['div']
+) => {
+  const [props, divProps] = splitProps(allProps, [
+    'chain',
+    'currentPatternIndex',
+  ]);
   const slice = createSignalFromEventEmitter(
     untrack(() => props.chain),
     ['chain-updated'],
@@ -51,10 +62,14 @@ const SlicePattern = (props: {
 
   return (
     <div
-      class={css`
-        display: flex;
-        align-items: center;
-      `}
+      {...divProps}
+      classList={{
+        ...divProps.classList,
+        [css`
+          display: flex;
+          align-items: center;
+        `]: true,
+      }}
     >
       <LCD>foo</LCD>
       <Label label={slice().name} />

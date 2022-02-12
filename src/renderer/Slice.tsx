@@ -13,6 +13,7 @@ import { Toggle } from './Toggle';
 import { ShareSliceButton } from './ShareSliceButton';
 import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
 import { Slice } from './engine/types';
+import { PatternEditor, SlicePattern } from './PatternEditor';
 
 const FormattedTime = (props: { timeInSeconds: number }) => {
   const minutes = createMemo(() => Math.floor(props.timeInSeconds / 60));
@@ -497,6 +498,16 @@ export const SampleSlice = (props: {
           </div>
         </div>
         <RackEar collapsed={slice().collapsed} />
+
+        <SlicePattern
+          classList={{
+            [css`
+              display: none;
+            `]: slice().collapsed,
+          }}
+          chain={props.chain}
+          currentPatternIndex={props.currentPatternIndex}
+        />
       </div>
     </li>
   );
