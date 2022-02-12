@@ -7,23 +7,26 @@ import { Engine } from './Engine';
 import { Sampler } from './Sampler';
 
 export const normalizeStepData = (step: DeepPartial<Step>): Step => ({
-  actions: (Array.isArray(step.actions) ? step.actions : []).filter(
-    (action): action is Action => {
+  actions: (Array.isArray(step.actions) ? step.actions : [])
+    .map((action): Action | undefined => {
       switch (action?.type) {
         case 'PLAY':
-          return typeof action.velocity === 'number';
+          return {
+            ...action,
+            type: action.type,
+            velocity: action.velocity ?? 1,
+          };
         case 'PAUSE':
-          return true;
+          return { type: 'PAUSE' };
         case 'SET_PLAYBACK_SPEED':
-          return typeof action.value === 'number';
-
+          return { ...action, type: action.type, value: action.value ?? 1 };
         case 'SET_REVERSE':
-          return typeof action.value === 'boolean';
+          return { ...action, type: action.type, value: action.value ?? false };
         default:
-          return false;
+          return undefined;
       }
-    }
-  ),
+    })
+    .filter((action): action is Action => !!action),
 });
 
 export const normalizePatternData = (
