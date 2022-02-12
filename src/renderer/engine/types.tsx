@@ -1,0 +1,28 @@
+import { Step } from '../SequencerStep';
+
+export type Slice = {
+  id: string;
+  start: number;
+  end: number;
+  volume: number;
+  playbackSpeed: number;
+  reverse: boolean;
+  color: string;
+  patterns: Pattern[];
+  name: string;
+  solo: boolean;
+  collapsed: boolean;
+};
+
+export type Pattern = {
+  subdivision: number;
+  subdivisionType: typeof subdivisionTypes[number];
+  steps: Step[];
+};
+
+export const subdivisions = [
+  -0.5,
+  ...Array.from({ length: 7 }).map((_, index) => Math.pow(2, index)),
+];
+
+export const subdivisionTypes = ['n', 't', 'n.'] as const;

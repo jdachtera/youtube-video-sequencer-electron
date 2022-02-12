@@ -3,7 +3,7 @@ import { Time } from 'tone/build/esm/core/type/Units';
 import { Transport } from 'tone/build/esm/core/clock/Transport';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { Sampler } from './Sampler';
-import type { Slice } from '../Slice';
+import { Slice } from './types';
 
 interface EngineEvents {
   'sampler-added': (sampler: Sampler) => void;

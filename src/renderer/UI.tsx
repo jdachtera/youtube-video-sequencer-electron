@@ -280,7 +280,7 @@ export const Device = (
       <BiCompass
         color="lavender"
         size="64px"
-        className="custom-icon"
+        class="custom-icon"
         title="a11y"
       />
       <div

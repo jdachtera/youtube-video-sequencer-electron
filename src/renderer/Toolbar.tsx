@@ -7,6 +7,7 @@ import {
   onMount,
   untrack,
 } from 'solid-js';
+import { css } from 'solid-styled-components';
 import { Offline, Transport } from 'tone';
 import { debounce } from 'ts-debounce';
 import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
@@ -206,7 +207,12 @@ export const Toolbar = (props: {
     <div>
       <LoginModal />
       <FindSlicesButton engine={props.engine} />
-      <div class="main-controls">
+      <div
+        class={css`
+          background: #333;
+          padding: 8px;
+        `}
+      >
         <button type="button" onClick={togglePlay}>
           {isPlaying() ? 'Stop' : 'Play'}
         </button>

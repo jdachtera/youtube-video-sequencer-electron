@@ -4,7 +4,8 @@ import { createSignal, onMount, For, untrack } from 'solid-js';
 import { Region } from 'wavesurfer.js/src/plugin/regions';
 import { Transport } from 'tone';
 
-import { SampleSlice, Slice } from './Slice';
+import { SampleSlice } from './Slice';
+import { Slice } from './engine/types';
 
 import { css } from 'solid-styled-components';
 
@@ -177,6 +178,7 @@ export const SamplerView = (props: { sampler: Sampler }) => {
         </div>
         <ol
           class={css`
+            font-size: 10px;
             box-shadow: inset 0px 0px 8px black;
             padding: 2px;
             border-radius: 5px;

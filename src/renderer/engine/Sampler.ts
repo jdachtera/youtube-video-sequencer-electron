@@ -2,7 +2,7 @@ import { Gain, ToneAudioBuffer } from 'tone';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { SliceChain } from './SliceChain';
 import type { Engine } from './Engine';
-import type { Slice } from '../Slice';
+import { Slice } from './types';
 import { loadCachedVideo, storeCachedVideo } from './blobStore';
 
 declare const yt: {

@@ -8,7 +8,7 @@ import RegionsPlugin, { Region } from 'wavesurfer.js/src/plugin/regions';
 import TimelinePlugin from 'wavesurfer.js/src/plugin/timeline';
 import { Sampler } from './engine/Sampler';
 import { SliceChain } from './engine/SliceChain';
-import { Slice } from './Slice';
+import { Slice } from './engine/types';
 
 type WavesurferViewProps = {
   sampler: Sampler;
@@ -25,10 +25,8 @@ export const WavesurferView = (props: WavesurferViewProps) => {
 
   let waveformRef: HTMLDivElement | undefined;
   let timelineRef: HTMLDivElement | undefined;
-  let wavesurfer: Wavesurfer;
 
-  const handleZoomChanged = (event: { currentTarget: HTMLInputElement }) =>
-    props.sampler.setZoom(event.currentTarget.valueAsNumber);
+  let wavesurfer: Wavesurfer;
 
   const scrollZoom = (event: WheelEvent) => {
     event.preventDefault();
@@ -124,14 +122,13 @@ export const WavesurferView = (props: WavesurferViewProps) => {
   };
 
   onMount(() => {
+    if (!waveformRef || !timelineRef) return;
     wavesurfer = Wavesurfer.create({
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      container: waveformRef!,
+      container: waveformRef,
       plugins: [
         RegionsPlugin.create({}),
         TimelinePlugin.create({
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          container: timelineRef!,
+          container: timelineRef,
           zoomDebounce: 1,
           timeInterval: (pxPersec: number) => {
             return 0.2;
@@ -209,14 +206,6 @@ export const WavesurferView = (props: WavesurferViewProps) => {
     <>
       <div ref={waveformRef} style={{ margin: '2px' }} />
       <div ref={timelineRef} style={{ margin: '2px' }} />
-      {/* <input
-        onChange={handleZoomChanged}
-        value={zoom()}
-        type="number"
-        min="1"
-        max="200"
-        step="10"
-      /> */}
     </>
   );
 };

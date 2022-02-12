@@ -12,21 +12,7 @@ import { MoogKnobWithLabel, NumberInput } from './Knob';
 import { Toggle } from './Toggle';
 import { ShareSliceButton } from './ShareSliceButton';
 import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
-import { Pattern } from './PatternEditor';
-
-export type Slice = {
-  id: string;
-  start: number;
-  end: number;
-  volume: number;
-  playbackSpeed: number;
-  reverse: boolean;
-  color: string;
-  patterns: Pattern[];
-  name: string;
-  solo: boolean;
-  collapsed: boolean;
-};
+import { Slice } from './engine/types';
 
 const FormattedTime = (props: { timeInSeconds: number }) => {
   const minutes = createMemo(() => Math.floor(props.timeInSeconds / 60));

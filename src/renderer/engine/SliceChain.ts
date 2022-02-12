@@ -3,8 +3,7 @@ import { TypedEmitter } from 'tiny-typed-emitter';
 
 import type { Step } from '../SequencerStep';
 import type { Sampler } from './Sampler';
-import type { Slice } from '../Slice';
-import { Pattern } from 'renderer/PatternEditor';
+import { Pattern, Slice } from './types';
 
 export interface SliceChainEvents {
   'sequence-event': (step: Step) => void;

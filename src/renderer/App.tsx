@@ -3,8 +3,6 @@ import { ThemeProvider, css } from 'solid-styled-components';
 import { Transport } from 'tone';
 import { ApolloProvider } from '@merged/solid-apollo';
 
-import './App.css';
-
 import { Engine } from './engine/Engine';
 import { SamplerView } from './SamplerView';
 import { theme } from './theme';
@@ -14,6 +12,7 @@ import { apolloClient } from './apolloClient';
 import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
 import { PatternEditor } from './PatternEditor';
 import { Toolbar, ViewMode } from './Toolbar';
+import { GlobalStyles } from './GlobalStyles';
 
 const engine = new Engine(Transport);
 
@@ -34,6 +33,7 @@ export function App() {
     >
       <ThemeProvider theme={theme}>
         <ApolloProvider client={apolloClient}>
+          <GlobalStyles />
           <div class="App">
             <div
               class={css`

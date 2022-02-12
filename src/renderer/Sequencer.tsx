@@ -2,7 +2,6 @@ import { createSignal, onMount, onCleanup, Index, mergeProps } from 'solid-js';
 
 import { Action, createNewAction } from './SequencerAction';
 import { SequencerStep, Step } from './SequencerStep';
-import './Sequencer.scss';
 import { SliceChain } from './engine/SliceChain';
 import { css } from 'solid-styled-components';
 

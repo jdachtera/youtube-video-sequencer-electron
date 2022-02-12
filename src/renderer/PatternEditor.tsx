@@ -3,18 +3,12 @@ import { css } from 'solid-styled-components';
 import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
 import { Sampler } from './engine/Sampler';
 import { SliceChain } from './engine/SliceChain';
+import { Pattern, subdivisions, subdivisionTypes } from './engine/types';
 import { MoogKnobWithLabel } from './Knob';
 import { Label } from './Label';
 import { Sequencer } from './Sequencer';
-import { Step } from './SequencerStep';
 import { Toggle } from './Toggle';
 import { LCD, ScreenPrintBackground } from './UI';
-
-export type Pattern = {
-  subdivision: number;
-  subdivisionType: typeof subdivisionTypes[number];
-  steps: Step[];
-};
 
 export const PatternEditor = (props: { sampler: Sampler }) => {
   const chains = createSignalFromEventEmitter(
@@ -134,10 +128,3 @@ const SlicePattern = (props: {
     </div>
   );
 };
-
-const subdivisions = [
-  -0.5,
-  ...Array.from({ length: 7 }).map((_, index) => Math.pow(2, index)),
-];
-
-const subdivisionTypes = ['n', 't', 'n.'] as const;
