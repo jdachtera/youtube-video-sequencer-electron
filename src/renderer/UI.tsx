@@ -3,7 +3,7 @@ import { Label } from './Label';
 import ScrewHead from './svg/screw_head.svg';
 import { BiCompass } from 'solid-icons/bi';
 
-import { PropsWithChildren, splitProps, JSX } from 'solid-js';
+import { PropsWithChildren, splitProps, JSX, Show } from 'solid-js';
 
 const rackEarStyle = css`
   display: flex;
@@ -202,7 +202,7 @@ export const ScreenPrintBackground = (
         props.class ?? '',
       ].join(' ')}
     >
-      {props.label ? (
+      <Show when={props.label}>
         <span
           class={css`
             font-family: 'oswald';
@@ -215,9 +215,8 @@ export const ScreenPrintBackground = (
         >
           {props.label}
         </span>
-      ) : (
-        ''
-      )}
+      </Show>
+
       <div>{props.children}</div>
     </div>
   );

@@ -170,8 +170,6 @@ export const NumberInputWithLabel = (
     label?: JSXElement;
   }
 ) => {
-  const theme = useAppTheme();
-
   return (
     <div
       class={css`

@@ -54,14 +54,12 @@ export const Sequencer = (propsWithoutDefaults: {
       actions: updatedActions,
     };
 
-    const { steps } = props;
-
-    const stepIndex = steps.indexOf(step);
+    const stepIndex = props.steps.indexOf(step);
 
     const newSteps = [
-      ...steps.slice(0, stepIndex),
+      ...props.steps.slice(0, stepIndex),
       newStep,
-      ...steps.slice(stepIndex + 1),
+      ...props.steps.slice(stepIndex + 1),
     ];
     setSelectedStep(newStep);
     props.onChange(newSteps);
