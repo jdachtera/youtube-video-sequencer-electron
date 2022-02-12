@@ -1,11 +1,6 @@
-import {
-  createSignal,
-  createEffect,
-  onMount,
-  onCleanup,
-  untrack,
-} from 'solid-js';
+import { createEffect, onMount, onCleanup, untrack } from 'solid-js';
 
+import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
 import { debounce } from 'ts-debounce';
 
 import Wavesurfer from 'wavesurfer.js';
@@ -22,7 +17,11 @@ type WavesurferViewProps = {
 };
 
 export const WavesurferView = (props: WavesurferViewProps) => {
-  const [zoom, setZoom] = createSignal(untrack(() => props.sampler.zoom));
+  const zoom = createSignalFromEventEmitter(
+    untrack(() => props.sampler),
+    'zoom-updated',
+    (sampler) => sampler.zoom
+  );
 
   let waveformRef: HTMLDivElement | undefined;
   let timelineRef: HTMLDivElement | undefined;
@@ -189,14 +188,12 @@ export const WavesurferView = (props: WavesurferViewProps) => {
     props.sampler.on('chain-added', handleChainAdded);
     props.sampler.on('chain-removed', handleChainRemoved);
     props.sampler.on('chain-updated', handleChainUpdated);
-    props.sampler.on('zoom-updated', setZoom);
   });
 
   onCleanup(() => {
     props.sampler.off('chain-added', handleChainAdded);
     props.sampler.off('chain-removed', handleChainRemoved);
     props.sampler.off('chain-updated', handleChainUpdated);
-    props.sampler.off('zoom-updated', setZoom);
   });
 
   createEffect(() => wavesurfer?.seekAndCenter(props.center));

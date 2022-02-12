@@ -3,7 +3,14 @@ import { Label } from './Label';
 import ScrewHead from './svg/screw_head.svg';
 import { BiCompass } from 'solid-icons/bi';
 
-import { PropsWithChildren, For } from 'solid-js';
+import { PropsWithChildren, splitProps, JSX } from 'solid-js';
+
+const rackEarStyle = css`
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0px 0px 1px 1px #3f3f3fae;
+  justify-content: space-between;
+`;
 
 const akaiButtonStyles = css`
   border: 2px outset white;
@@ -113,11 +120,11 @@ export const RackEar2 = () => {
 };
 
 export const ButtonWithLabel = (
-  props: PropsWithChildren<{
-    onClick: (event: MouseEvent) => void;
+  props: {
     label: string;
-  }>
+  } & JSX.IntrinsicElements['button']
 ) => {
+  const [ownProps, buttonProps] = splitProps(props, ['label']);
   return (
     <div
       class={css`
@@ -142,8 +149,8 @@ export const ButtonWithLabel = (
           `}
         >
           <button
+            {...buttonProps}
             type="button"
-            onMouseDown={(event) => props.onClick(event)}
             class={css`
               border: 2px outset white;
               padding: 6px;
@@ -159,13 +166,11 @@ export const ButtonWithLabel = (
                 background: radial-gradient(#ffed4c, #ff810b);
               }
             `}
-          >
-            {props.children}
-          </button>
+          />
         </div>
       </div>
       <Label
-        label={props.label}
+        label={ownProps.label}
         class={css`
           margin-left: 20px;
           white-space: nowrap;

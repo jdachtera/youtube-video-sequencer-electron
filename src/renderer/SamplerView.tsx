@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { createSignal, onMount, onCleanup, For, untrack } from 'solid-js';
+import { createSignal, onMount, For, untrack } from 'solid-js';
 
 import { Region } from 'wavesurfer.js/src/plugin/regions';
 import { Transport } from 'tone';
@@ -23,19 +23,28 @@ import {
   ScreenPrintBackground,
   ButtonWithLabel,
 } from './UI';
-import { createChainsSignal } from './createChainsSignal';
+
+import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
 
 export const SamplerView = (props: { sampler: Sampler }) => {
   const [selectedSlice, setSelectedSlice] = createSignal<Slice>();
-  const [currentPatternIndex, setCurrentPatternIndex] = createSignal(
-    untrack(() => props.sampler.getEngine().currentPatternIndex)
+
+  const currentPatternIndex = createSignalFromEventEmitter(
+    untrack(() => props.sampler.getEngine()),
+    ['current-pattern-index-updated'],
+    (engine) => engine.currentPatternIndex
+  );
+
+  const chains = createSignalFromEventEmitter(
+    untrack(() => props.sampler),
+    ['chain-added', 'chain-removed', 'chain-updated'],
+    (engine) => engine.getChains()
   );
 
   const [waveformCenter, setWaveformCenter] = createSignal(0);
   const [length, setLength] = createSignal(0);
   const [playing, setPlaying] = createSignal(0);
 
-  const chains = createChainsSignal(untrack(() => props.sampler));
   const stopPlayer = () => {
     props.sampler.stop();
   };
@@ -49,10 +58,6 @@ export const SamplerView = (props: { sampler: Sampler }) => {
     Transport.on('pause', stopPlayer);
     Transport.on('loopEnd', stopPlayer);
 
-    props.sampler
-      .getEngine()
-      .on('current-pattern-index-updated', setCurrentPatternIndex);
-
     await props.sampler.hasLoaded();
 
     setLength(props.sampler.buffer.duration);
@@ -62,7 +67,6 @@ export const SamplerView = (props: { sampler: Sampler }) => {
     const chain = props.sampler.getChain(slice.id);
     if (!chain) return;
     chain.setSlice(slice);
-    // setChains(props.sampler.getChains());
   };
 
   const handleRemoveSlice = (slice: Slice) => {
@@ -136,12 +140,6 @@ export const SamplerView = (props: { sampler: Sampler }) => {
       });
     }
   };
-
-  onCleanup(() => {
-    props.sampler
-      .getEngine()
-      .off('current-pattern-index-updated', setCurrentPatternIndex);
-  });
 
   return (
     <Device background="#969696">

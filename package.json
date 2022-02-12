@@ -8,12 +8,13 @@
     "rebuild": "electron-rebuild --parallel --types prod,dev,optional --module-dir release/app",
     "lint": "cross-env NODE_ENV=development eslint . --ext .js,.jsx,.ts,.tsx",
     "package": "ts-node ./.erb/scripts/clean.js dist && npm run build && electron-builder build --publish never",
-    "postinstall": "ts-node .erb/scripts/check-native-dep.js && electron-builder install-app-deps && cross-env NODE_ENV=development TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.renderer.dev.dll.ts && opencollective-postinstall",
+    "postinstall": "ts-node .erb/scripts/build-src-packages.ts && ts-node .erb/scripts/check-native-dep.js && electron-builder install-app-deps && cross-env NODE_ENV=development TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.renderer.dev.dll.ts && opencollective-postinstall",
     "start": "ts-node ./.erb/scripts/check-port-in-use.js && yarn run start:renderer",
     "start:main": "cross-env NODE_ENV=development electron -r ts-node/register/transpile-only ./src/main/main.ts",
     "start:renderer": "cross-env NODE_ENV=development TS_NODE_TRANSPILE_ONLY=true webpack serve --config ./.erb/configs/webpack.config.renderer.dev.ts",
     "test": "jest",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "graphql-codegen": "graphql-codegen --config codegen.yml"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
@@ -129,6 +130,12 @@
     "@babel/core": "^7.16.12",
     "@babel/preset-env": "^7.16.11",
     "@babel/preset-typescript": "^7.16.7",
+    "@graphql-codegen/cli": "^2.6.1",
+    "@graphql-codegen/introspection": "2.1.1",
+    "@graphql-codegen/near-operation-file-preset": "^2.2.4",
+    "@graphql-codegen/typed-document-node": "^2.2.3",
+    "@graphql-codegen/typescript-document-nodes": "2.2.3",
+    "@graphql-codegen/typescript-operations": "^2.3.0",
     "@teamsupercell/typings-for-css-modules-loader": "^2.5.1",
     "@testing-library/jest-dom": "^5.16.1",
     "@types/audiobuffer-to-wav": "^1.0.2",
@@ -137,6 +144,7 @@
     "@types/terser-webpack-plugin": "^5.0.4",
     "@types/video.js": "^7.3.29",
     "@types/wavesurfer.js": "^5.2.2",
+    "@types/webpack": "^5.28.0",
     "@types/webpack-env": "^1.16.3",
     "@typescript-eslint/eslint-plugin": "^5.10.2",
     "@typescript-eslint/parser": "^5.8.1",
@@ -176,6 +184,7 @@
     "mini-css-extract-plugin": "^2.4.5",
     "opencollective-postinstall": "^2.0.3",
     "prettier": "^2.5.1",
+    "react": "^17.0.2",
     "rimraf": "^3.0.2",
     "sass": "^1.49.7",
     "sass-loader": "^12.4.0",
@@ -197,6 +206,8 @@
     "webpack-merge": "^5.8.0"
   },
   "dependencies": {
+    "@apollo/client": "^3.5.8",
+    "@merged/solid-apollo": "https://github.com/jdachtera/solid-apollo.git#typed-document-node-compatibility",
     "audiobuffer-to-wav": "^1.0.0",
     "electron-debug": "^3.2.0",
     "electron-log": "^4.4.4",

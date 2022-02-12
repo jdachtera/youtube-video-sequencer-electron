@@ -10,29 +10,52 @@ import { ThemeProvider, css } from 'solid-styled-components';
 import { Offline, Transport } from 'tone';
 import { debounce } from 'ts-debounce';
 import bufferToWav from 'audiobuffer-to-wav';
+import { ApolloProvider } from '@merged/solid-apollo';
 
 import './App.css';
 
 import { Engine } from './engine/Engine';
 import { Sampler } from './engine/Sampler';
 import { Sequencer } from './Sequencer';
+
 import { SamplerView } from './SamplerView';
 import { DeepPartial, normalizeData } from './engine/normalizeData';
 import { theme } from './theme';
 import { MoogKnobWithLabel } from './Knob';
-import { createChainsSignal } from './createChainsSignal';
 import { Device, LCD, ScreenPrintBackground } from './UI';
 import { Label } from './Label';
+import { LoginModal } from './LoginModal';
+import { apolloClient } from './apolloClient';
+import { FindSlicesButton } from './FindSlicesButton';
+import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
 
 const engine = new Engine(Transport);
 
 export function App() {
   const [isPlaying, setIsPlaying] = createSignal(false);
-  const [bpm, setBpm] = createSignal(engine.bpm);
-  const [swing, setSwing] = createSignal(engine.swing);
-  const [samplers, setSamplers] = createSignal<Sampler[]>([]);
-  const [currentPatternIndex, setCurrentPatternIndex] = createSignal(
-    engine.currentPatternIndex
+
+  const bpm = createSignalFromEventEmitter(
+    engine,
+    'bpm-updated',
+    (engine) => engine.bpm
+  );
+
+  const swing = createSignalFromEventEmitter(
+    engine,
+    'swing-updated',
+    (engine) => engine.swing
+  );
+
+  const currentPatternIndex = createSignalFromEventEmitter(
+    engine,
+    ['current-pattern-index-updated'],
+    (engine) => engine.currentPatternIndex
+  );
+
+  const samplers = createSignalFromEventEmitter(
+    engine,
+    ['sampler-added', 'sampler-removed'],
+    (engine) => engine.getSamplers()
   );
 
   const togglePlay = () => {
@@ -45,10 +68,6 @@ export function App() {
 
   const handleSwingChange = (swing: number) => {
     engine.setSwing(swing);
-  };
-
-  const handleSamplerChanged = () => {
-    setSamplers(engine.getSamplers());
   };
 
   const handleCurrentPatternIndexChange = (event: {
@@ -159,23 +178,8 @@ export function App() {
     engine.dispose();
   };
 
-  onMount(() => {
-    engine.on('sampler-added', handleSamplerChanged);
-    engine.on('sampler-removed', handleSamplerChanged);
-    engine.on('change', saveToLocalStorage);
-    engine.on('bpm-updated', setBpm);
-    engine.on('swing-updated', setSwing);
-    engine.on('current-pattern-index-updated', setCurrentPatternIndex);
-  });
-
-  onCleanup(() => {
-    engine.off('sampler-added', handleSamplerChanged);
-    engine.off('sampler-removed', handleSamplerChanged);
-    engine.off('change', saveToLocalStorage);
-    engine.off('bpm-updated', setBpm);
-    engine.off('swing-updated', setSwing);
-    engine.off('current-pattern-index-updated', setCurrentPatternIndex);
-  });
+  onMount(() => engine.on('change', saveToLocalStorage));
+  onCleanup(() => engine.off('change', saveToLocalStorage));
 
   onMount(() => {
     let parsedData: DeepPartial<ReturnType<Engine['serialize']>> | undefined;
@@ -215,57 +219,55 @@ export function App() {
 
   return (
     <ThemeProvider theme={theme}>
-      <div class="App">
-        <ErrorBoundary
-          fallback={(err, reset) => (
-            <div onClick={reset}>Error: {err.toString()}</div>
-          )}
-        >
-          <div class="main-controls">
-            <button type="button" onClick={togglePlay}>
-              {isPlaying() ? 'Stop' : 'Play'}
-            </button>
-            :
-            <MoogKnobWithLabel
-              label="Tempo"
-              min={20}
-              max={280}
-              step={1}
-              value={bpm()}
-              onChange={handleTempoChange}
-            />
-            <MoogKnobWithLabel
-              label="Swing"
-              min={0}
-              max={1}
-              value={swing()}
-              onChange={handleSwingChange}
-            />
-            Pattern:
-            <input
-              type="number"
-              min="0"
-              step="1"
-              value={currentPatternIndex()}
-              onChange={handleCurrentPatternIndexChange}
-            />
-            <input type="text" onInput={addSampler} />
-          </div>
-          <button type="button" onClick={renderToWavefile}>
-            Download WAV
-          </button>
-          <button type="button" onClick={exportJSON}>
-            Export JSON
-          </button>
-          <button type="button" onClick={clear}>
-            Clear all
-          </button>
-          Load JSON: <input type="file" onChange={loadJSON} accept=".json" />
-          <div
-            class={css`
-              padding: 10px;
-            `}
+      <ApolloProvider client={apolloClient}>
+        <div class="App">
+          <LoginModal />
+          <FindSlicesButton engine={engine} />
+          <ErrorBoundary
+            fallback={(err, reset) => (
+              <div onClick={reset}>Error: {err.toString()}</div>
+            )}
           >
+            <div class="main-controls">
+              <button type="button" onClick={togglePlay}>
+                {isPlaying() ? 'Stop' : 'Play'}
+              </button>
+              :
+              <MoogKnobWithLabel
+                label="Tempo"
+                min={20}
+                max={280}
+                step={1}
+                value={bpm()}
+                onChange={handleTempoChange}
+              />
+              <MoogKnobWithLabel
+                label="Swing"
+                min={0}
+                max={1}
+                value={swing()}
+                onChange={handleSwingChange}
+              />
+              Pattern:
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={currentPatternIndex()}
+                onChange={handleCurrentPatternIndexChange}
+              />
+              <input type="text" onInput={addSampler} />
+            </div>
+            <button type="button" onClick={renderToWavefile}>
+              Download WAV
+            </button>
+            <button type="button" onClick={exportJSON}>
+              Export JSON
+            </button>
+            <button type="button" onClick={clear}>
+              Clear all
+            </button>
+            Load JSON: <input type="file" onChange={loadJSON} accept=".json" />
             <div
               class={css`
                 padding: 3px;
@@ -288,7 +290,11 @@ export function App() {
                     fallback={<div>loading sampler...</div>}
                   >
                     {(sampler) => {
-                      const chains = createChainsSignal(sampler);
+                      const chains = createSignalFromEventEmitter(
+                        sampler,
+                        ['chain-added', 'chain-removed'],
+                        (sampler) => sampler.getChains()
+                      );
                       return (
                         <For
                           each={chains()}
@@ -321,9 +327,9 @@ export function App() {
                 </div>
               </Device>
             </div>
-          </div>
-        </ErrorBoundary>
-      </div>
+          </ErrorBoundary>
+        </div>
+      </ApolloProvider>
     </ThemeProvider>
   );
 }
