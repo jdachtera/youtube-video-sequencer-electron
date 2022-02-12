@@ -4,24 +4,20 @@ import { createSignal, onMount, For, untrack } from 'solid-js';
 import { Region } from 'wavesurfer.js/src/plugin/regions';
 import { Transport } from 'tone';
 
-import { SampleSlice, Slice, Pattern } from './Slice';
+import { SampleSlice, Slice } from './Slice';
 
 import { css } from 'solid-styled-components';
 
 import { Sampler } from './engine/Sampler';
 import { WavesurferView } from './WavesurferView';
-import { SliceChain } from './engine/SliceChain';
+
 import {
-  ModuleFrame,
-  RackMountHole,
   Device,
   LCD,
   LCDFrame,
   LCDLine,
-  RackEar,
   AkaiButton,
   ScreenPrintBackground,
-  ButtonWithLabel,
 } from './UI';
 
 import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
@@ -63,27 +59,8 @@ export const SamplerView = (props: { sampler: Sampler }) => {
     setLength(props.sampler.buffer.duration);
   });
 
-  const updateSlice = async (slice: Slice) => {
-    const chain = props.sampler.getChain(slice.id);
-    if (!chain) return;
-    chain.setSlice(slice);
-  };
-
   const handleRemoveSlice = (slice: Slice) => {
     props.sampler.removeChain(slice.id);
-  };
-
-  const updatePattern = (slice: Slice, pattern: Pattern) => {
-    const updatedSlice: Slice = {
-      ...slice,
-      patterns: [
-        ...slice.patterns.slice(0, currentPatternIndex()),
-        pattern,
-        ...slice.patterns.slice(currentPatternIndex() + 1),
-      ],
-    };
-
-    updateSlice(updatedSlice);
   };
 
   const handleRemoveSampler = () => {
@@ -115,29 +92,6 @@ export const SamplerView = (props: { sampler: Sampler }) => {
     const { duration } = chain.getPlayer().buffer;
     if (duration > 0) {
       chain.play();
-    }
-  };
-
-  const updatePatternLength = (slice: Slice, newLength: number) => {
-    const pattern = slice.patterns[currentPatternIndex()];
-
-    if (pattern.steps.length > newLength) {
-      updatePattern(slice, {
-        ...pattern,
-        steps: pattern.steps.slice(0, newLength),
-      });
-    } else if (pattern.steps.length < newLength) {
-      updatePattern(slice, {
-        ...pattern,
-        steps: [
-          ...pattern.steps.slice(0),
-          ...Array.from({ length: newLength - pattern.steps.length }).map(
-            () => ({
-              actions: [],
-            })
-          ),
-        ],
-      });
     }
   };
 
@@ -238,8 +192,6 @@ export const SamplerView = (props: { sampler: Sampler }) => {
                 currentPatternIndex={currentPatternIndex()}
                 onClickSlice={handleClickSlice}
                 onRemoveSlice={handleRemoveSlice}
-                onUpdatePatternLength={updatePatternLength}
-                onUpdatePattern={updatePattern}
               />
             )}
           </For>

@@ -1,46 +1,18 @@
-import {
-  createSignal,
-  onMount,
-  onCleanup,
-  createMemo,
-  untrack,
-  For,
-  Show,
-} from 'solid-js';
+import { createMemo, untrack } from 'solid-js';
 
 import { css } from 'solid-styled-components';
-import { Step } from './SequencerStep';
 
-import {
-  LCDLabel,
-  LCD,
-  PowerSwitch,
-  ScrewRow,
-  ModuleFrame,
-  ButtonWithLabel,
-  RackEar,
-  RackEar2,
-  RackMountHole,
-  Screw,
-} from './UI';
-import screwHead from './svg/screw_head.svg';
+import { LCDLabel, LCD, ModuleFrame, ButtonWithLabel, RackEar } from './UI';
 
 import { WavesurferSliceView } from './WavesurferSliceView';
 
-import { Sequencer } from './Sequencer';
-import { Action } from './SequencerAction';
 import type { SliceChain } from './engine/SliceChain';
 import { MoogKnobWithLabel, NumberInput } from './Knob';
 
 import { Toggle } from './Toggle';
 import { ShareSliceButton } from './ShareSliceButton';
 import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
-
-export type Pattern = {
-  subdivision: number;
-  subdivisionType: typeof subdivisionTypes[number];
-  steps: Step[];
-};
+import { Pattern } from './PatternEditor';
 
 export type Slice = {
   id: string;
@@ -55,13 +27,6 @@ export type Slice = {
   solo: boolean;
   collapsed: boolean;
 };
-
-const subdivisions = [
-  -0.5,
-  ...Array.from({ length: 7 }).map((_, index) => Math.pow(2, index)),
-];
-
-const subdivisionTypes = ['n', 't', 'n.'] as const;
 
 const FormattedTime = (props: { timeInSeconds: number }) => {
   const minutes = createMemo(() => Math.floor(props.timeInSeconds / 60));
@@ -79,9 +44,7 @@ export const SampleSlice = (props: {
   currentPatternIndex: number;
   isSelected: boolean;
   onClickSlice: (slice: Slice) => void;
-  onUpdatePatternLength: (slice: Slice, sequenceLength: number) => void;
   onRemoveSlice: (slice: Slice) => void;
-  onUpdatePattern: (slice: Slice, pattern: Pattern) => void;
 }) => {
   const slice = createSignalFromEventEmitter(
     untrack(() => props.chain),
@@ -93,114 +56,29 @@ export const SampleSlice = (props: {
     () => slice().patterns[props.currentPatternIndex]
   );
 
-  const handleUpdatePlaybackSpeed = (playbackSpeed: number) => {
-    props.chain.setSlice({
-      ...slice(),
-      playbackSpeed,
-    });
-  };
-
   const handleUpdateSampleStart = (start: number) => {
-    props.chain.setSlice({
-      ...slice(),
+    props.chain.updateSlice({
       start: Math.min(slice().end + 0.00001, start),
     });
   };
 
   const handleUpdateSampleEnd = (end: number) => {
-    props.chain.setSlice({
-      ...slice(),
+    props.chain.updateSlice({
       end: Math.max(slice().start + 0.00001, end),
     });
   };
 
-  const handleUpdateReverse = (reverse: boolean) => {
-    props.chain.setSlice({ ...slice(), reverse });
-  };
-
-  const toggleReverse = () => {
-    props.chain.setSlice({
-      ...slice(),
-      reverse: slice().reverse ? false : true,
-    });
+  const handleUpdatePatternLength = (patternLength: number) => {
+    props.chain.updatePatternLength(props.currentPatternIndex, patternLength);
   };
 
   const handleUpdateSolo = (solo: boolean, altKey: boolean) => {
-    if (solo && !altKey) {
-      props.chain
-        .getSampler()
-        .getEngine()
-        .getSamplers()
-        .forEach((sampler) => {
-          sampler.chains.forEach((chain) => {
-            chain.setSlice({
-              ...chain.getSlice(),
-              solo: slice() === chain.getSlice(),
-            });
-          });
-        });
-    } else {
-      props.chain.setSlice({ ...slice(), solo });
-    }
-  };
-
-  const handleUpdateName = (event: { currentTarget: HTMLInputElement }) => {
-    props.chain.setSlice({ ...slice(), name: event.currentTarget.value });
-  };
-
-  const handleClickSlice = () => {
-    props.onClickSlice(slice());
-  };
-
-  const handleUpdatePatternLength = (patternLength: number) => {
-    props.onUpdatePatternLength(slice(), patternLength);
-  };
-
-  const handleRemoveSlice = () => {
-    props.onRemoveSlice(slice());
-  };
-
-  const handleUpdateSteps = (steps: Step[]) => {
-    props.onUpdatePattern(slice(), { ...currentPattern(), steps });
+    props.chain.setSolo(solo, altKey);
   };
 
   const toggleCollapse = () => {
-    props.chain.setSlice({
-      ...slice(),
+    props.chain.updateSlice({
       collapsed: slice().collapsed ? false : true,
-    });
-  };
-
-  const handleCloneSlice = () => {
-    const sliceData = slice();
-    props.chain.getSampler().createChain({
-      ...sliceData,
-      id: `${sliceData.id}_clone`,
-    });
-  };
-
-  const onToggleStep = (step: Step): Action[] => {
-    if (step.actions.length === 0) {
-      return [{ type: 'PLAY' }];
-    }
-    return [];
-  };
-
-  const handleUpdateSubdivision = (event: {
-    currentTarget: HTMLSelectElement;
-  }) => {
-    props.onUpdatePattern(slice(), {
-      ...currentPattern(),
-      subdivision: +event.currentTarget.value,
-    });
-  };
-
-  const handleUpdateSubdivisionType = (event: {
-    currentTarget: HTMLSelectElement;
-  }) => {
-    props.onUpdatePattern(slice(), {
-      ...currentPattern(),
-      subdivisionType: event.currentTarget.value as Pattern['subdivisionType'],
     });
   };
 
@@ -321,7 +199,11 @@ export const SampleSlice = (props: {
                       >
                         <LCDLabel>Name</LCDLabel>
                         <input
-                          onChange={handleUpdateName}
+                          onChange={(event) => {
+                            props.chain.updateSlice({
+                              name: event.currentTarget.value,
+                            });
+                          }}
                           class={css`
                             background: none;
                             border: none;
@@ -442,7 +324,11 @@ export const SampleSlice = (props: {
                             speed={0.1}
                             fineIsDefault
                             value={slice().start}
-                            onChange={handleUpdateSampleStart}
+                            onChange={(start: number) => {
+                              props.chain.updateSlice({
+                                start: Math.min(slice().end + 0.00001, start),
+                              });
+                            }}
                           />
                         </div>
                         <div
@@ -510,20 +396,29 @@ export const SampleSlice = (props: {
                     `}
                   >
                     <ButtonWithLabel
-                      onClick={handleClickSlice}
+                      onClick={() => props.onClickSlice(slice())}
                       label="Audition Sample"
                     />
-                    <ButtonWithLabel onClick={toggleReverse} label="Reverse" />
-                    <div>asdf{slice().collapsed}</div>
-                    <ButtonWithLabel
-                      onClick={handleClickSlice}
-                      label="Delete"
-                    />
-                    <ButtonWithLabel onClick={handleClickSlice} label="Clone" />
                     <ButtonWithLabel
                       onClick={() => {
-                        props.chain.setSlice({
-                          ...slice(),
+                        props.chain.updateSlice({
+                          reverse: slice().reverse ? false : true,
+                        });
+                      }}
+                      label="Reverse"
+                    />
+                    <div>asdf{slice().collapsed}</div>
+                    <ButtonWithLabel
+                      onClick={() => props.onRemoveSlice(slice())}
+                      label="Delete"
+                    />
+                    <ButtonWithLabel
+                      onClick={() => props.chain.duplicate()}
+                      label="Clone"
+                    />
+                    <ButtonWithLabel
+                      onClick={() => {
+                        props.chain.updateSlice({
                           playbackSpeed: slice().playbackSpeed / 2,
                         });
                       }}
@@ -538,21 +433,14 @@ export const SampleSlice = (props: {
                           Math.round(sliceDuration / barDuration) * barDuration;
 
                         const playbackSpeed = sliceDuration / targetDuration;
-                        console.log({
-                          bpm,
-                          barDuration,
-                          sliceDuration,
-                          targetDuration,
-                          playbackSpeed,
-                        });
-                        props.chain.setSlice({ ...slice(), playbackSpeed });
+
+                        props.chain.updateSlice({ playbackSpeed });
                       }}
                       label="Align to tempo"
                     />
                     <ButtonWithLabel
                       onClick={() => {
-                        props.chain.setSlice({
-                          ...slice(),
+                        props.chain.updateSlice({
                           playbackSpeed: slice().playbackSpeed * 2,
                         });
                       }}
@@ -569,24 +457,11 @@ export const SampleSlice = (props: {
                 <FormattedTime timeInSeconds={slice().end} />
                 <div>{props.chain.getPlayer().now()}</div>
                 <MoogKnobWithLabel
-                  label="Steps"
-                  step={1}
-                  min={1}
-                  max={1024}
-                  speed={0.1}
-                  fineIsDefault
-                  value={currentPattern()?.steps?.length}
-                  onChange={handleUpdatePatternLength}
-                />
-                <MoogKnobWithLabel
                   min={0}
                   max={2}
                   value={slice().volume}
                   onChange={(volume: number) => {
-                    props.chain.setSlice({
-                      ...slice(),
-                      volume,
-                    });
+                    props.chain.updateSlice({ volume });
                   }}
                   label="Volume"
                 />
@@ -594,7 +469,9 @@ export const SampleSlice = (props: {
                   min={0}
                   max={3}
                   value={slice().playbackSpeed}
-                  onChange={handleUpdatePlaybackSpeed}
+                  onChange={(playbackSpeed: number) => {
+                    props.chain.updateSlice({ playbackSpeed });
+                  }}
                   label="Pitch"
                 />
                 <MoogKnobWithLabel
@@ -618,7 +495,11 @@ export const SampleSlice = (props: {
                 <Toggle
                   label="Reverse"
                   checked={slice().reverse}
-                  onChange={handleUpdateReverse}
+                  onChange={(reverse) => {
+                    props.chain.updateSlice({
+                      reverse: !reverse,
+                    });
+                  }}
                 />
                 <Toggle
                   label="Solo"
@@ -627,60 +508,6 @@ export const SampleSlice = (props: {
                 />
               </div>
             </ModuleFrame>
-            <button type="button" onClick={handleRemoveSlice}>
-              Remove slice
-            </button>
-            <button type="button" onClick={handleCloneSlice}>
-              Clone slice
-            </button>
-            <select
-              value={currentPattern()?.subdivision ?? 16}
-              onChange={handleUpdateSubdivision}
-            >
-              <For each={subdivisions}>
-                {(subdivision) => (
-                  <option value={subdivision}>{subdivision}</option>
-                )}
-              </For>
-            </select>
-            <select
-              value={currentPattern()?.subdivisionType ?? 'n'}
-              onChange={handleUpdateSubdivisionType}
-            >
-              <For each={subdivisionTypes}>
-                {(subdivisionType) => (
-                  <option value={subdivisionType}>{subdivisionType}</option>
-                )}
-              </For>
-            </select>
-          </div>
-          <div
-            class={css`
-              display: ${slice().collapsed ? 'none' : 'flex'};
-            `}
-          >
-            <div
-              class={css`
-                display: inline-flex;
-                flex-direction: column;
-              `}
-            >
-              <ModuleFrame>
-                <div
-                  class={css`
-                    margin-left: 20px;
-                    margin-right: 20px;
-                  `}
-                >
-                  <Sequencer
-                    steps={slice().patterns[props.currentPatternIndex].steps}
-                    chain={props.chain}
-                    onChange={handleUpdateSteps}
-                    onToggleStep={onToggleStep}
-                  />
-                </div>
-              </ModuleFrame>
-            </div>
           </div>
         </div>
         <RackEar collapsed={slice().collapsed} />

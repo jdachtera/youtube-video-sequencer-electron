@@ -4,6 +4,7 @@ import { TypedEmitter } from 'tiny-typed-emitter';
 import type { Step } from '../SequencerStep';
 import type { Sampler } from './Sampler';
 import type { Slice } from '../Slice';
+import { Pattern } from 'renderer/PatternEditor';
 
 export interface SliceChainEvents {
   'sequence-event': (step: Step) => void;
@@ -148,6 +149,62 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
     return slice;
   }
 
+  updateSlice(data: Partial<Slice>) {
+    this.setSlice({
+      ...this.slice,
+      ...data,
+    });
+  }
+
+  updatePattern(patternIndex: number, pattern: Partial<Pattern>) {
+    this.updateSlice({
+      patterns: [
+        ...this.slice.patterns.slice(0, patternIndex),
+        {
+          ...this.slice.patterns[patternIndex],
+          ...pattern,
+        },
+        ...this.slice.patterns.slice(patternIndex + 1),
+      ],
+    });
+  }
+
+  updatePatternLength(patternIndex: number, newLength: number) {
+    const pattern = this.slice.patterns[patternIndex];
+
+    if (pattern.steps.length > newLength) {
+      this.updatePattern(patternIndex, {
+        steps: pattern.steps.slice(0, newLength),
+      });
+    } else if (pattern.steps.length < newLength) {
+      this.updatePattern(patternIndex, {
+        steps: [
+          ...pattern.steps.slice(0),
+          ...Array.from({ length: newLength - pattern.steps.length }).map(
+            () => ({
+              actions: [],
+            })
+          ),
+        ],
+      });
+    }
+  }
+
+  setSolo(solo: boolean, multi = false) {
+    if (solo && !multi) {
+      this.getSampler()
+        .getEngine()
+        .getSamplers()
+        .forEach((sampler) => {
+          sampler.chains.forEach((chain) => {
+            chain.updateSlice({ solo: this.slice === chain.getSlice() });
+          });
+        });
+    } else {
+      this.updateSlice({ solo });
+    }
+  }
+
   setCurrentPatternIndex = (index: number) => {
     if (this.slice.patterns.length < index + 1) {
       this.setSlice(this.ensurePatternExists(this.slice, index));
@@ -155,6 +212,13 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
       this.sequence.events = this.getCurrentPattern().steps;
     }
   };
+
+  duplicate() {
+    this.getSampler().createChain({
+      ...this.slice,
+      id: `${this.slice.id}_clone`,
+    });
+  }
 
   getSlice() {
     return this.slice;

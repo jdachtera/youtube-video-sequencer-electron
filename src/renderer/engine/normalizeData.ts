@@ -1,6 +1,7 @@
+import { Pattern } from 'renderer/PatternEditor';
 import { Action } from 'renderer/SequencerAction';
 import { Step } from 'renderer/SequencerStep';
-import { Pattern, Slice } from 'renderer/Slice';
+import { Slice } from 'renderer/Slice';
 import { createUniqueId } from 'solid-js';
 import { Engine } from './Engine';
 import { Sampler } from './Sampler';

@@ -1,4 +1,4 @@
-import { createSignal, onMount, onCleanup, Index } from 'solid-js';
+import { createSignal, onMount, onCleanup, Index, mergeProps } from 'solid-js';
 
 import { Action, createNewAction } from './SequencerAction';
 import { SequencerStep, Step } from './SequencerStep';
@@ -23,12 +23,24 @@ const createDefaultAction = (allSteps: Step[]): Action => {
   return createNewAction('PLAY');
 };
 
-export const Sequencer = (props: {
+export const Sequencer = (propsWithoutDefaults: {
   steps: Step[];
   chain: SliceChain;
   onChange: (steps: Step[]) => void;
-  onToggleStep: (step: Step) => Action[];
+  onToggleStep?: (step: Step) => Action[];
 }) => {
+  const props = mergeProps(
+    {
+      onToggleStep: (step: Step): Action[] => {
+        if (step.actions.length === 0) {
+          return [{ type: 'PLAY' }];
+        }
+        return [];
+      },
+    },
+    propsWithoutDefaults
+  );
+
   const [currentStep, setCurrentStep] = createSignal<Step>();
 
   onMount(() => props.chain.on('sequence-event', setCurrentStep));
