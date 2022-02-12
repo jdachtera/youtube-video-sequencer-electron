@@ -1,35 +1,20 @@
-import {
-  createSignal,
-  onMount,
-  onCleanup,
-  createMemo,
-  untrack,
-  For,
-} from 'solid-js';
+import { createMemo, untrack, For } from 'solid-js';
 
 import { css } from 'solid-styled-components';
 import { Step } from './SequencerStep';
 
-import {
-  LCDLabel,
-  PowerSwitch,
-  ScrewRow,
-  ModuleFrame,
-  ButtonWithLabel,
-  RackEar,
-  RackEar2,
-} from './UI';
-import screwHead from './svg/screw_head.svg';
+import { LCDLabel, ModuleFrame, ButtonWithLabel, RackEar } from './UI';
 
 import { WavesurferSliceView } from './WavesurferSliceView';
 
 import { Sequencer } from './Sequencer';
 import { Action } from './SequencerAction';
 import type { SliceChain } from './engine/SliceChain';
-import { MoogKnobWithLabel, NumberInput, NumberInputWithLabel } from './Knob';
-import { useAppTheme } from './theme';
+import { MoogKnobWithLabel, NumberInput } from './Knob';
+
 import { Toggle } from './Toggle';
-import { read } from 'fs';
+import { ShareSliceButton } from './ShareSliceButton';
+import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
 
 export type Pattern = {
   subdivision: number;
@@ -78,7 +63,12 @@ export const VideoSlice = (props: {
   onRemoveSlice: (slice: Slice) => void;
   onUpdatePattern: (slice: Slice, pattern: Pattern) => void;
 }) => {
-  const [slice, setSlice] = createSignal(untrack(() => props.chain.getSlice()));
+  const slice = createSignalFromEventEmitter(
+    untrack(() => props.chain),
+    'chain-updated',
+    (chain) => chain.getSlice()
+  );
+
   const currentPattern = createMemo(
     () => slice().patterns[props.currentPatternIndex]
   );
@@ -134,16 +124,9 @@ export const VideoSlice = (props: {
     }
   };
 
-  const handleChainUpdated = () => {
-    setSlice(props.chain.getSlice());
-  };
-
   const handleUpdateName = (event: { currentTarget: HTMLInputElement }) => {
     props.chain.setSlice({ ...slice(), name: event.currentTarget.value });
   };
-
-  onMount(() => props.chain.on('chain-updated', handleChainUpdated));
-  onCleanup(() => props.chain.off('chain-updated', handleChainUpdated));
 
   const handleClickSlice = () => {
     props.onClickSlice(slice());
@@ -503,6 +486,45 @@ export const VideoSlice = (props: {
                       label="Delete"
                     />
                     <ButtonWithLabel onClick={handleClickSlice} label="Clone" />
+                    <ButtonWithLabel
+                      onClick={() => {
+                        props.chain.setSlice({
+                          ...slice(),
+                          playbackSpeed: slice().playbackSpeed / 2,
+                        });
+                      }}
+                      label="/2"
+                    />
+                    <ButtonWithLabel
+                      onClick={() => {
+                        const { bpm } = props.chain.getSampler().getEngine();
+                        const barDuration = (60 / bpm) * 4;
+                        const sliceDuration = slice().end - slice().start;
+                        const targetDuration =
+                          Math.round(sliceDuration / barDuration) * barDuration;
+
+                        const playbackSpeed = sliceDuration / targetDuration;
+                        console.log({
+                          bpm,
+                          barDuration,
+                          sliceDuration,
+                          targetDuration,
+                          playbackSpeed,
+                        });
+                        props.chain.setSlice({ ...slice(), playbackSpeed });
+                      }}
+                      label="Align to tempo"
+                    />
+                    <ButtonWithLabel
+                      onClick={() => {
+                        props.chain.setSlice({
+                          ...slice(),
+                          playbackSpeed: slice().playbackSpeed * 2,
+                        });
+                      }}
+                      label="x2"
+                    />
+                    <ShareSliceButton chain={props.chain} />
                   </div>
                 </ModuleFrame>
               </div>

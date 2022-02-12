@@ -1,0 +1,16 @@
+query User {
+  user {
+    id
+    username
+    email
+    role
+  }
+}
+
+mutation Login($usernameOrEmail: String!, $password: String!) {
+  login(usernameOrEmail: $usernameOrEmail, password: $password)
+}
+
+mutation Signup($email: String!, $username: String!, $password: String!) {
+  signup(email: $email, username: $username, password: $password)
+}

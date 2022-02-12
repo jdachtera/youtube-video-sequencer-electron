@@ -1,0 +1,22 @@
+overwrite: true
+schema: 'http://localhost:7071/graphql'
+documents: 'src/**/*.graphql'
+generates:
+  src/generated.types.ts:
+    - typescript
+  src/:
+    preset: near-operation-file
+    presetConfig:
+      extension: .generated.ts
+      baseTypesPath: generated.types.ts
+    plugins:
+      - typescript
+      - typescript-operations
+      - typed-document-node
+
+  src/graphql.schema.json:
+    plugins:
+      - 'introspection'
+hooks:
+  afterAllFileWrite:
+    - prettier --write
