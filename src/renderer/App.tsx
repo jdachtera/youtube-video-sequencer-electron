@@ -51,27 +51,36 @@ export function App() {
                 onViewModeChanged={setViewMode}
               />
 
-              <Switch>
-                <Match when={viewMode() === 'DEVICE'}>
+              <div
+                classList={{
+                  [css`
+                    display: none;
+                  `]: viewMode() !== 'DEVICE',
+                }}
+              >
+                <For each={samplers()}>
+                  {(sampler) => <SamplerView sampler={sampler} />}
+                </For>
+              </div>
+
+              <div
+                classList={{
+                  [css`
+                    display: none;
+                  `]: viewMode() !== 'PATTERN',
+                }}
+              >
+                <Device background={'#bd945e'}>
                   <div>
-                    <For each={samplers()}>
-                      {(sampler) => <SamplerView sampler={sampler} />}
+                    <For
+                      each={samplers()}
+                      fallback={<div>loading sampler...</div>}
+                    >
+                      {(sampler) => <PatternEditor sampler={sampler} />}
                     </For>
                   </div>
-                </Match>
-                <Match when={viewMode() === 'PATTERN'}>
-                  <Device background={'#bd945e'}>
-                    <div>
-                      <For
-                        each={samplers()}
-                        fallback={<div>loading sampler...</div>}
-                      >
-                        {(sampler) => <PatternEditor sampler={sampler} />}
-                      </For>
-                    </div>
-                  </Device>
-                </Match>
-              </Switch>
+                </Device>
+              </div>
             </div>
           </div>
         </ApolloProvider>
