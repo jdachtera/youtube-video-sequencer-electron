@@ -1,19 +1,12 @@
-import { createQuery, gql } from '@merged/solid-apollo';
+import { createQuery } from '@merged/solid-apollo';
 import Dismiss from 'solid-dismiss';
 import { createSignal, For } from 'solid-js';
 import { css } from 'solid-styled-components';
 
 import { Engine } from './engine/Engine';
+import { SlicesDocument, TagsDocument } from './Slice.generated';
 
 import { ButtonWithLabel } from './UI';
-
-type PaginatedList<T> = {
-  page: number;
-  numberOfPages: number;
-  totalNumberOfItems: number;
-  itemsPerPage: number;
-  items: T[];
-};
 
 export const FindSlicesButton = (props: { engine: Engine }) => {
   const [open, setOpen] = createSignal(false);
@@ -21,56 +14,18 @@ export const FindSlicesButton = (props: { engine: Engine }) => {
 
   const [tagsPage, setTagsPage] = createSignal(1);
   const [slicesPage, setSlicesPage] = createSignal(1);
-  const tagsData = createQuery<{ tags: PaginatedList<{ name: string }> }>(
-    gql`
-      query Tags($page: Int!) {
-        tags(page: $page) {
-          page
-          numberOfPages
-          totalNumberOfItems
-          itemsPerPage
-          items {
-            name
-          }
-        }
-      }
-    `,
-    () => ({ skip: !open(), variables: { page: tagsPage() } })
-  );
+  const tagsData = createQuery(TagsDocument, () => ({
+    skip: !open(),
+    variables: { page: tagsPage() },
+  }));
 
-  const slicesData = createQuery<{
-    slices: PaginatedList<{
-      id: string;
-      title: string;
-      sourceUrl: string;
-      start: number;
-      end: number;
-    }>;
-  }>(
-    gql`
-      query Slices($page: Int!, $tagNames: [String!]) {
-        slices(page: $page, tags: $tagNames) {
-          page
-          numberOfPages
-          totalNumberOfItems
-          itemsPerPage
-          items {
-            id
-            title
-            sourceUrl
-            start
-          }
-        }
-      }
-    `,
-    () => ({
-      skip: !open(),
-      variables: {
-        page: slicesPage(),
-        tagNames: tagNames().length ? tagNames() : null,
-      },
-    })
-  );
+  const slicesData = createQuery(SlicesDocument, () => ({
+    skip: !open(),
+    variables: {
+      page: slicesPage(),
+      tagNames: tagNames().length ? tagNames() : null,
+    },
+  }));
 
   let btnEl;
 
@@ -133,7 +88,15 @@ export const FindSlicesButton = (props: { engine: Engine }) => {
                   <li>
                     <button
                       onClick={async () => {
-                        const { sourceUrl, id, start, end, title } = slice;
+                        const {
+                          sourceUrl,
+                          id,
+                          start,
+                          end,
+                          title,
+                          playbackSpeed,
+                          reverse,
+                        } = slice;
                         const sampler =
                           props.engine.getSampler(sourceUrl) ??
                           props.engine.createSampler({
@@ -152,8 +115,8 @@ export const FindSlicesButton = (props: { engine: Engine }) => {
                           collapsed: false,
                           color: 'red',
                           patterns: [],
-                          playbackSpeed: 1,
-                          reverse: false,
+                          playbackSpeed,
+                          reverse,
                           solo: false,
                           volume: 1,
                         });

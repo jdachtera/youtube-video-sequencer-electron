@@ -15,7 +15,6 @@ import { ApolloProvider } from '@merged/solid-apollo';
 import './App.css';
 
 import { Engine } from './engine/Engine';
-import { Sampler } from './engine/Sampler';
 
 import { SamplerView } from './SamplerView';
 import { DeepPartial, normalizeData } from './engine/normalizeData';
@@ -24,16 +23,35 @@ import { MoogKnobWithLabel } from './Knob';
 import { LoginModal } from './LoginModal';
 import { apolloClient } from './apolloClient';
 import { FindSlicesButton } from './FindSlicesButton';
+import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
 
 const engine = new Engine(Transport);
 
 export function App() {
   const [isPlaying, setIsPlaying] = createSignal(false);
-  const [bpm, setBpm] = createSignal(engine.bpm);
-  const [swing, setSwing] = createSignal(engine.swing);
-  const [samplers, setSamplers] = createSignal<Sampler[]>([]);
-  const [currentPatternIndex, setCurrentPatternIndex] = createSignal(
-    engine.currentPatternIndex
+
+  const bpm = createSignalFromEventEmitter(
+    engine,
+    'bpm-updated',
+    (engine) => engine.bpm
+  );
+
+  const swing = createSignalFromEventEmitter(
+    engine,
+    'swing-updated',
+    (engine) => engine.swing
+  );
+
+  const currentPatternIndex = createSignalFromEventEmitter(
+    engine,
+    ['current-pattern-index-updated'],
+    (engine) => engine.currentPatternIndex
+  );
+
+  const samplers = createSignalFromEventEmitter(
+    engine,
+    ['sampler-added', 'sampler-removed'],
+    (engine) => engine.getSamplers()
   );
 
   const togglePlay = () => {
@@ -46,10 +64,6 @@ export function App() {
 
   const handleSwingChange = (swing: number) => {
     engine.setSwing(swing);
-  };
-
-  const handleSamplerChanged = () => {
-    setSamplers(engine.getSamplers());
   };
 
   const handleCurrentPatternIndexChange = (event: {
@@ -160,23 +174,8 @@ export function App() {
     engine.dispose();
   };
 
-  onMount(() => {
-    engine.on('sampler-added', handleSamplerChanged);
-    engine.on('sampler-removed', handleSamplerChanged);
-    engine.on('change', saveToLocalStorage);
-    engine.on('bpm-updated', setBpm);
-    engine.on('swing-updated', setSwing);
-    engine.on('current-pattern-index-updated', setCurrentPatternIndex);
-  });
-
-  onCleanup(() => {
-    engine.off('sampler-added', handleSamplerChanged);
-    engine.off('sampler-removed', handleSamplerChanged);
-    engine.off('change', saveToLocalStorage);
-    engine.off('bpm-updated', setBpm);
-    engine.off('swing-updated', setSwing);
-    engine.off('current-pattern-index-updated', setCurrentPatternIndex);
-  });
+  onMount(() => engine.on('change', saveToLocalStorage));
+  onCleanup(() => engine.off('change', saveToLocalStorage));
 
   onMount(() => {
     let parsedData: DeepPartial<ReturnType<Engine['serialize']>> | undefined;

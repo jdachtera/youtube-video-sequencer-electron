@@ -1,13 +1,14 @@
-import { ApolloError, gql } from '@apollo/client';
-import { createSignal, Show, Suspense } from 'solid-js';
+import { ApolloError } from '@apollo/client';
+import { createEffect, createSignal, Show, Suspense } from 'solid-js';
 import { createMutation, createQuery } from '@merged/solid-apollo';
 import { authStore, useIsLoggedIn } from './auth';
+import { LoginDocument, UserDocument } from './User.generated';
 
 export const LoginModal = () => {
   const isLoggedIn = useIsLoggedIn();
 
   return (
-    <Suspense fallback={<>Loading...</>}>
+    <Suspense fallback={'Loading...'}>
       <Show when={isLoggedIn()} fallback={<LoginForm />}>
         <LoggedIn />
       </Show>
@@ -17,17 +18,9 @@ export const LoginModal = () => {
 
 const LoggedIn = () => {
   const handleLogout = () => authStore.removeAccessToken();
+  const data = createQuery(UserDocument);
 
-  const data = createQuery<{
-    user: { id: StringConstructor; username: string };
-  }>(gql`
-    query User {
-      user {
-        id
-        username
-      }
-    }
-  `);
+  createEffect(() => console.log({ data: data() }));
 
   return (
     <>
@@ -41,14 +34,7 @@ const LoginForm = () => {
   const [error, setError] = createSignal<Error>();
   const [usernameOrEmail, setUsernameOrEmail] = createSignal('');
   const [password, setPassword] = createSignal('');
-  const [mutate] = createMutation<
-    { login: string },
-    { usernameOrEmail: string; password: string }
-  >(gql`
-    mutation Login($usernameOrEmail: String!, $password: String!) {
-      login(usernameOrEmail: $usernameOrEmail, password: $password)
-    }
-  `);
+  const [mutate] = createMutation(LoginDocument);
 
   const handleSubmit = async () => {
     try {
@@ -58,8 +44,6 @@ const LoginForm = () => {
           password: password(),
         },
       });
-
-      setError(undefined);
 
       if (accessToken) {
         authStore.setAccessToken(accessToken);

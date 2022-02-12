@@ -2,8 +2,8 @@ import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
 
 import { ApolloLink } from '@apollo/client';
-import EventEmitter from 'events';
-import { createSignal, onCleanup, onMount } from 'solid-js';
+import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
+import { TypedEmitter } from 'tiny-typed-emitter';
 
 const withToken = setContext(() => {
   const token = authStore.getAccessToken();
@@ -24,7 +24,9 @@ const handleAuthError = onError((error) => {
   });
 });
 
-class AuthStore extends EventEmitter {
+class AuthStore extends TypedEmitter<{
+  change: (accessToken?: string) => void;
+}> {
   getAccessToken() {
     return localStorage.getItem('accessToken');
   }
@@ -40,19 +42,14 @@ class AuthStore extends EventEmitter {
   }
 }
 
-export const useIsLoggedIn = () => {
-  const [isLoggedIn, setIsLoggedIn] = createSignal(false);
-
-  const handleAuthTokenChanged = () => {
-    setIsLoggedIn(!!authStore.getAccessToken());
-  };
-
-  handleAuthTokenChanged();
-  onMount(() => authStore.on('change', handleAuthTokenChanged));
-  onCleanup(() => authStore.off('change', handleAuthTokenChanged));
-
-  return isLoggedIn;
-};
-
 export const authStore = new AuthStore();
+authStore.setMaxListeners(Infinity);
+
+export const useIsLoggedIn = () =>
+  createSignalFromEventEmitter(
+    authStore,
+    'change',
+    (authStore) => !!authStore.getAccessToken()
+  );
+
 export const authLink = ApolloLink.from([withToken, handleAuthError]);

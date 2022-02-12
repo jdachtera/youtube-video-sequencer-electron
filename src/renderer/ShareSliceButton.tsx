@@ -1,43 +1,24 @@
-import { createMutation, gql } from '@merged/solid-apollo';
+import { createMutation } from '@merged/solid-apollo';
 import Dismiss from 'solid-dismiss';
-import { createSignal, onCleanup, onMount, Show, untrack } from 'solid-js';
+import { createSignal, Show, untrack } from 'solid-js';
 import { css } from 'solid-styled-components';
 
 import { useIsLoggedIn } from './auth';
+import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
 import { SliceChain } from './engine/SliceChain';
+import { AddSliceDocument } from './Slice.generated';
 import { ButtonWithLabel } from './UI';
 
-const useSlice = (chain: SliceChain) => {
-  const [slice, setSlice] = createSignal(chain.getSlice());
-
-  const handleChange = () => setSlice(chain.getSlice());
-
-  onMount(() => chain.on('chain-updated', handleChange));
-  onCleanup(() => chain.off('chain-updated', handleChange));
-  return slice;
-};
-
 export const ShareSliceButton = (props: { chain: SliceChain }) => {
-  const slice = useSlice(untrack(() => props.chain));
-  const isLoggedIn = useIsLoggedIn();
-  const [mutate] = createMutation(gql`
-    mutation AddSlice($data: CreateSliceInput!) {
-      createSlice(data: $data) {
-        id
-        creator {
-          id
-        }
+  const slice = createSignalFromEventEmitter(
+    untrack(() => props.chain),
+    'chain-updated',
+    (chain) => chain.getSlice()
+  );
 
-        title
-        sourceUrl
-        start
-        end
-        tags {
-          name
-        }
-      }
-    }
-  `);
+  const isLoggedIn = useIsLoggedIn();
+
+  const [mutate] = createMutation(AddSliceDocument);
 
   const [open, setOpen] = createSignal(false);
   const [tagNames, setTagnames] = createSignal<string[]>([]);
@@ -101,6 +82,8 @@ export const ShareSliceButton = (props: { chain: SliceChain }) => {
                       sourceUrl: props.chain.getSampler().url,
                       start: slice().start,
                       end: slice().end,
+                      reverse: slice().reverse,
+                      playbackSpeed: slice().playbackSpeed,
                       tagNames: tagNames(),
                     },
                   },

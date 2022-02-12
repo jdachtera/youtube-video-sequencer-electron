@@ -1,0 +1,46 @@
+fragment SliceFragment on Slice {
+  id
+  creator {
+    id
+    username
+  }
+  title
+  sourceUrl
+  start
+  end
+  playbackSpeed
+  reverse
+  tags {
+    name
+  }
+}
+
+mutation AddSlice($data: CreateSliceInput!) {
+  createSlice(data: $data) {
+    ...SliceFragment
+  }
+}
+
+query Slices($page: Int!, $tagNames: [String!]) {
+  slices(page: $page, tags: $tagNames) {
+    page
+    numberOfPages
+    totalNumberOfItems
+    itemsPerPage
+    items {
+      ...SliceFragment
+    }
+  }
+}
+
+query Tags($page: Int!) {
+  tags(page: $page) {
+    page
+    numberOfPages
+    totalNumberOfItems
+    itemsPerPage
+    items {
+      name
+    }
+  }
+}
