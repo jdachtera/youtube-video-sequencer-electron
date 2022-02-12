@@ -231,6 +231,8 @@ export class SliceChain extends TypedEmitter<SliceChainEvents> {
   dispose() {
     this.sequence.stop();
     this.player.dispose();
+    this.solo.dispose();
+    this.gain.dispose();
     this.sequence.dispose();
   }
 
