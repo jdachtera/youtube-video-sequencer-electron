@@ -87,7 +87,7 @@ export const SlicePattern = (
           <>
             {' '}
             <Sequencer
-              steps={...currentPattern().steps}
+              steps={currentPattern().steps}
               onChange={(steps) => {
                 props.slice.updatePattern(props.currentPatternIndex, {
                   steps,
