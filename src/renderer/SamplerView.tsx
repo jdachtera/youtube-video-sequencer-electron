@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { createSignal, onMount, For, untrack } from 'solid-js';
+import { createSignal, onMount, For, untrack, createEffect } from 'solid-js';
 
 import { Region } from 'wavesurfer.js/src/plugin/regions';
 import { Transport } from 'tone';
 
 import { SampleSlice } from './Slice';
-import { Slice } from './engine/types';
+import { SerializedSlice } from './engine/types';
 
 import { css } from 'solid-styled-components';
 
@@ -24,10 +24,10 @@ import {
 import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
 
 export const SamplerView = (props: { sampler: Sampler }) => {
-  const [selectedSlice, setSelectedSlice] = createSignal<Slice>();
+  const [selectedSlice, setSelectedSlice] = createSignal<SerializedSlice>();
 
   const currentPatternIndex = createSignalFromEventEmitter(
-    untrack(() => props.sampler.getEngine()),
+    untrack(() => props.sampler.engine),
     ['current-pattern-index-updated'],
     (engine) => engine.currentPatternIndex
   );
@@ -35,8 +35,16 @@ export const SamplerView = (props: { sampler: Sampler }) => {
   const chains = createSignalFromEventEmitter(
     untrack(() => props.sampler),
     ['chain-added', 'chain-removed', 'chain-updated'],
-    (engine) => engine.getChains()
+    (sampler) => sampler.getChains()
   );
+
+  createEffect(() => {
+    console.log(chains());
+  });
+
+  onMount(() => {
+    setInterval(() => console.log(props.sampler.getChains()));
+  });
 
   const [waveformCenter, setWaveformCenter] = createSignal(0);
   const [length, setLength] = createSignal(0);
@@ -47,7 +55,7 @@ export const SamplerView = (props: { sampler: Sampler }) => {
   };
 
   const setZoom = (zoom: number) => {
-    props.sampler.setZoom(zoom);
+    props.sampler.update({ zoom });
   };
 
   onMount(async () => {
@@ -60,24 +68,24 @@ export const SamplerView = (props: { sampler: Sampler }) => {
     setLength(props.sampler.buffer.duration);
   });
 
-  const handleRemoveSlice = (slice: Slice) => {
+  const handleRemoveSlice = (slice: SerializedSlice) => {
     props.sampler.removeChain(slice.id);
   };
 
   const handleRemoveSampler = () => {
-    props.sampler.getEngine().removeSampler(props.sampler.url);
+    props.sampler.engine.removeSampler(props.sampler.url);
   };
 
-  const handleClickSlice = async (slice: Slice) => {
+  const handleClickSlice = async (slice: SerializedSlice) => {
     setSelectedSlice(slice);
 
     const chain = chains().find(
-      (currentChain) => currentChain.getSlice().id === slice.id
+      (currentChain) => currentChain.serialize().id === slice.id
     );
 
     if (!chain) return;
 
-    const { duration } = chain.getSampler().buffer;
+    const { duration } = chain.sampler.buffer;
     if (duration > 0) {
       setWaveformCenter(slice.start / duration);
       chain.play();
@@ -86,11 +94,11 @@ export const SamplerView = (props: { sampler: Sampler }) => {
 
   const handleClickRegion = (region: Region) => {
     const chain = chains().find(
-      (currentChain) => currentChain.getSlice().id === region.id
+      (currentChain) => currentChain.serialize().id === region.id
     );
     if (!chain) return;
 
-    const { duration } = chain.getPlayer().buffer;
+    const { duration } = chain.player.buffer;
     if (duration > 0) {
       chain.play();
     }
@@ -190,7 +198,7 @@ export const SamplerView = (props: { sampler: Sampler }) => {
             {(chain) => (
               <SampleSlice
                 chain={chain}
-                isSelected={chain.getSlice() === selectedSlice()}
+                isSelected={chain.serialize() === selectedSlice()}
                 currentPatternIndex={currentPatternIndex()}
                 onClickSlice={handleClickSlice}
                 onRemoveSlice={handleRemoveSlice}

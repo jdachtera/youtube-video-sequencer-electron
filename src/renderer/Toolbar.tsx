@@ -29,13 +29,13 @@ export const Toolbar = (props: {
   const bpm = createSignalFromEventEmitter(
     untrack(() => props.engine),
     'bpm-updated',
-    (engine) => engine.bpm
+    (engine) => engine.transport.bpm.value
   );
 
   const swing = createSignalFromEventEmitter(
     untrack(() => props.engine),
     'swing-updated',
-    (engine) => engine.swing
+    (engine) => engine.transport.swing
   );
 
   const currentPatternIndex = createSignalFromEventEmitter(
@@ -49,17 +49,18 @@ export const Toolbar = (props: {
   };
 
   const handleTempoChange = (bpm: number) => {
-    props.engine.setBpm(bpm);
+    props.engine.update({ bpm });
   };
 
   const handleSwingChange = (swing: number) => {
-    props.engine.setSwing(swing);
+    props.engine.update({ swing });
   };
 
   const addSampler = (event: { currentTarget: HTMLInputElement }) => {
     props.engine.createSampler({
       url: event.currentTarget.value,
       zoom: 0,
+      volume: 1,
       slices: [],
     });
   };
@@ -71,7 +72,9 @@ export const Toolbar = (props: {
   const handleCurrentPatternIndexChange = (event: {
     currentTarget: HTMLInputElement;
   }) => {
-    props.engine.setCurrentPatternIndex(event.currentTarget.valueAsNumber);
+    props.engine.update({
+      currentPatternIndex: event.currentTarget.valueAsNumber,
+    });
   };
 
   const saveToLocalStorage = debounce(() => {
@@ -106,8 +109,7 @@ export const Toolbar = (props: {
             ReturnType<Engine['serialize']>
           >;
 
-          props.engine.dispose();
-          props.engine.load(normalizeData(parsedData));
+          props.engine.update(normalizeData(parsedData));
         } catch {
           //
         }
@@ -125,7 +127,7 @@ export const Toolbar = (props: {
             .getChains()
             .map(
               (chain) =>
-                chain.getSlice().patterns[props.engine.currentPatternIndex]
+                chain.serialize().patterns[props.engine.currentPatternIndex]
                   .steps.length
             );
         })
@@ -138,7 +140,7 @@ export const Toolbar = (props: {
 
     const buffer = await Offline(async (offlineContext) => {
       offlineEngine = new Engine(offlineContext.transport);
-      offlineEngine.load(props.engine.serialize());
+      offlineEngine.update(props.engine.serialize());
 
       await Promise.all(
         offlineEngine.getSamplers().map((sampler) => sampler.hasLoaded())
@@ -181,7 +183,7 @@ export const Toolbar = (props: {
       }
     }
 
-    props.engine.load(
+    props.engine.update(
       normalizeData(
         parsedData ?? {
           samplers: [

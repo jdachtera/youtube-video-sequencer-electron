@@ -1,100 +1,113 @@
 import { Gain, ToneAudioBuffer } from 'tone';
 import { TypedEmitter } from 'tiny-typed-emitter';
-import { SliceChain } from './SliceChain';
+import { SamplerSlice } from './SamplerSlice';
 import type { Engine } from './Engine';
-import { Slice } from './types';
+import { SerializedSlice, SerializedSampler } from './types';
 import { loadCachedVideo, storeCachedVideo } from './blobStore';
+import { entries } from './helpers';
 
 declare const yt: {
   getYouTubeVideoSource: (url: string) => Promise<string>;
 };
 
 interface SamplerEvents {
-  'chain-added': (chain: SliceChain) => void;
-  'chain-removed': (chain: SliceChain) => void;
-  'chain-updated': (chain: SliceChain) => void;
+  'chain-added': (chain: SamplerSlice) => void;
+  'chain-removed': (chain: SamplerSlice) => void;
+  'chain-updated': (chain: SamplerSlice) => void;
   'zoom-updated': (zoom: number) => void;
   'volume-updated': (volume: number) => void;
   'chain-playback-started': () => void;
+  load: () => void;
   change: () => void;
 }
 
 export class Sampler extends TypedEmitter<SamplerEvents> {
   buffer = new ToneAudioBuffer();
 
-  chains = new Map<string, SliceChain>();
+  chains = new Map<string, SamplerSlice>();
 
-  url: string;
+  url = '';
 
-  zoom: number;
+  zoom = 1;
 
   gain = new Gain();
 
-  protected engine: Engine;
+  engine: Engine;
 
-  private hasLoadedPromise: Promise<void>;
+  private _hasLoaded = false;
 
-  constructor({
-    engine,
-    url,
-    zoom = 100,
-    volume = 1,
-    slices,
-  }: {
-    engine: Engine;
-    url: string;
-    zoom: number;
-    volume?: number;
-    slices: Slice[];
-  }) {
+  constructor(engine: Engine, serializedSampler: SerializedSampler) {
     super();
 
-    this.url = url;
-    this.zoom = zoom;
     this.engine = engine;
-
     this.gain.toDestination();
-    this.gain.gain.value = volume;
-    this.hasLoadedPromise = this.load();
-
-    this.addSlicesWhenLoaded(slices);
 
     this.on('chain-added', () => this.emit('change'));
     this.on('chain-removed', () => this.emit('change'));
     this.on('chain-updated', () => this.emit('change'));
     this.on('zoom-updated', () => this.emit('change'));
     this.on('volume-updated', () => this.emit('change'));
-  }
 
-  protected async addSlicesWhenLoaded(slices: Slice[]) {
-    await this.hasLoaded();
-    slices.forEach((slice) => {
-      this.createChain(slice);
-    });
+    this.update(serializedSampler);
   }
 
   private async load() {
+    this._hasLoaded = false;
+
     const cachedBlob = await loadCachedVideo(this.url);
 
     if (cachedBlob) {
       this.buffer.fromArray(cachedBlob);
-      return;
+    } else {
+      const sourceUrl = await yt.getYouTubeVideoSource(this.url);
+      await this.buffer.load(sourceUrl);
+      await storeCachedVideo(this.url, this.buffer.toArray());
     }
 
-    const sourceUrl = await yt.getYouTubeVideoSource(this.url);
-    await this.buffer.load(sourceUrl);
-    await storeCachedVideo(this.url, this.buffer.toArray());
+    this.emit('load');
+    this._hasLoaded = true;
   }
 
-  async hasLoaded() {
-    const hasLoaded = await this.hasLoadedPromise;
-    return hasLoaded;
+  hasLoaded = async () => {
+    if (this._hasLoaded) return;
+
+    await new Promise<void>((resolve) =>
+      this.once('load', () => {
+        resolve();
+      })
+    );
+  };
+
+  update(samplerPartial: Partial<SerializedSampler>) {
+    entries(samplerPartial).forEach((entry) => {
+      if (!entry) return;
+      switch (entry[0]) {
+        case 'url':
+          this.url = entry[1] ?? '';
+          this.load();
+          break;
+        case 'zoom':
+          this.zoom = entry[1] ?? 1;
+          break;
+        case 'volume':
+          this.gain.gain.value = entry[1] ?? 1;
+          break;
+        case 'slices':
+          this.chains.forEach((chain) => this.removeChain(chain.id));
+          entry[1]?.forEach((serializedChain) =>
+            this.createChain(serializedChain)
+          );
+          break;
+      }
+
+      this.emit(`${entry[0]}-updated` as any, entry[1]);
+    });
   }
 
-  createChain(slice: Slice) {
-    const chain = new SliceChain(this, slice);
+  createChain(slice: SerializedSlice) {
+    const chain = new SamplerSlice(this, slice);
 
-    chain.solo.connect(this.gain);
+    chain.soloNode.connect(this.gain);
     chain.on('chain-updated', (updatedChain) => {
       this.emit('chain-updated', updatedChain);
     });
@@ -132,30 +145,16 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
   }
 
   dispose() {
-    this.chains.forEach((chain) => chain.dispose());
+    this.chains.forEach((chain) => this.removeChain(chain.id));
     this.buffer.dispose();
   }
 
-  getEngine() {
-    return this.engine;
-  }
-
-  setVolume(volume: number) {
-    this.gain.gain.value = volume;
-    this.emit('volume-updated', volume);
-  }
-
-  setZoom(zoom: number) {
-    this.zoom = zoom;
-    this.emit('zoom-updated', zoom);
-  }
-
-  serialize() {
+  serialize(): SerializedSampler {
     return {
       url: this.url,
       zoom: this.zoom,
       volume: this.gain.gain.value,
-      slices: [...this.chains.values()].map((chain) => chain.getSlice()),
+      slices: [...this.chains.values()].map((chain) => chain.serialize()),
     };
   }
 }

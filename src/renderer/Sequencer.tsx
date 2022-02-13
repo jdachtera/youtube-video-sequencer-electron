@@ -2,7 +2,7 @@ import { createSignal, onMount, onCleanup, Index, mergeProps } from 'solid-js';
 
 import { Action, createNewAction } from './SequencerAction';
 import { SequencerStep, Step } from './SequencerStep';
-import { SliceChain } from './engine/SliceChain';
+import { SamplerSlice } from './engine/SamplerSlice';
 import { css } from 'solid-styled-components';
 
 const createDefaultAction = (allSteps: Step[]): Action => {
@@ -24,7 +24,7 @@ const createDefaultAction = (allSteps: Step[]): Action => {
 
 export const Sequencer = (propsWithoutDefaults: {
   steps: Step[];
-  chain: SliceChain;
+  chain: SamplerSlice;
   onChange: (steps: Step[]) => void;
   onToggleStep?: (step: Step) => Action[];
 }) => {

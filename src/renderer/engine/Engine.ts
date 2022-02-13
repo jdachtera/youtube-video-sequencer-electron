@@ -3,7 +3,8 @@ import { Time } from 'tone/build/esm/core/type/Units';
 import { Transport } from 'tone/build/esm/core/clock/Transport';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { Sampler } from './Sampler';
-import { Slice } from './types';
+import { SerializedEngine, SerializedSampler } from './types';
+import { entries } from './helpers';
 
 interface EngineEvents {
   'sampler-added': (sampler: Sampler) => void;
@@ -19,11 +20,7 @@ export class Engine extends TypedEmitter<EngineEvents> {
 
   public currentPatternIndex = 0;
 
-  public bpm = 120;
-
-  public swing = 0;
-
-  constructor(protected transport: Transport) {
+  constructor(public transport: Transport) {
     super();
 
     this.on('sampler-added', () => this.emit('change'));
@@ -33,22 +30,12 @@ export class Engine extends TypedEmitter<EngineEvents> {
     this.on('current-pattern-index-updated', () => this.emit('change'));
   }
 
-  createSampler({
-    url,
-    zoom,
-    slices,
-    volume = 1,
-  }: {
-    url: string;
-    zoom: number;
-    slices: Slice[];
-    volume?: number;
-  }) {
-    const sampler = new Sampler({ engine: this, url, zoom, volume, slices });
-    this.samplers.set(url, sampler);
-
+  createSampler(serializedSampler: SerializedSampler) {
+    const sampler = new Sampler(this, serializedSampler);
+    this.samplers.set(serializedSampler.url, sampler);
     sampler.on('change', () => this.emit('change'));
     this.emit('sampler-added', sampler);
+
     return sampler;
   }
 
@@ -65,7 +52,7 @@ export class Engine extends TypedEmitter<EngineEvents> {
     if (maybeExistingSampler) {
       maybeExistingSampler.removeAllListeners();
       maybeExistingSampler.chains.forEach((chain) => {
-        maybeExistingSampler.removeChain(chain.getSlice().id);
+        maybeExistingSampler.removeChain(chain.id);
       });
       maybeExistingSampler.dispose();
       this.samplers.delete(url);
@@ -80,69 +67,56 @@ export class Engine extends TypedEmitter<EngineEvents> {
     });
   }
 
-  setCurrentPatternIndex(index: number) {
-    this.currentPatternIndex = index;
-    this.samplers.forEach((sampler) => {
-      sampler.setCurrentPatternIndex(index);
+  update(serializedEngine: Partial<SerializedEngine>) {
+    console.log(serializedEngine);
+    entries(serializedEngine).forEach((entry) => {
+      if (!entry) return;
+
+      switch (entry[0]) {
+        case 'bpm':
+          this.transport.bpm.value = entry[1] ?? 120;
+          break;
+        case 'currentPatternIndex':
+          this.currentPatternIndex = entry[1] ?? 0;
+          this.samplers.forEach((sampler) => {
+            sampler.setCurrentPatternIndex(this.currentPatternIndex);
+          });
+          break;
+        case 'swing':
+          this.transport.swing = entry[1] ?? 0;
+          this.transport.swingSubdivision = '16n';
+          break;
+        case 'samplers':
+          this.samplers.forEach((sampler) => this.removeSampler(sampler.url));
+          entry[1]?.forEach((serializedSampler) =>
+            this.createSampler(serializedSampler)
+          );
+          break;
+      }
+      this.emit(`${entry[0]}-updated` as any, entry[1]);
     });
-    this.emit('current-pattern-index-updated', index);
   }
 
-  setSwing(swing: number) {
-    this.swing = swing;
-    this.transport.swing = swing;
-    this.transport.swingSubdivision = '16n';
-    this.emit('swing-updated', swing);
-  }
-
-  setBpm(bpm: number) {
-    this.bpm = bpm;
-    this.transport.bpm.value = bpm;
-    this.emit('bpm-updated', bpm);
-  }
-
-  async load({
-    samplers,
-    bpm = 120,
-    swing = 0,
-    currentPatternIndex,
-  }: {
-    samplers: { url: string; slices?: Slice[]; zoom?: number }[];
-    bpm: number;
-    swing: number;
-    currentPatternIndex: number;
-  }) {
-    samplers.forEach(({ url, slices = [], zoom = 0 }) => {
-      this.createSampler({ url, slices, zoom });
-    });
-
-    this.setSwing(swing);
-    this.setBpm(bpm);
-    this.setCurrentPatternIndex(currentPatternIndex);
-  }
-
-  serialize() {
+  serialize(): SerializedEngine {
     return {
       samplers: [...this.samplers.values()].map((sampler) =>
         sampler.serialize()
       ),
       currentPatternIndex: this.currentPatternIndex,
-      bpm: this.bpm,
-      swing: this.swing,
+      bpm: this.transport.bpm.value,
+      swing: this.transport.swing,
     };
   }
 
   start(time?: Time | undefined, offset?: number | undefined) {
     this.samplers.forEach((sampler) => {
-      sampler.chains.forEach((chain) =>
-        chain.getSequence().start(time, offset)
-      );
+      sampler.chains.forEach((chain) => chain.sequence.start(time, offset));
     });
   }
 
   stop(time?: Time | undefined) {
     this.samplers.forEach((sampler) => {
-      sampler.chains.forEach((chain) => chain.getSequence().stop(time));
+      sampler.chains.forEach((chain) => chain.sequence.stop(time));
     });
   }
 }

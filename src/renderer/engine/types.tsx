@@ -1,6 +1,6 @@
 import { Step } from '../SequencerStep';
 
-export type Slice = {
+export type SerializedSlice = {
   id: string;
   start: number;
   end: number;
@@ -18,6 +18,20 @@ export type Pattern = {
   subdivision: number;
   subdivisionType: typeof subdivisionTypes[number];
   steps: Step[];
+};
+
+export type SerializedSampler = {
+  url: string;
+  zoom: number;
+  volume: number;
+  slices: SerializedSlice[];
+};
+
+export type SerializedEngine = {
+  currentPatternIndex: number;
+  bpm: number;
+  swing: number;
+  samplers: SerializedSampler[];
 };
 
 export const subdivisions = [

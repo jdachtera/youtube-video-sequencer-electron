@@ -160,6 +160,7 @@ export const FindSlicesButton = (props: { engine: Engine }) => {
                           props.engine.createSampler({
                             url: sourceUrl,
                             zoom: 1,
+                            volume: 1,
                             slices: [],
                           });
 

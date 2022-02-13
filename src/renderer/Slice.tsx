@@ -6,14 +6,14 @@ import { LCDLabel, LCD, ModuleFrame, ButtonWithLabel, RackEar } from './UI';
 
 import { WavesurferSliceView } from './WavesurferSliceView';
 
-import type { SliceChain } from './engine/SliceChain';
+import type { SamplerSlice } from './engine/SamplerSlice';
 import { MoogKnobWithLabel, NumberInput } from './Knob';
 
 import { Toggle } from './Toggle';
 import { ShareSliceButton } from './ShareSliceButton';
 import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
-import { Slice } from './engine/types';
-import { PatternEditor, SlicePattern } from './PatternEditor';
+import { SerializedSlice } from './engine/types';
+import { SlicePattern } from './PatternEditor';
 
 const FormattedTime = (props: { timeInSeconds: number }) => {
   const minutes = createMemo(() => Math.floor(props.timeInSeconds / 60));
@@ -27,16 +27,16 @@ const FormattedTime = (props: { timeInSeconds: number }) => {
 };
 
 export const SampleSlice = (props: {
-  chain: SliceChain;
+  chain: SamplerSlice;
   currentPatternIndex: number;
   isSelected: boolean;
-  onClickSlice: (slice: Slice) => void;
-  onRemoveSlice: (slice: Slice) => void;
+  onClickSlice: (slice: SerializedSlice) => void;
+  onRemoveSlice: (slice: SerializedSlice) => void;
 }) => {
   const slice = createSignalFromEventEmitter(
     untrack(() => props.chain),
     'chain-updated',
-    (chain) => chain.getSlice()
+    (chain) => chain.serialize()
   );
 
   const currentPattern = createMemo(
@@ -44,13 +44,13 @@ export const SampleSlice = (props: {
   );
 
   const handleUpdateSampleStart = (start: number) => {
-    props.chain.updateSlice({
+    props.chain.update({
       start: Math.min(slice().end + 0.00001, start),
     });
   };
 
   const handleUpdateSampleEnd = (end: number) => {
-    props.chain.updateSlice({
+    props.chain.update({
       end: Math.max(slice().start + 0.00001, end),
     });
   };
@@ -64,7 +64,7 @@ export const SampleSlice = (props: {
   };
 
   const toggleCollapse = () => {
-    props.chain.updateSlice({
+    props.chain.update({
       collapsed: slice().collapsed ? false : true,
     });
   };
@@ -187,7 +187,7 @@ export const SampleSlice = (props: {
                         <LCDLabel>Name</LCDLabel>
                         <input
                           onChange={(event) => {
-                            props.chain.updateSlice({
+                            props.chain.update({
                               name: event.currentTarget.value,
                             });
                           }}
@@ -312,7 +312,7 @@ export const SampleSlice = (props: {
                             fineIsDefault
                             value={slice().start}
                             onChange={(start: number) => {
-                              props.chain.updateSlice({
+                              props.chain.update({
                                 start: Math.min(slice().end + 0.00001, start),
                               });
                             }}
@@ -346,7 +346,7 @@ export const SampleSlice = (props: {
                     >
                       <MoogKnobWithLabel
                         min={0}
-                        max={props.chain.getSampler().buffer.duration}
+                        max={props.chain.sampler.buffer.duration}
                         speed={0.1}
                         step={0.01}
                         value={slice().start}
@@ -355,7 +355,7 @@ export const SampleSlice = (props: {
                       />
                       <MoogKnobWithLabel
                         min={0}
-                        max={props.chain.getSampler().buffer.duration}
+                        max={props.chain.sampler.buffer.duration}
                         speed={0.1}
                         step={0.01}
                         value={slice().end}
@@ -388,7 +388,7 @@ export const SampleSlice = (props: {
                     />
                     <ButtonWithLabel
                       onClick={() => {
-                        props.chain.updateSlice({
+                        props.chain.update({
                           reverse: slice().reverse ? false : true,
                         });
                       }}
@@ -405,7 +405,7 @@ export const SampleSlice = (props: {
                     />
                     <ButtonWithLabel
                       onClick={() => {
-                        props.chain.updateSlice({
+                        props.chain.update({
                           playbackSpeed: slice().playbackSpeed / 2,
                         });
                       }}
@@ -413,7 +413,8 @@ export const SampleSlice = (props: {
                     />
                     <ButtonWithLabel
                       onClick={() => {
-                        const { bpm } = props.chain.getSampler().getEngine();
+                        const bpm =
+                          props.chain.sampler.engine.transport.bpm.value;
                         const barDuration = (60 / bpm) * 4;
                         const sliceDuration = slice().end - slice().start;
                         const targetDuration =
@@ -421,13 +422,13 @@ export const SampleSlice = (props: {
 
                         const playbackSpeed = sliceDuration / targetDuration;
 
-                        props.chain.updateSlice({ playbackSpeed });
+                        props.chain.update({ playbackSpeed });
                       }}
                       label="Align to tempo"
                     />
                     <ButtonWithLabel
                       onClick={() => {
-                        props.chain.updateSlice({
+                        props.chain.update({
                           playbackSpeed: slice().playbackSpeed * 2,
                         });
                       }}
@@ -442,13 +443,13 @@ export const SampleSlice = (props: {
               <div>
                 <FormattedTime timeInSeconds={slice().start} /> -{' '}
                 <FormattedTime timeInSeconds={slice().end} />
-                <div>{props.chain.getPlayer().now()}</div>
+                <div>{props.chain.player.now()}</div>
                 <MoogKnobWithLabel
                   min={0}
                   max={2}
                   value={slice().volume}
                   onChange={(volume: number) => {
-                    props.chain.updateSlice({ volume });
+                    props.chain.update({ volume });
                   }}
                   label="Volume"
                 />
@@ -457,13 +458,13 @@ export const SampleSlice = (props: {
                   max={3}
                   value={slice().playbackSpeed}
                   onChange={(playbackSpeed: number) => {
-                    props.chain.updateSlice({ playbackSpeed });
+                    props.chain.update({ playbackSpeed });
                   }}
                   label="Pitch"
                 />
                 <MoogKnobWithLabel
                   min={0}
-                  max={props.chain.getSampler().buffer.duration}
+                  max={props.chain.sampler.buffer.duration}
                   speed={0.1}
                   step={0.01}
                   value={slice().start}
@@ -472,7 +473,7 @@ export const SampleSlice = (props: {
                 />
                 <MoogKnobWithLabel
                   min={0}
-                  max={props.chain.getSampler().buffer.duration}
+                  max={props.chain.sampler.buffer.duration}
                   speed={0.1}
                   step={0.01}
                   value={slice().end}
@@ -483,9 +484,7 @@ export const SampleSlice = (props: {
                   label="Reverse"
                   checked={slice().reverse}
                   onChange={(reverse) => {
-                    props.chain.updateSlice({
-                      reverse: !reverse,
-                    });
+                    props.chain.update({ reverse: !reverse });
                   }}
                 />
                 <Toggle

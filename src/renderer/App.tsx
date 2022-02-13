@@ -1,4 +1,4 @@
-import { For, ErrorBoundary, createSignal, Switch, Match } from 'solid-js';
+import { For, ErrorBoundary, createSignal, createEffect } from 'solid-js';
 import { ThemeProvider, css } from 'solid-styled-components';
 import { Transport } from 'tone';
 import { ApolloProvider } from '@merged/solid-apollo';
@@ -26,65 +26,59 @@ export function App() {
   const [viewMode, setViewMode] = createSignal<ViewMode>('DEVICE');
 
   return (
-    <ErrorBoundary
-      fallback={(err, reset) => (
-        <div onClick={reset}>Error: {err.toString()}</div>
-      )}
-    >
-      <ThemeProvider theme={theme}>
-        <ApolloProvider client={apolloClient}>
-          <GlobalStyles />
-          <div class="App">
+    <ThemeProvider theme={theme}>
+      <ApolloProvider client={apolloClient}>
+        <GlobalStyles />
+        <div class="App">
+          <div
+            class={css`
+              padding: 3px;
+              background-color: #555;
+              box-shadow: inset 0 0 2px 1px #222;
+              border-radius: 5px;
+              display: flex;
+              flex-direction: column;
+            `}
+          >
+            <Toolbar
+              engine={engine}
+              viewMode={viewMode()}
+              onViewModeChanged={setViewMode}
+            />
+
             <div
-              class={css`
-                padding: 3px;
-                background-color: #555;
-                box-shadow: inset 0 0 2px 1px #222;
-                border-radius: 5px;
-                display: flex;
-                flex-direction: column;
-              `}
+              classList={{
+                [css`
+                  display: none;
+                `]: viewMode() !== 'DEVICE',
+              }}
             >
-              <Toolbar
-                engine={engine}
-                viewMode={viewMode()}
-                onViewModeChanged={setViewMode}
-              />
+              <For each={samplers()}>
+                {(sampler) => <SamplerView sampler={sampler} />}
+              </For>
+            </div>
 
-              <div
-                classList={{
-                  [css`
-                    display: none;
-                  `]: viewMode() !== 'DEVICE',
-                }}
-              >
-                <For each={samplers()}>
-                  {(sampler) => <SamplerView sampler={sampler} />}
-                </For>
-              </div>
-
-              <div
-                classList={{
-                  [css`
-                    display: none;
-                  `]: viewMode() !== 'PATTERN',
-                }}
-              >
-                <Device background={'#bd945e'}>
-                  <div>
-                    <For
-                      each={samplers()}
-                      fallback={<div>loading sampler...</div>}
-                    >
-                      {(sampler) => <PatternEditor sampler={sampler} />}
-                    </For>
-                  </div>
-                </Device>
-              </div>
+            <div
+              classList={{
+                [css`
+                  display: none;
+                `]: viewMode() !== 'PATTERN',
+              }}
+            >
+              <Device background={'#bd945e'}>
+                <div>
+                  <For
+                    each={samplers()}
+                    fallback={<div>loading sampler...</div>}
+                  >
+                    {(sampler) => <PatternEditor sampler={sampler} />}
+                  </For>
+                </div>
+              </Device>
             </div>
           </div>
-        </ApolloProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
+        </div>
+      </ApolloProvider>
+    </ThemeProvider>
   );
 }

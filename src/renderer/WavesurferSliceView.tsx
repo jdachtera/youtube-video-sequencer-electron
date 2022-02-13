@@ -1,14 +1,14 @@
-import { createEffect, onMount, onCleanup, untrack } from 'solid-js';
+import { createEffect, onMount, untrack } from 'solid-js';
 
 import { css } from 'solid-styled-components';
 
 import Wavesurfer from 'wavesurfer.js';
-import { Region } from 'wavesurfer.js/src/plugin/regions';
+
 import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
-import { SliceChain } from './engine/SliceChain';
+import { SamplerSlice } from './engine/SamplerSlice';
 
 type WavesurferSliceViewProps = {
-  chain: SliceChain;
+  chain: SamplerSlice;
   center: number;
   height?: number;
   // onRegionClick: (region: Region) => void;
@@ -36,8 +36,11 @@ export const WavesurferSliceView = (props: WavesurferSliceViewProps) => {
 
   const buffer = createSignalFromEventEmitter(
     untrack(() => props.chain),
-    'chain-updated',
-    (chain) => chain.getPlayer().buffer.toMono().get()
+    ['load', 'reverse-updated'],
+    (chain) =>
+      chain.player.buffer.length
+        ? chain.player.buffer.toMono().get()
+        : undefined
   );
 
   createEffect(() => {

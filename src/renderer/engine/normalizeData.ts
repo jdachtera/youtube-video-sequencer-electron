@@ -1,4 +1,4 @@
-import { Slice, Pattern } from './types';
+import { SerializedSlice, Pattern } from './types';
 import { Action } from 'renderer/SequencerAction';
 import { Step } from 'renderer/SequencerStep';
 import { createUniqueId } from 'solid-js';
@@ -45,7 +45,9 @@ export const normalizePatternData = (
     .map((step) => normalizeStepData(step)),
 });
 
-export const normalizeSliceData = (slice: DeepPartial<Slice>): Slice => ({
+export const normalizeSliceData = (
+  slice: DeepPartial<SerializedSlice>
+): SerializedSlice => ({
   id: slice.id ?? createUniqueId(),
   collapsed: slice.collapsed ?? false,
   name: slice.name ?? '',
@@ -68,7 +70,9 @@ export const normalizeSamplerData = (
   volume: sampler.volume ?? 1,
   zoom: sampler.zoom ?? 0,
   slices: (Array.isArray(sampler.slices) ? sampler.slices : [])
-    .filter((maybeStep): maybeStep is DeepPartial<Slice> => !!maybeStep)
+    .filter(
+      (maybeStep): maybeStep is DeepPartial<SerializedSlice> => !!maybeStep
+    )
     .map(normalizeSliceData),
 });
 

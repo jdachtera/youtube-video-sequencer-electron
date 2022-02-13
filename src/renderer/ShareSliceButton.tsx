@@ -5,15 +5,15 @@ import { css } from 'solid-styled-components';
 
 import { useIsLoggedIn } from './auth';
 import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
-import { SliceChain } from './engine/SliceChain';
+import { SamplerSlice } from './engine/SamplerSlice';
 import { AddSliceDocument } from './Slice.generated';
 import { ButtonWithLabel } from './UI';
 
-export const ShareSliceButton = (props: { chain: SliceChain }) => {
+export const ShareSliceButton = (props: { chain: SamplerSlice }) => {
   const slice = createSignalFromEventEmitter(
     untrack(() => props.chain),
     'chain-updated',
-    (chain) => chain.getSlice()
+    (chain) => chain.serialize()
   );
 
   const isLoggedIn = useIsLoggedIn();
@@ -47,10 +47,7 @@ export const ShareSliceButton = (props: { chain: SliceChain }) => {
               type="text"
               value={slice().name}
               onInput={(event) => {
-                props.chain.setSlice({
-                  ...slice(),
-                  name: event.currentTarget.value,
-                });
+                props.chain.update({ name: event.currentTarget.value });
               }}
             />
             Tags:
@@ -79,7 +76,7 @@ export const ShareSliceButton = (props: { chain: SliceChain }) => {
                   variables: {
                     data: {
                       title: slice().name,
-                      sourceUrl: props.chain.getSampler().url,
+                      sourceUrl: props.chain.sampler.url,
                       start: slice().start,
                       end: slice().end,
                       reverse: slice().reverse,

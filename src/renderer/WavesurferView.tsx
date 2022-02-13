@@ -7,8 +7,8 @@ import Wavesurfer from 'wavesurfer.js';
 import RegionsPlugin, { Region } from 'wavesurfer.js/src/plugin/regions';
 import TimelinePlugin from 'wavesurfer.js/src/plugin/timeline';
 import { Sampler } from './engine/Sampler';
-import { SliceChain } from './engine/SliceChain';
-import { Slice } from './engine/types';
+import { SamplerSlice } from './engine/SamplerSlice';
+import { SerializedSlice } from './engine/types';
 
 type WavesurferViewProps = {
   sampler: Sampler;
@@ -30,11 +30,12 @@ export const WavesurferView = (props: WavesurferViewProps) => {
 
   const scrollZoom = (event: WheelEvent) => {
     event.preventDefault();
-    props.sampler.setZoom(Math.min(Math.max(zoom() + event.deltaY, 1), 800));
+    const newZoom = Math.min(Math.max(zoom() + event.deltaY, 1), 800);
+    props.sampler.update({ zoom: newZoom });
   };
 
-  const handleChainAdded = (chain: SliceChain) => {
-    const slice = chain.getSlice();
+  const handleChainAdded = (chain: SamplerSlice) => {
+    const slice = chain.serialize();
     const region = wavesurfer.regions.list[slice.id];
 
     if (!region) {
@@ -43,8 +44,8 @@ export const WavesurferView = (props: WavesurferViewProps) => {
     }
   };
 
-  const handleChainRemoved = (chain: SliceChain) => {
-    const slice = chain.getSlice();
+  const handleChainRemoved = (chain: SamplerSlice) => {
+    const slice = chain.serialize();
     const region = wavesurfer.regions.list[slice.id];
 
     if (region) {
@@ -52,8 +53,8 @@ export const WavesurferView = (props: WavesurferViewProps) => {
     }
   };
 
-  const handleChainUpdated = (chain: SliceChain) => {
-    const slice = chain.getSlice();
+  const handleChainUpdated = (chain: SamplerSlice) => {
+    const slice = chain.serialize();
     const region = wavesurfer.regions.list[slice.id];
 
     if (region) {
@@ -71,7 +72,7 @@ export const WavesurferView = (props: WavesurferViewProps) => {
     const randB = Math.floor(Math.random() * (255 - 0 + 1) + 0);
     const color = `rgba(${randR},${randG},${randB},0.8)`;
 
-    const slice: Slice = {
+    const slice: SerializedSlice = {
       id: region.id,
       collapsed: true,
       start: region.start,
@@ -102,11 +103,10 @@ export const WavesurferView = (props: WavesurferViewProps) => {
 
     if (!chain) return;
 
-    const slice = chain.getSlice();
+    const slice = chain.serialize();
 
     if (slice.start !== region.start || slice.end !== region.end) {
-      chain.setSlice({
-        ...slice,
+      chain.update({
         start: region.start,
         end: region.end,
       });
@@ -168,6 +168,7 @@ export const WavesurferView = (props: WavesurferViewProps) => {
 
   onCleanup(() => {
     timelineRef?.removeEventListener('wheel', scrollZoom);
+    if (!wavesurfer) return;
     wavesurfer.un('region-created', handleRegionCreated);
     wavesurfer.un('region-updated', handleRegionUpdated);
     wavesurfer.un('region-removed', handleRegionRemoved);
@@ -175,10 +176,17 @@ export const WavesurferView = (props: WavesurferViewProps) => {
     wavesurfer.un('region-update-end', props.onRegionClick);
   });
 
-  onMount(async () => {
-    await props.sampler.hasLoaded();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (wavesurfer as any).loadDecodedBuffer(props.sampler.buffer.toMono().get());
+  const buffer = createSignalFromEventEmitter(
+    untrack(() => props.sampler),
+    'load',
+    (sampler) =>
+      sampler.buffer.length ? sampler.buffer.toMono().get() : undefined
+  );
+
+  createEffect(() => {
+    if (wavesurfer && buffer()) {
+      wavesurfer.loadDecodedBuffer(buffer());
+    }
   });
 
   onMount(() => {

@@ -2,7 +2,7 @@ import { createMemo, For, untrack, JSX, splitProps } from 'solid-js';
 import { css } from 'solid-styled-components';
 import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
 import { Sampler } from './engine/Sampler';
-import { SliceChain } from './engine/SliceChain';
+import { SamplerSlice } from './engine/SamplerSlice';
 import { Pattern, subdivisions, subdivisionTypes } from './engine/types';
 import { MoogKnobWithLabel } from './Knob';
 import { Label } from './Label';
@@ -21,7 +21,7 @@ export const PatternEditor = (
   );
 
   const currentPatternIndex = createSignalFromEventEmitter(
-    untrack(() => props.sampler.getEngine()),
+    untrack(() => props.sampler.engine),
     ['current-pattern-index-updated'],
     (engine) => engine.currentPatternIndex
   );
@@ -42,7 +42,7 @@ export const PatternEditor = (
 
 export const SlicePattern = (
   allProps: {
-    chain: SliceChain;
+    chain: SamplerSlice;
     currentPatternIndex: number;
   } & JSX.IntrinsicElements['div']
 ) => {
@@ -53,7 +53,7 @@ export const SlicePattern = (
   const slice = createSignalFromEventEmitter(
     untrack(() => props.chain),
     ['chain-updated'],
-    (chain) => chain.getSlice()
+    (chain) => chain.serialize()
   );
 
   const currentPattern = createMemo(
