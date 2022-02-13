@@ -9,32 +9,21 @@ import {
   Transport,
 } from 'tone';
 import { TypedEmitter } from 'tiny-typed-emitter';
-
-import type { Step } from '../SequencerStep';
-import { Pattern, SerializedSlice } from './types';
-import { entries } from './helpers';
 import { debounce } from 'ts-debounce';
+
+import { Pattern, SerializedSlice, Step } from './types';
+import { entries, PropertyUpdateEvents } from './helpers';
 import { Sampler } from './Sampler';
 
-export interface SamplerSliceEvents {
-  'sequence-event': (step: Step) => void;
-  'player-started': () => void;
-  'player-stopped': () => void;
+export type SliceEvents = {
+  sequenceEvent: (step: Step) => void;
+  change: (slice: Slice) => void;
+  playerStarted: () => void;
+  playerStopped: () => void;
   load: () => void;
+} & PropertyUpdateEvents<SerializedSlice>;
 
-  'playback-speed-updated': (playbackSpeed: number) => void;
-  'chain-updated': (updatedChain: SamplerSlice) => void;
-  'volume-updated': (volume: number) => void;
-  'start-updated': (start: number) => void;
-  'end-updated': (end: number) => void;
-  'reverse-updated': (reverse: number) => void;
-  'color-updated': (color: string) => void;
-  'patterns-updated': (patterns: Pattern[]) => void;
-  'name-updated': (name: string) => void;
-  'gain-updated': (gain: number) => void;
-}
-
-export class SamplerSlice extends TypedEmitter<SamplerSliceEvents> {
+export class Slice extends TypedEmitter<SliceEvents> {
   player = new Player();
   sequence: Sequence<Step> = null!;
 
@@ -50,21 +39,22 @@ export class SamplerSlice extends TypedEmitter<SamplerSliceEvents> {
   gainNode = new Gain();
   soloNode = new Solo();
 
-  constructor(public sampler: Sampler, serializedChain: SerializedSlice) {
+  constructor(public sampler: Sampler, serializedSlice: SerializedSlice) {
     super();
+    this.setMaxListeners(1000);
 
     this.player.connect(this.gainNode);
     this.gainNode.connect(this.soloNode);
 
-    this.on('start-updated', this.updateBuffer);
-    this.on('end-updated', this.updateBuffer);
+    this.on('startUpdated', this.updateBuffer);
+    this.on('endUpdated', this.updateBuffer);
 
-    this.update(serializedChain);
+    this.update(serializedSlice);
   }
 
   protected onSequenceEvent = (time: number, step: Step) => {
     getDraw().schedule(() => {
-      this.emit('sequence-event', step);
+      this.emit('sequenceEvent', step);
     }, time);
 
     for (let i = 0; i < step.actions.length; i += 1) {
@@ -102,7 +92,7 @@ export class SamplerSlice extends TypedEmitter<SamplerSliceEvents> {
     ).toSeconds();
 
     if (this.sequence && subdivision === this.sequence.subdivision) {
-      this.sequence.events = pattern.steps;
+      this.sequence.events = [...pattern.steps];
     } else {
       if (this.sequence) {
         this.sequence.clear();
@@ -112,7 +102,7 @@ export class SamplerSlice extends TypedEmitter<SamplerSliceEvents> {
 
       this.sequence = new Sequence({
         callback: this.onSequenceEvent,
-        events: pattern?.steps ?? [],
+        events: [...(pattern?.steps ?? [])],
         subdivision: `${pattern?.subdivision ?? 16}${
           pattern?.subdivisionType ?? 'n'
         }`,
@@ -159,10 +149,10 @@ export class SamplerSlice extends TypedEmitter<SamplerSliceEvents> {
         default:
       }
 
-      this.emit(`${entry[0]}-updated` as any, entry[1]);
+      this.emit(`${entry[0]}Updated` as any, entry[1]);
     });
 
-    this.emit('chain-updated', this);
+    this.emit('change', this);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -221,8 +211,8 @@ export class SamplerSlice extends TypedEmitter<SamplerSliceEvents> {
   setSolo(solo: boolean, multi = false) {
     if (solo && !multi) {
       this.sampler.engine.getSamplers().forEach((sampler) => {
-        sampler.chains.forEach((chain) => {
-          chain.update({ solo: this === chain });
+        sampler.slices.forEach((slice) => {
+          slice.update({ solo: this === slice });
         });
       });
     } else {
@@ -235,10 +225,10 @@ export class SamplerSlice extends TypedEmitter<SamplerSliceEvents> {
   };
 
   duplicate() {
-    this.sampler.createChain({ ...this.serialize(), id: `${this.id}_clone` });
+    this.sampler.createSlice({ ...this.serialize(), id: `${this.id}_clone` });
   }
 
-  serialize(): SerializedSlice {
+  serialize() {
     return {
       id: this.id,
       start: this.start,
@@ -264,13 +254,13 @@ export class SamplerSlice extends TypedEmitter<SamplerSliceEvents> {
     this.soloNode.dispose();
     this.gainNode.dispose();
     this.sequence.dispose();
-    this.off('start-updated', this.updateBuffer);
-    this.off('end-updated', this.updateBuffer);
+    this.off('startUpdated', this.updateBuffer);
+    this.off('endUpdated', this.updateBuffer);
   }
 
   play(time?: number) {
     this.player.start(time);
-    this.emit('player-started');
+    this.emit('playerStarted');
   }
 }
 

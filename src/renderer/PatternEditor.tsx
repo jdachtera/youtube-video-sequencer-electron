@@ -1,8 +1,11 @@
 import { createMemo, For, untrack, JSX, splitProps } from 'solid-js';
 import { css } from 'solid-styled-components';
-import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
+import {
+  createSignalFromEventEmitter,
+  createStoreFromEventEmitter,
+} from './createSignalFromEventEmitter';
 import { Sampler } from './engine/Sampler';
-import { SamplerSlice } from './engine/SamplerSlice';
+import { Slice } from './engine/Slice';
 import { Pattern, subdivisions, subdivisionTypes } from './engine/types';
 import { MoogKnobWithLabel } from './Knob';
 import { Label } from './Label';
@@ -14,24 +17,24 @@ export const PatternEditor = (
   allProps: { sampler: Sampler } & JSX.IntrinsicElements['div']
 ) => {
   const [props, divProps] = splitProps(allProps, ['sampler']);
-  const chains = createSignalFromEventEmitter(
+  const slices = createSignalFromEventEmitter(
     untrack(() => props.sampler),
-    ['chain-added', 'chain-removed'],
-    (sampler) => sampler.getChains()
+    ['sliceAdded', 'sliceRemoved'],
+    (sampler) => sampler.getSlices()
   );
 
   const currentPatternIndex = createSignalFromEventEmitter(
     untrack(() => props.sampler.engine),
-    ['current-pattern-index-updated'],
+    ['currentPatternIndexUpdated'],
     (engine) => engine.currentPatternIndex
   );
 
   return (
     <div {...divProps}>
-      <For each={chains()} fallback={<div>loading chains..</div>}>
-        {(chain) => (
+      <For each={slices()} fallback={<div>loading slices..</div>}>
+        {(slice) => (
           <SlicePattern
-            chain={chain}
+            slice={slice}
             currentPatternIndex={currentPatternIndex()}
           />
         )}
@@ -42,22 +45,28 @@ export const PatternEditor = (
 
 export const SlicePattern = (
   allProps: {
-    chain: SamplerSlice;
+    slice: Slice;
     currentPatternIndex: number;
   } & JSX.IntrinsicElements['div']
 ) => {
   const [props, divProps] = splitProps(allProps, [
-    'chain',
+    'slice',
     'currentPatternIndex',
   ]);
-  const slice = createSignalFromEventEmitter(
-    untrack(() => props.chain),
-    ['chain-updated'],
-    (chain) => chain.serialize()
+  const sliceState = createStoreFromEventEmitter(
+    untrack(() => props.slice),
+    ['change'],
+    (slice) => slice.serialize()
+  );
+
+  const patterns = createSignalFromEventEmitter(
+    () => props.slice,
+    'patternsUpdated',
+    (slice) => slice.patterns
   );
 
   const currentPattern = createMemo(
-    () => slice().patterns[props.currentPatternIndex]
+    () => patterns()[props.currentPatternIndex]
   );
 
   return (
@@ -72,25 +81,25 @@ export const SlicePattern = (
       }}
     >
       <LCD>foo</LCD>
-      <Label label={slice().name} />
-      <ScreenPrintBackground background={slice().color}>
+      <Label label={sliceState.name} />
+      <ScreenPrintBackground background={sliceState.color}>
         {
           <>
             {' '}
             <Sequencer
-              steps={slice().patterns[props.currentPatternIndex].steps}
+              steps={...currentPattern().steps}
               onChange={(steps) => {
-                props.chain.updatePattern(props.currentPatternIndex, {
+                props.slice.updatePattern(props.currentPatternIndex, {
                   steps,
                 });
               }}
-              chain={props.chain}
+              slice={props.slice}
             />{' '}
             <Toggle
               label="Solo"
-              checked={slice().solo}
+              checked={sliceState.solo}
               onChange={(solo, altKey) => {
-                props.chain.setSolo(solo, altKey);
+                props.slice.setSolo(solo, altKey);
               }}
             />
             <MoogKnobWithLabel
@@ -102,7 +111,7 @@ export const SlicePattern = (
               fineIsDefault
               value={currentPattern()?.steps?.length}
               onChange={(patternLength) => {
-                props.chain.updatePatternLength(
+                props.slice.updatePatternLength(
                   props.currentPatternIndex,
                   patternLength
                 );
@@ -111,7 +120,7 @@ export const SlicePattern = (
             <select
               value={currentPattern()?.subdivision ?? 16}
               onChange={(event) => {
-                props.chain.updatePattern(props.currentPatternIndex, {
+                props.slice.updatePattern(props.currentPatternIndex, {
                   subdivision: +event.currentTarget.value,
                 });
               }}
@@ -125,7 +134,7 @@ export const SlicePattern = (
             <select
               value={currentPattern()?.subdivisionType ?? 'n'}
               onChange={(event) => {
-                props.chain.updatePattern(props.currentPatternIndex, {
+                props.slice.updatePattern(props.currentPatternIndex, {
                   subdivisionType: event.currentTarget
                     .value as Pattern['subdivisionType'],
                 });

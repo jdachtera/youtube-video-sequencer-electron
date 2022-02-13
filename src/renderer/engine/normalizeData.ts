@@ -1,9 +1,13 @@
-import { SerializedSlice, Pattern } from './types';
-import { Action } from 'renderer/SequencerAction';
-import { Step } from 'renderer/SequencerStep';
 import { createUniqueId } from 'solid-js';
-import { Engine } from './Engine';
-import { Sampler } from './Sampler';
+
+import {
+  SerializedSlice,
+  SerializedEngine,
+  SerializedSampler,
+  Pattern,
+  Step,
+  Action,
+} from './types';
 
 export const normalizeStepData = (step: DeepPartial<Step>): Step => ({
   actions: (Array.isArray(step.actions) ? step.actions : [])
@@ -64,8 +68,8 @@ export const normalizeSliceData = (
 });
 
 export const normalizeSamplerData = (
-  sampler: DeepPartial<ReturnType<Sampler['serialize']>>
-): ReturnType<Sampler['serialize']> => ({
+  sampler: DeepPartial<SerializedSampler>
+): SerializedSampler => ({
   url: sampler.url ?? '',
   volume: sampler.volume ?? 1,
   zoom: sampler.zoom ?? 0,
@@ -77,14 +81,17 @@ export const normalizeSamplerData = (
 });
 
 export const normalizeData = (
-  parsedData: DeepPartial<ReturnType<Engine['serialize']>>
-): ReturnType<Engine['serialize']> => {
+  parsedData: DeepPartial<SerializedEngine>
+): SerializedEngine => {
   return {
     bpm: parsedData.bpm ?? 120,
     swing: parsedData.swing ?? 0,
     currentPatternIndex: parsedData.currentPatternIndex ?? 0,
     samplers: (Array.isArray(parsedData.samplers) ? parsedData.samplers : [])
-      .filter((maybeStep): maybeStep is DeepPartial<Sampler> => !!maybeStep)
+      .filter(
+        (maybeSampler): maybeSampler is DeepPartial<SerializedSampler> =>
+          !!maybeSampler
+      )
       .map(normalizeSamplerData),
   };
 };

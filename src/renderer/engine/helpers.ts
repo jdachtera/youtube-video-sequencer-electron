@@ -6,3 +6,9 @@ export function entries<T>(obj: T): Entry<T>[] {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return Object.entries(obj) as any;
 }
+
+export type PropertyUpdateEvents<T extends { [key: string]: unknown }> = {
+  [K in keyof T as `${K extends string ? K : never}Updated`]: (
+    value: T[K]
+  ) => void;
+};

@@ -1,9 +1,10 @@
 import { createSignal, onMount, onCleanup, Index, mergeProps } from 'solid-js';
 
-import { Action, createNewAction } from './SequencerAction';
-import { SequencerStep, Step } from './SequencerStep';
-import { SamplerSlice } from './engine/SamplerSlice';
+import { createNewAction } from './SequencerAction';
+import { Slice } from './engine/Slice';
 import { css } from 'solid-styled-components';
+import { Action, Step } from './engine/types';
+import { SequencerStep } from './SequencerStep';
 
 const createDefaultAction = (allSteps: Step[]): Action => {
   const firstStepWithPlayAction = allSteps.find((step) =>
@@ -24,7 +25,7 @@ const createDefaultAction = (allSteps: Step[]): Action => {
 
 export const Sequencer = (propsWithoutDefaults: {
   steps: Step[];
-  chain: SamplerSlice;
+  slice: Slice;
   onChange: (steps: Step[]) => void;
   onToggleStep?: (step: Step) => Action[];
 }) => {
@@ -42,8 +43,8 @@ export const Sequencer = (propsWithoutDefaults: {
 
   const [currentStep, setCurrentStep] = createSignal<Step>();
 
-  onMount(() => props.chain.on('sequence-event', setCurrentStep));
-  onCleanup(() => props.chain.off('sequence-event', setCurrentStep));
+  onMount(() => props.slice.on('sequenceEvent', setCurrentStep));
+  onCleanup(() => props.slice.off('sequenceEvent', setCurrentStep));
 
   const [selectedStep, setSelectedStep] = createSignal<Step>();
 

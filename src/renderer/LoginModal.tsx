@@ -20,8 +20,6 @@ const LoggedIn = () => {
   const handleLogout = () => authStore.removeAccessToken();
   const data = createQuery(UserDocument);
 
-  createEffect(() => console.log({ data: data() }));
-
   return (
     <>
       You are logged in as {data()?.user.username}

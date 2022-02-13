@@ -7,7 +7,7 @@ import Wavesurfer from 'wavesurfer.js';
 import RegionsPlugin, { Region } from 'wavesurfer.js/src/plugin/regions';
 import TimelinePlugin from 'wavesurfer.js/src/plugin/timeline';
 import { Sampler } from './engine/Sampler';
-import { SamplerSlice } from './engine/SamplerSlice';
+import { Slice } from './engine/Slice';
 import { SerializedSlice } from './engine/types';
 
 type WavesurferViewProps = {
@@ -19,7 +19,7 @@ type WavesurferViewProps = {
 export const WavesurferView = (props: WavesurferViewProps) => {
   const zoom = createSignalFromEventEmitter(
     untrack(() => props.sampler),
-    'zoom-updated',
+    'zoomUpdated',
     (sampler) => sampler.zoom
   );
 
@@ -34,8 +34,7 @@ export const WavesurferView = (props: WavesurferViewProps) => {
     props.sampler.update({ zoom: newZoom });
   };
 
-  const handleChainAdded = (chain: SamplerSlice) => {
-    const slice = chain.serialize();
+  const handleSliceAdded = (slice: Slice) => {
     const region = wavesurfer.regions.list[slice.id];
 
     if (!region) {
@@ -44,8 +43,7 @@ export const WavesurferView = (props: WavesurferViewProps) => {
     }
   };
 
-  const handleChainRemoved = (chain: SamplerSlice) => {
-    const slice = chain.serialize();
+  const handleSliceRemoved = (slice: Slice) => {
     const region = wavesurfer.regions.list[slice.id];
 
     if (region) {
@@ -53,8 +51,7 @@ export const WavesurferView = (props: WavesurferViewProps) => {
     }
   };
 
-  const handleChainUpdated = (chain: SamplerSlice) => {
-    const slice = chain.serialize();
+  const handleSliceUpdated = (slice: Slice) => {
     const region = wavesurfer.regions.list[slice.id];
 
     if (region) {
@@ -64,8 +61,8 @@ export const WavesurferView = (props: WavesurferViewProps) => {
   };
 
   const handleRegionCreated = (region: Region) => {
-    const existingChain = props.sampler.getChain(region.id);
-    if (existingChain) return;
+    const existingSlice = props.sampler.getSlice(region.id);
+    if (existingSlice) return;
 
     const randR = Math.floor(Math.random() * (255 - 0 + 1) + 0);
     const randG = Math.floor(Math.random() * (255 - 0 + 1) + 0);
@@ -94,19 +91,17 @@ export const WavesurferView = (props: WavesurferViewProps) => {
       ],
     };
 
-    props.sampler.createChain(slice);
+    props.sampler.createSlice(slice);
     region.update({ id: region.id, color });
   };
 
   const handleRegionUpdated = (region: Region) => {
-    const chain = props.sampler.getChain(region.id);
+    const slice = props.sampler.getSlice(region.id);
 
-    if (!chain) return;
-
-    const slice = chain.serialize();
+    if (!slice) return;
 
     if (slice.start !== region.start || slice.end !== region.end) {
-      chain.update({
+      slice.update({
         start: region.start,
         end: region.end,
       });
@@ -118,7 +113,7 @@ export const WavesurferView = (props: WavesurferViewProps) => {
   };
 
   const handleRegionRemoved = (region: Region) => {
-    props.sampler.removeChain(region.id);
+    props.sampler.removeSlice(region.id);
   };
 
   onMount(() => {
@@ -190,15 +185,15 @@ export const WavesurferView = (props: WavesurferViewProps) => {
   });
 
   onMount(() => {
-    props.sampler.on('chain-added', handleChainAdded);
-    props.sampler.on('chain-removed', handleChainRemoved);
-    props.sampler.on('chain-updated', handleChainUpdated);
+    props.sampler.on('sliceAdded', handleSliceAdded);
+    props.sampler.on('sliceRemoved', handleSliceRemoved);
+    props.sampler.on('sliceUpdated', handleSliceUpdated);
   });
 
   onCleanup(() => {
-    props.sampler.off('chain-added', handleChainAdded);
-    props.sampler.off('chain-removed', handleChainRemoved);
-    props.sampler.off('chain-updated', handleChainUpdated);
+    props.sampler.off('sliceAdded', handleSliceAdded);
+    props.sampler.off('sliceRemoved', handleSliceRemoved);
+    props.sampler.off('sliceUpdated', handleSliceUpdated);
   });
 
   createEffect(() => wavesurfer?.seekAndCenter(props.center));

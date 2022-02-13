@@ -1,10 +1,7 @@
 import { css } from 'solid-styled-components';
-import { Action } from './SequencerAction';
-import { useAppTheme } from './theme';
+import { Step } from './engine/types';
 
-export type Step = {
-  actions: Action[];
-};
+import { useAppTheme } from './theme';
 
 type SequencerStepProps = {
   step: Step;

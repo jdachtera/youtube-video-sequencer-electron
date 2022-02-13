@@ -1,5 +1,3 @@
-import { Step } from '../SequencerStep';
-
 export type SerializedSlice = {
   id: string;
   start: number;
@@ -18,6 +16,27 @@ export type Pattern = {
   subdivision: number;
   subdivisionType: typeof subdivisionTypes[number];
   steps: Step[];
+};
+
+export type Action =
+  | {
+      type: 'PLAY';
+      velocity?: number;
+    }
+  | {
+      type: 'PAUSE';
+    }
+  | {
+      type: 'SET_PLAYBACK_SPEED';
+      value: number;
+    }
+  | {
+      type: 'SET_REVERSE';
+      value: boolean;
+    };
+
+export type Step = {
+  actions: Action[];
 };
 
 export type SerializedSampler = {

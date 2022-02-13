@@ -166,7 +166,7 @@ export const FindSlicesButton = (props: { engine: Engine }) => {
 
                         await sampler.hasLoaded();
 
-                        sampler.createChain({
+                        sampler.createSlice({
                           id,
                           name: title,
                           start,

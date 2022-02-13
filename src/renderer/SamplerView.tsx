@@ -5,7 +5,6 @@ import { Region } from 'wavesurfer.js/src/plugin/regions';
 import { Transport } from 'tone';
 
 import { SampleSlice } from './Slice';
-import { SerializedSlice } from './engine/types';
 
 import { css } from 'solid-styled-components';
 
@@ -22,29 +21,22 @@ import {
 } from './UI';
 
 import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
+import { Slice } from './engine/Slice';
 
 export const SamplerView = (props: { sampler: Sampler }) => {
-  const [selectedSlice, setSelectedSlice] = createSignal<SerializedSlice>();
+  const [selectedSlice, setSelectedSlice] = createSignal<Slice>();
 
   const currentPatternIndex = createSignalFromEventEmitter(
     untrack(() => props.sampler.engine),
-    ['current-pattern-index-updated'],
+    ['currentPatternIndexUpdated'],
     (engine) => engine.currentPatternIndex
   );
 
-  const chains = createSignalFromEventEmitter(
+  const slices = createSignalFromEventEmitter(
     untrack(() => props.sampler),
-    ['chain-added', 'chain-removed', 'chain-updated'],
-    (sampler) => sampler.getChains()
+    ['sliceAdded', 'sliceRemoved', 'sliceUpdated'],
+    (sampler) => sampler.getSlices()
   );
-
-  createEffect(() => {
-    console.log(chains());
-  });
-
-  onMount(() => {
-    setInterval(() => console.log(props.sampler.getChains()));
-  });
 
   const [waveformCenter, setWaveformCenter] = createSignal(0);
   const [length, setLength] = createSignal(0);
@@ -68,39 +60,35 @@ export const SamplerView = (props: { sampler: Sampler }) => {
     setLength(props.sampler.buffer.duration);
   });
 
-  const handleRemoveSlice = (slice: SerializedSlice) => {
-    props.sampler.removeChain(slice.id);
+  const handleRemoveSlice = (slice: Slice) => {
+    props.sampler.removeSlice(slice.id);
   };
 
   const handleRemoveSampler = () => {
     props.sampler.engine.removeSampler(props.sampler.url);
   };
 
-  const handleClickSlice = async (slice: SerializedSlice) => {
+  const handleClickSlice = async (slice: Slice) => {
     setSelectedSlice(slice);
 
-    const chain = chains().find(
-      (currentChain) => currentChain.serialize().id === slice.id
-    );
+    if (!slice) return;
 
-    if (!chain) return;
-
-    const { duration } = chain.sampler.buffer;
+    const { duration } = slice.sampler.buffer;
     if (duration > 0) {
       setWaveformCenter(slice.start / duration);
-      chain.play();
+      slice.play();
     }
   };
 
   const handleClickRegion = (region: Region) => {
-    const chain = chains().find(
-      (currentChain) => currentChain.serialize().id === region.id
+    const slice = slices().find(
+      (currentSlice) => currentSlice.serialize().id === region.id
     );
-    if (!chain) return;
+    if (!slice) return;
 
-    const { duration } = chain.player.buffer;
+    const { duration } = slice.player.buffer;
     if (duration > 0) {
-      chain.play();
+      slice.play();
     }
   };
 
@@ -194,11 +182,11 @@ export const SamplerView = (props: { sampler: Sampler }) => {
             background-color: #111;
           `}
         >
-          <For each={chains()}>
-            {(chain) => (
+          <For each={slices()}>
+            {(slice) => (
               <SampleSlice
-                chain={chain}
-                isSelected={chain.serialize() === selectedSlice()}
+                slice={slice}
+                isSelected={slice === selectedSlice()}
                 currentPatternIndex={currentPatternIndex()}
                 onClickSlice={handleClickSlice}
                 onRemoveSlice={handleRemoveSlice}

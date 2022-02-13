@@ -4,16 +4,13 @@ import { Transport } from 'tone/build/esm/core/clock/Transport';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { Sampler } from './Sampler';
 import { SerializedEngine, SerializedSampler } from './types';
-import { entries } from './helpers';
+import { entries, PropertyUpdateEvents } from './helpers';
 
-interface EngineEvents {
-  'sampler-added': (sampler: Sampler) => void;
-  'sampler-removed': (sampler: Sampler) => void;
-  'bpm-updated': (bpm: number) => void;
-  'swing-updated': (swing: number) => void;
-  'current-pattern-index-updated': (index: number) => void;
-  change: () => void;
-}
+type EngineEvents = {
+  samplerAdded: (sampler: Sampler) => void;
+  samplerRemoved: (sampler: Sampler) => void;
+  change: (engine: Engine) => void;
+} & PropertyUpdateEvents<SerializedEngine>;
 
 export class Engine extends TypedEmitter<EngineEvents> {
   protected samplers = new Map<string, Sampler>();
@@ -23,18 +20,17 @@ export class Engine extends TypedEmitter<EngineEvents> {
   constructor(public transport: Transport) {
     super();
 
-    this.on('sampler-added', () => this.emit('change'));
-    this.on('sampler-removed', () => this.emit('change'));
-    this.on('bpm-updated', () => this.emit('change'));
-    this.on('swing-updated', () => this.emit('change'));
-    this.on('current-pattern-index-updated', () => this.emit('change'));
+    this.setMaxListeners(1000);
+
+    this.on('samplerAdded', () => this.emit('change', this));
+    this.on('samplerRemoved', () => this.emit('change', this));
   }
 
   createSampler(serializedSampler: SerializedSampler) {
     const sampler = new Sampler(this, serializedSampler);
     this.samplers.set(serializedSampler.url, sampler);
-    sampler.on('change', () => this.emit('change'));
-    this.emit('sampler-added', sampler);
+    sampler.on('change', () => this.emit('change', this));
+    this.emit('samplerAdded', sampler);
 
     return sampler;
   }
@@ -51,13 +47,13 @@ export class Engine extends TypedEmitter<EngineEvents> {
     const maybeExistingSampler = this.samplers.get(url);
     if (maybeExistingSampler) {
       maybeExistingSampler.removeAllListeners();
-      maybeExistingSampler.chains.forEach((chain) => {
-        maybeExistingSampler.removeChain(chain.id);
+      maybeExistingSampler.slices.forEach((slice) => {
+        maybeExistingSampler.removeSlice(slice.id);
       });
       maybeExistingSampler.dispose();
       this.samplers.delete(url);
 
-      this.emit('sampler-removed', maybeExistingSampler);
+      this.emit('samplerRemoved', maybeExistingSampler);
     }
   }
 
@@ -68,7 +64,6 @@ export class Engine extends TypedEmitter<EngineEvents> {
   }
 
   update(serializedEngine: Partial<SerializedEngine>) {
-    console.log(serializedEngine);
     entries(serializedEngine).forEach((entry) => {
       if (!entry) return;
 
@@ -93,8 +88,9 @@ export class Engine extends TypedEmitter<EngineEvents> {
           );
           break;
       }
-      this.emit(`${entry[0]}-updated` as any, entry[1]);
+      this.emit(`${entry[0]}Updated` as any, entry[1]);
     });
+    this.emit('change', this);
   }
 
   serialize(): SerializedEngine {
@@ -110,13 +106,13 @@ export class Engine extends TypedEmitter<EngineEvents> {
 
   start(time?: Time | undefined, offset?: number | undefined) {
     this.samplers.forEach((sampler) => {
-      sampler.chains.forEach((chain) => chain.sequence.start(time, offset));
+      sampler.slices.forEach((slice) => slice.sequence.start(time, offset));
     });
   }
 
   stop(time?: Time | undefined) {
     this.samplers.forEach((sampler) => {
-      sampler.chains.forEach((chain) => chain.sequence.stop(time));
+      sampler.slices.forEach((slice) => slice.sequence.stop(time));
     });
   }
 }

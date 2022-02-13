@@ -5,10 +5,10 @@ import { css } from 'solid-styled-components';
 import Wavesurfer from 'wavesurfer.js';
 
 import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
-import { SamplerSlice } from './engine/SamplerSlice';
+import { Slice } from './engine/Slice';
 
 type WavesurferSliceViewProps = {
-  chain: SamplerSlice;
+  slice: Slice;
   center: number;
   height?: number;
   // onRegionClick: (region: Region) => void;
@@ -35,11 +35,11 @@ export const WavesurferSliceView = (props: WavesurferSliceViewProps) => {
   });
 
   const buffer = createSignalFromEventEmitter(
-    untrack(() => props.chain),
-    ['load', 'reverse-updated'],
-    (chain) =>
-      chain.player.buffer.length
-        ? chain.player.buffer.toMono().get()
+    untrack(() => props.slice),
+    ['load', 'reverseUpdated'],
+    (slice) =>
+      slice.player.buffer.length
+        ? slice.player.buffer.toMono().get()
         : undefined
   );
 

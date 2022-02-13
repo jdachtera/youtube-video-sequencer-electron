@@ -1,4 +1,4 @@
-import { For, ErrorBoundary, createSignal, createEffect } from 'solid-js';
+import { For, createSignal } from 'solid-js';
 import { ThemeProvider, css } from 'solid-styled-components';
 import { Transport } from 'tone';
 import { ApolloProvider } from '@merged/solid-apollo';
@@ -19,7 +19,7 @@ const engine = new Engine(Transport);
 export function App() {
   const samplers = createSignalFromEventEmitter(
     engine,
-    ['sampler-added', 'sampler-removed'],
+    ['samplerAdded', 'samplerRemoved'],
     (engine) => engine.getSamplers()
   );
 

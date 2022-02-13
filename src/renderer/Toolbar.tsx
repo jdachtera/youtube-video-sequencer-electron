@@ -1,16 +1,10 @@
 import audioBufferToWav from 'audiobuffer-to-wav';
-import {
-  createEffect,
-  createSignal,
-  For,
-  onCleanup,
-  onMount,
-  untrack,
-} from 'solid-js';
+import { createEffect, createSignal, For, onCleanup, onMount } from 'solid-js';
 import { css } from 'solid-styled-components';
 import { Offline, Transport } from 'tone';
 import { debounce } from 'ts-debounce';
-import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
+
+import { createStoreFromEventEmitter } from './createSignalFromEventEmitter';
 import { Engine } from './engine/Engine';
 import { DeepPartial, normalizeData } from './engine/normalizeData';
 import { FindSlicesButton } from './FindSlicesButton';
@@ -26,22 +20,14 @@ export const Toolbar = (props: {
 }) => {
   const [isPlaying, setIsPlaying] = createSignal(false);
 
-  const bpm = createSignalFromEventEmitter(
-    untrack(() => props.engine),
-    'bpm-updated',
-    (engine) => engine.transport.bpm.value
-  );
-
-  const swing = createSignalFromEventEmitter(
-    untrack(() => props.engine),
-    'swing-updated',
-    (engine) => engine.transport.swing
-  );
-
-  const currentPatternIndex = createSignalFromEventEmitter(
-    untrack(() => props.engine),
-    ['current-pattern-index-updated'],
-    (engine) => engine.currentPatternIndex
+  const engineState = createStoreFromEventEmitter(
+    () => props.engine,
+    ['bpmUpdated', 'swingUpdated', 'currentPatternIndexUpdated'],
+    (engine) => ({
+      bpm: engine.transport.bpm.value,
+      swing: engine.transport.swing,
+      currentPatternIndex: engine.currentPatternIndex,
+    })
   );
 
   const togglePlay = () => {
@@ -77,8 +63,8 @@ export const Toolbar = (props: {
     });
   };
 
-  const saveToLocalStorage = debounce(() => {
-    localStorage.setItem('track', JSON.stringify(props.engine.serialize()));
+  const saveToLocalStorage = debounce((engine: Engine) => {
+    localStorage.setItem('track', JSON.stringify(engine.serialize()));
   }, 500);
 
   const exportJSON = () => {
@@ -124,10 +110,10 @@ export const Toolbar = (props: {
         .getSamplers()
         .flatMap((sampler) => {
           return sampler
-            .getChains()
+            .getSlices()
             .map(
-              (chain) =>
-                chain.serialize().patterns[props.engine.currentPatternIndex]
+              (slice) =>
+                slice.serialize().patterns[props.engine.currentPatternIndex]
                   .steps.length
             );
         })
@@ -224,7 +210,7 @@ export const Toolbar = (props: {
           min={20}
           max={280}
           step={1}
-          value={bpm()}
+          value={engineState.bpm}
           onChange={handleTempoChange}
         />
         <select
@@ -240,7 +226,7 @@ export const Toolbar = (props: {
           label="Swing"
           min={0}
           max={1}
-          value={swing()}
+          value={engineState.swing}
           onChange={handleSwingChange}
         />
         Pattern:
@@ -248,7 +234,7 @@ export const Toolbar = (props: {
           type="number"
           min="0"
           step="1"
-          value={currentPatternIndex()}
+          value={engineState.currentPatternIndex}
           onChange={handleCurrentPatternIndexChange}
         />
         <input type="text" onInput={addSampler} />

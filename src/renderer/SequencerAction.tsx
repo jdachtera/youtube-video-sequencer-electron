@@ -1,21 +1,5 @@
 import { For, Match, Switch } from 'solid-js';
-
-export type Action =
-  | {
-      type: 'PLAY';
-      velocity?: number;
-    }
-  | {
-      type: 'PAUSE';
-    }
-  | {
-      type: 'SET_PLAYBACK_SPEED';
-      value: number;
-    }
-  | {
-      type: 'SET_REVERSE';
-      value: boolean;
-    };
+import { Action } from './engine/types';
 
 const SequencerPlayAction = (props: {
   action: { type: 'PLAY' } & Action;
