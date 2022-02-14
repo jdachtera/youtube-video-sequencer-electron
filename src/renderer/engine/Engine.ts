@@ -61,11 +61,10 @@ export class Engine extends TypedEmitter<EngineEvents> {
   }
 
   dispose() {
-    this.tracks.forEach((track) => track.dispose());
-    this.tracks = [];
+    this.tracks.forEach((track) => this.removeTrack(track));
   }
 
-  update(serializedEngine: Partial<SerializedEngine>) {
+  set(serializedEngine: Partial<SerializedEngine>) {
     entries(serializedEngine).forEach((entry) => {
       if (!entry) return;
 

@@ -129,21 +129,43 @@ export const normalizeDeviceChainData = (
 export const normalizeTrackData = (
   track: DeepPartial<SerializedTrack>
 ): SerializedTrack => ({
-  chain: normalizeDeviceChainData({ ...track.chain }),
+  chain: normalizeDeviceChainData({
+    ...track.chain,
+    devices: track.chain?.devices,
+  }),
 });
 
 export const normalizeData = (
-  parsedData: DeepPartial<SerializedEngine>
+  parsedData: DeepPartial<SerializedEngine & { samplers: SerializedSampler[] }>
 ): SerializedEngine => {
   return {
     bpm: parsedData.bpm ?? 120,
     swing: parsedData.swing ?? 0,
     currentPatternIndex: parsedData.currentPatternIndex ?? 0,
-    tracks: (Array.isArray(parsedData.tracks) ? parsedData.tracks : [])
-      .filter(
-        (maybeTrack): maybeTrack is DeepPartial<SerializedTrack> => !!maybeTrack
-      )
-      .map(normalizeTrackData),
+    tracks: [
+      ...(Array.isArray(parsedData.tracks) ? parsedData.tracks : [])
+        .filter(
+          (maybeTrack): maybeTrack is DeepPartial<SerializedTrack> =>
+            !!maybeTrack
+        )
+        .map((track) => normalizeTrackData({ ...track })),
+
+      ...(Array.isArray(parsedData.samplers) ? parsedData.samplers : []).map(
+        (sampler): SerializedTrack => ({
+          chain: {
+            name: 'DeviceChain',
+            inputGain: 1,
+            volume: 1,
+            devices: [
+              normalizeSamplerData({
+                ...sampler,
+                name: 'Sampler',
+              }),
+            ],
+          },
+        })
+      ),
+    ],
   };
 };
 

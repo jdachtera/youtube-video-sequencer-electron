@@ -99,7 +99,7 @@ export class DeviceChain extends Device<DeviceChainEvents> {
       }
 
       return currentDevice;
-    });
+    }, undefined);
 
     const lastDevice = this.devices.at(this.devices.length - 1);
 

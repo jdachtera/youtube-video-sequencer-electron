@@ -36,11 +36,11 @@ export const Toolbar = (props: {
   };
 
   const handleTempoChange = (bpm: number) => {
-    props.engine.update({ bpm });
+    props.engine.set({ bpm });
   };
 
   const handleSwingChange = (swing: number) => {
-    props.engine.update({ swing });
+    props.engine.set({ swing });
   };
 
   const addSampler = (event: { currentTarget: HTMLInputElement }) => {
@@ -70,7 +70,7 @@ export const Toolbar = (props: {
   const handleCurrentPatternIndexChange = (event: {
     currentTarget: HTMLInputElement;
   }) => {
-    props.engine.update({
+    props.engine.set({
       currentPatternIndex: event.currentTarget.valueAsNumber,
     });
   };
@@ -107,7 +107,7 @@ export const Toolbar = (props: {
             ReturnType<Engine['serialize']>
           >;
 
-          props.engine.update(normalizeData(parsedData));
+          props.engine.set(normalizeData(parsedData));
         } catch {
           //
         }
@@ -141,7 +141,7 @@ export const Toolbar = (props: {
 
     const buffer = await Offline(async (offlineContext) => {
       offlineEngine = new Engine(offlineContext.transport);
-      offlineEngine.update(props.engine.serialize());
+      offlineEngine.set(props.engine.serialize());
 
       await offlineEngine.hasLoaded();
 
@@ -182,7 +182,7 @@ export const Toolbar = (props: {
       }
     }
 
-    props.engine.update(
+    props.engine.set(
       normalizeData(
         parsedData ?? {
           tracks: [
