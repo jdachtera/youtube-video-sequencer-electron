@@ -11,8 +11,8 @@ import {
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { debounce } from 'ts-debounce';
 
-import { Pattern, SerializedSlice, Step } from './types';
-import { entries, PropertyUpdateEvents } from './helpers';
+import { Pattern, SerializedSlice, Step } from '../types';
+import { entries, PropertyUpdateEvents } from '../helpers';
 import { Sampler } from './Sampler';
 
 export type SliceEvents = {
@@ -210,9 +210,13 @@ export class Slice extends TypedEmitter<SliceEvents> {
 
   setSolo(solo: boolean, multi = false) {
     if (solo && !multi) {
-      this.sampler.engine.getSamplers().forEach((sampler) => {
-        sampler.slices.forEach((slice) => {
-          slice.update({ solo: this === slice });
+      this.sampler.engine.tracks.forEach((track) => {
+        track.chain.devices.forEach((device) => {
+          if (device instanceof Sampler) {
+            device.slices.forEach((slice) => {
+              slice.update({ solo: this === slice });
+            });
+          }
         });
       });
     } else {

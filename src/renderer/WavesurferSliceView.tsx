@@ -5,7 +5,7 @@ import { css } from 'solid-styled-components';
 import Wavesurfer from 'wavesurfer.js';
 
 import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
-import { Slice } from './engine/Slice';
+import { Slice } from './engine/device/Slice';
 
 type WavesurferSliceViewProps = {
   slice: Slice;

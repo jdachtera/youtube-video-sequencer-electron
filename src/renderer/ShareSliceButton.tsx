@@ -5,7 +5,7 @@ import { css } from 'solid-styled-components';
 
 import { useIsLoggedIn } from './auth';
 import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
-import { Slice } from './engine/Slice';
+import { Slice } from './engine/device/Slice';
 import { AddSliceDocument } from './Slice.generated';
 import { ButtonWithLabel } from './UI';
 

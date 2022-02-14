@@ -1,3 +1,8 @@
+import { SerializedDeviceChain } from './device/DeviceChain';
+import { SerializedFilter } from './device/Filter';
+import { SerializedSampler } from './device/Sampler';
+import { SerializedTrack } from './Track';
+
 export type SerializedSlice = {
   id: string;
   start: number;
@@ -39,18 +44,16 @@ export type Step = {
   actions: Action[];
 };
 
-export type SerializedSampler = {
-  url: string;
-  zoom: number;
-  volume: number;
-  slices: SerializedSlice[];
-};
+export type SerializedDevice =
+  | SerializedSampler
+  | SerializedDeviceChain
+  | SerializedFilter;
 
 export type SerializedEngine = {
   currentPatternIndex: number;
   bpm: number;
   swing: number;
-  samplers: SerializedSampler[];
+  tracks: SerializedTrack[];
 };
 
 export const subdivisions = [

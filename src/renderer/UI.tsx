@@ -261,7 +261,7 @@ export const LCDFrame = (props: PropsWithChildren) => {
   );
 };
 
-export const Device = (
+export const DeviceWrapper = (
   props: PropsWithChildren<{ class?: string; background?: string }>
 ) => {
   return (

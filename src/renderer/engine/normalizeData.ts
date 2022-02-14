@@ -1,12 +1,16 @@
 import { createUniqueId } from 'solid-js';
+import { SerializedDeviceChain } from './device/DeviceChain';
+import { SerializedFilter } from './device/Filter';
+import { SerializedSampler } from './device/Sampler';
+import { SerializedTrack } from './Track';
 
 import {
   SerializedSlice,
   SerializedEngine,
-  SerializedSampler,
   Pattern,
   Step,
   Action,
+  SerializedDevice,
 } from './types';
 
 export const normalizeStepData = (step: DeepPartial<Step>): Step => ({
@@ -70,14 +74,62 @@ export const normalizeSliceData = (
 export const normalizeSamplerData = (
   sampler: DeepPartial<SerializedSampler>
 ): SerializedSampler => ({
-  url: sampler.url ?? '',
+  name: 'Sampler',
+  inputGain: sampler.inputGain ?? 1,
   volume: sampler.volume ?? 1,
+  url: sampler.url ?? '',
   zoom: sampler.zoom ?? 0,
   slices: (Array.isArray(sampler.slices) ? sampler.slices : [])
     .filter(
       (maybeStep): maybeStep is DeepPartial<SerializedSlice> => !!maybeStep
     )
     .map(normalizeSliceData),
+});
+
+export const normalizeFilterData = (
+  filter: DeepPartial<SerializedFilter>
+): SerializedFilter => ({
+  name: 'Filter',
+  inputGain: filter.inputGain ?? 1,
+  volume: filter.volume ?? 1,
+  frequency: filter.frequency ?? 4000,
+  type: filter.type ?? 'lowpass',
+});
+
+export const normalizeDeviceData = (
+  device: DeepPartial<SerializedDevice>
+): SerializedDevice | undefined => {
+  switch (device.name) {
+    case 'DeviceChain':
+      return normalizeDeviceChainData(device);
+    case 'Sampler':
+      return normalizeSamplerData(device);
+    case 'Filter':
+      return normalizeFilterData(device);
+    default:
+      return;
+  }
+};
+
+export const normalizeDeviceChainData = (
+  deviceChain: DeepPartial<SerializedDeviceChain>
+): SerializedDeviceChain => ({
+  name: 'DeviceChain',
+  inputGain: deviceChain.inputGain ?? 1,
+  volume: deviceChain.volume ?? 1,
+  devices: (Array.isArray(deviceChain.devices) ? deviceChain.devices : [])
+    .filter(
+      (maybeDevice): maybeDevice is DeepPartial<SerializedDevice> =>
+        !!maybeDevice
+    )
+    .map(normalizeDeviceData)
+    .filter((maybeDevice): maybeDevice is SerializedDevice => !!maybeDevice),
+});
+
+export const normalizeTrackData = (
+  track: DeepPartial<SerializedTrack>
+): SerializedTrack => ({
+  chain: normalizeDeviceChainData({ ...track.chain }),
 });
 
 export const normalizeData = (
@@ -87,12 +139,11 @@ export const normalizeData = (
     bpm: parsedData.bpm ?? 120,
     swing: parsedData.swing ?? 0,
     currentPatternIndex: parsedData.currentPatternIndex ?? 0,
-    samplers: (Array.isArray(parsedData.samplers) ? parsedData.samplers : [])
+    tracks: (Array.isArray(parsedData.tracks) ? parsedData.tracks : [])
       .filter(
-        (maybeSampler): maybeSampler is DeepPartial<SerializedSampler> =>
-          !!maybeSampler
+        (maybeTrack): maybeTrack is DeepPartial<SerializedTrack> => !!maybeTrack
       )
-      .map(normalizeSamplerData),
+      .map(normalizeTrackData),
   };
 };
 

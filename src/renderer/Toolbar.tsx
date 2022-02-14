@@ -5,6 +5,7 @@ import { Offline, Transport } from 'tone';
 import { debounce } from 'ts-debounce';
 
 import { createStoreFromEventEmitter } from './createSignalFromEventEmitter';
+import { Sampler } from './engine/device/Sampler';
 import { Engine } from './engine/Engine';
 import { DeepPartial, normalizeData } from './engine/normalizeData';
 import { FindSlicesButton } from './FindSlicesButton';
@@ -43,11 +44,22 @@ export const Toolbar = (props: {
   };
 
   const addSampler = (event: { currentTarget: HTMLInputElement }) => {
-    props.engine.createSampler({
-      url: event.currentTarget.value,
-      zoom: 0,
-      volume: 1,
-      slices: [],
+    props.engine.createTrack({
+      chain: {
+        name: 'DeviceChain',
+        inputGain: 1,
+        volume: 1,
+        devices: [
+          {
+            name: 'Sampler',
+            inputGain: 1,
+            volume: 1,
+            url: event.currentTarget.value,
+            zoom: 0,
+            slices: [],
+          },
+        ],
+      },
     });
   };
 
@@ -106,17 +118,20 @@ export const Toolbar = (props: {
 
   const renderToWavefile = async () => {
     const maxLength =
-      props.engine
-        .getSamplers()
-        .flatMap((sampler) => {
-          return sampler
-            .getSlices()
-            .map(
-              (slice) =>
-                slice.serialize().patterns[props.engine.currentPatternIndex]
-                  .steps.length
-            );
-        })
+      props.engine.tracks
+        .flatMap((track) =>
+          track.chain.devices
+            .filter((device): device is Sampler => device instanceof Sampler)
+            .flatMap((sampler) =>
+              sampler
+                .getSlices()
+                .map(
+                  (slice) =>
+                    slice.serialize().patterns[props.engine.currentPatternIndex]
+                      .steps.length
+                )
+            )
+        )
         .sort()
         .pop() ?? 16;
 
@@ -128,9 +143,7 @@ export const Toolbar = (props: {
       offlineEngine = new Engine(offlineContext.transport);
       offlineEngine.update(props.engine.serialize());
 
-      await Promise.all(
-        offlineEngine.getSamplers().map((sampler) => sampler.hasLoaded())
-      );
+      await offlineEngine.hasLoaded();
 
       offlineContext.transport.start();
     }, timeToRender);
@@ -172,11 +185,28 @@ export const Toolbar = (props: {
     props.engine.update(
       normalizeData(
         parsedData ?? {
-          samplers: [
-            { url: 'https://www.youtube.com/watch?v=GxZuq57_bYM' },
-            { url: 'https://www.youtube.com/watch?v=0-fJLVH8_Es' },
+          tracks: [
+            {
+              chain: {
+                devices: [
+                  {
+                    name: 'Sampler',
+                    url: 'https://www.youtube.com/watch?v=GxZuq57_bYM',
+                  },
+                ],
+              },
+            },
+            {
+              chain: {
+                devices: [
+                  {
+                    name: 'Sampler',
+                    url: 'https://www.youtube.com/watch?v=0-fJLVH8_Es',
+                  },
+                ],
+              },
+            },
           ],
-          currentPatternIndex: 0,
         }
       )
     );

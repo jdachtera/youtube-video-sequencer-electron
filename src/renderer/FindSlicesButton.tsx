@@ -2,6 +2,7 @@ import { createQuery } from '@merged/solid-apollo';
 import Dismiss from 'solid-dismiss';
 import { createMemo, createSignal, For, JSX, splitProps } from 'solid-js';
 import { css } from 'solid-styled-components';
+import { Sampler, SerializedSampler } from './engine/device/Sampler';
 
 import { Engine } from './engine/Engine';
 import { SlicesDocument, TagsDocument } from './Slice.generated';
@@ -155,14 +156,37 @@ export const FindSlicesButton = (props: { engine: Engine }) => {
                           playbackSpeed,
                           reverse,
                         } = slice;
-                        const sampler =
-                          props.engine.getSampler(sourceUrl) ??
-                          props.engine.createSampler({
-                            url: sourceUrl,
-                            zoom: 1,
-                            volume: 1,
-                            slices: [],
+                        const track =
+                          props.engine.findTrack(
+                            (track) =>
+                              !!track.chain.findDevice(
+                                (device) =>
+                                  device instanceof Sampler &&
+                                  device.url === sourceUrl
+                              )
+                          ) ??
+                          props.engine.createTrack({
+                            chain: {
+                              name: 'DeviceChain',
+                              volume: 1,
+                              inputGain: 1,
+                              devices: [
+                                {
+                                  name: 'Sampler',
+                                  url: sourceUrl,
+                                  zoom: 1,
+                                  inputGain: 1,
+                                  volume: 1,
+                                  slices: [],
+                                },
+                              ],
+                            },
                           });
+
+                        const sampler = track.chain.findDevice(
+                          (device): device is Sampler =>
+                            device instanceof Sampler
+                        ) as Sampler;
 
                         await sampler.hasLoaded();
 

@@ -4,8 +4,8 @@ import {
   createSignalFromEventEmitter,
   createStoreFromEventEmitter,
 } from './createSignalFromEventEmitter';
-import { Sampler } from './engine/Sampler';
-import { Slice } from './engine/Slice';
+import { Sampler } from './engine/device/Sampler';
+import { Slice } from './engine/device/Slice';
 import { Pattern, subdivisions, subdivisionTypes } from './engine/types';
 import { MoogKnobWithLabel } from './Knob';
 import { Label } from './Label';

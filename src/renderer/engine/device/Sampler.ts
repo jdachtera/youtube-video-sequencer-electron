@@ -1,13 +1,20 @@
-import { Gain, ToneAudioBuffer } from 'tone';
-import { TypedEmitter } from 'tiny-typed-emitter';
+import { ToneAudioBuffer } from 'tone';
 import { Slice } from './Slice';
-import type { Engine } from './Engine';
-import { SerializedSlice, SerializedSampler } from './types';
-import { loadCachedVideo, storeCachedVideo } from './blobStore';
-import { entries, PropertyUpdateEvents } from './helpers';
+import type { Engine } from '../Engine';
+import { SerializedSlice } from '../types';
+import { loadCachedVideo, storeCachedVideo } from '../blobStore';
+import { entries, PropertyUpdateEvents } from '../helpers';
+import { Device, SerializedDeviceBase } from './Device';
 
 declare const yt: {
   getYouTubeVideoSource: (url: string) => Promise<string>;
+};
+
+export type SerializedSampler = SerializedDeviceBase & {
+  name: 'Sampler';
+  url: string;
+  zoom: number;
+  slices: SerializedSlice[];
 };
 
 type SamplerEvents = {
@@ -19,7 +26,9 @@ type SamplerEvents = {
   change: (sampler: Sampler) => void;
 } & PropertyUpdateEvents<SerializedSampler>;
 
-export class Sampler extends TypedEmitter<SamplerEvents> {
+export class Sampler extends Device<SamplerEvents> {
+  name = 'Sampler';
+
   buffer = new ToneAudioBuffer();
 
   slices = new Map<string, Slice>();
@@ -28,18 +37,16 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
 
   zoom = 1;
 
-  gain = new Gain();
-
   engine: Engine;
 
   private _hasLoaded = false;
 
   constructor(engine: Engine, serializedSampler: SerializedSampler) {
-    super();
+    super(engine);
     this.setMaxListeners(1000);
 
     this.engine = engine;
-    this.gain.toDestination();
+    this.output.toDestination();
 
     this.on('sliceAdded', () => this.emit('change', this));
     this.on('sliceRemoved', () => this.emit('change', this));
@@ -86,7 +93,7 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
           this.zoom = entry[1] ?? 1;
           break;
         case 'volume':
-          this.gain.gain.value = entry[1] ?? 1;
+          this.output.gain.value = entry[1] ?? 1;
           break;
         case 'slices':
           this.slices.forEach((slice) => this.removeSlice(slice.id));
@@ -98,12 +105,14 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
 
       this.emit(`${entry[0]}Updated` as any, entry[1]);
     });
+
+    this.emit('change', this);
   }
 
   createSlice(serializedSlice: SerializedSlice) {
     const slice = new Slice(this, serializedSlice);
 
-    slice.soloNode.connect(this.gain);
+    slice.soloNode.connect(this.output);
     slice.on('change', () => this.emit('change', this));
 
     this.slices.set(serializedSlice.id, slice);
@@ -139,15 +148,18 @@ export class Sampler extends TypedEmitter<SamplerEvents> {
   }
 
   dispose() {
+    super.dispose();
     this.slices.forEach((slice) => this.removeSlice(slice.id));
     this.buffer.dispose();
   }
 
   serialize(): SerializedSampler {
     return {
+      name: 'Sampler',
+      volume: this.output.gain.value,
+      inputGain: this.input.gain.value,
       url: this.url,
       zoom: this.zoom,
-      volume: this.gain.gain.value,
       slices: [...this.slices.values()].map((slice) => slice.serialize()),
     };
   }

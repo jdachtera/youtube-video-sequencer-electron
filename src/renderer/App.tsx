@@ -4,23 +4,23 @@ import { Transport } from 'tone';
 import { ApolloProvider } from '@merged/solid-apollo';
 
 import { Engine } from './engine/Engine';
-import { SamplerView } from './SamplerView';
 import { theme } from './theme';
-import { Device } from './UI';
+import { DeviceWrapper } from './UI';
 
 import { apolloClient } from './apolloClient';
 import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
-import { PatternEditor } from './PatternEditor';
 import { Toolbar, ViewMode } from './Toolbar';
 import { GlobalStyles } from './GlobalStyles';
+import { DeviceView } from './DeviceView';
+import { PatternView } from './PatternView';
 
 const engine = new Engine(Transport);
 
 export function App() {
-  const samplers = createSignalFromEventEmitter(
+  const tracks = createSignalFromEventEmitter(
     engine,
-    ['samplerAdded', 'samplerRemoved'],
-    (engine) => engine.getSamplers()
+    ['trackAdded', 'trackRemoved'],
+    (engine) => engine.tracks
   );
 
   const [viewMode, setViewMode] = createSignal<ViewMode>('DEVICE');
@@ -53,8 +53,8 @@ export function App() {
                 `]: viewMode() !== 'DEVICE',
               }}
             >
-              <For each={samplers()}>
-                {(sampler) => <SamplerView sampler={sampler} />}
+              <For each={tracks()}>
+                {(track) => <DeviceView device={track.chain} />}
               </For>
             </div>
 
@@ -65,16 +65,11 @@ export function App() {
                 `]: viewMode() !== 'PATTERN',
               }}
             >
-              <Device background={'#bd945e'}>
-                <div>
-                  <For
-                    each={samplers()}
-                    fallback={<div>loading sampler...</div>}
-                  >
-                    {(sampler) => <PatternEditor sampler={sampler} />}
-                  </For>
-                </div>
-              </Device>
+              <DeviceWrapper background={'#bd945e'}>
+                <For each={tracks()} fallback={<div>loading sampler...</div>}>
+                  {(track) => <PatternView device={track.chain} />}
+                </For>
+              </DeviceWrapper>
             </div>
           </div>
         </div>

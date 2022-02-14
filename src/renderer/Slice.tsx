@@ -6,7 +6,7 @@ import { LCDLabel, LCD, ModuleFrame, ButtonWithLabel, RackEar } from './UI';
 
 import { WavesurferSliceView } from './WavesurferSliceView';
 
-import type { Slice } from './engine/Slice';
+import type { Slice } from './engine/device/Slice';
 import { MoogKnobWithLabel, NumberInput } from './Knob';
 
 import { Toggle } from './Toggle';

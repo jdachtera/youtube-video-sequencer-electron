@@ -8,11 +8,10 @@ import { SampleSlice } from './Slice';
 
 import { css } from 'solid-styled-components';
 
-import { Sampler } from './engine/Sampler';
+import { Sampler } from './engine/device/Sampler';
 import { WavesurferView } from './WavesurferView';
 
 import {
-  Device,
   LCD,
   LCDFrame,
   LCDLine,
@@ -21,7 +20,7 @@ import {
 } from './UI';
 
 import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
-import { Slice } from './engine/Slice';
+import { Slice } from './engine/device/Slice';
 
 export const SamplerView = (props: { sampler: Sampler }) => {
   const [selectedSlice, setSelectedSlice] = createSignal<Slice>();
@@ -64,10 +63,6 @@ export const SamplerView = (props: { sampler: Sampler }) => {
     props.sampler.removeSlice(slice.id);
   };
 
-  const handleRemoveSampler = () => {
-    props.sampler.engine.removeSampler(props.sampler.url);
-  };
-
   const handleClickSlice = async (slice: Slice) => {
     setSelectedSlice(slice);
 
@@ -93,7 +88,7 @@ export const SamplerView = (props: { sampler: Sampler }) => {
   };
 
   return (
-    <Device background="#969696">
+    <>
       <div
         class={css`
           background-color: #b9b9b9;
@@ -167,11 +162,6 @@ export const SamplerView = (props: { sampler: Sampler }) => {
           padding: '10px',
         }}
       >
-        <div>
-          <button type="button" onClick={handleRemoveSampler}>
-            Remove sampler
-          </button>
-        </div>
         <ol
           class={css`
             font-size: 10px;
@@ -195,6 +185,6 @@ export const SamplerView = (props: { sampler: Sampler }) => {
           </For>
         </ol>
       </div>
-    </Device>
+    </>
   );
 };

@@ -2,18 +2,20 @@
 import { Time } from 'tone/build/esm/core/type/Units';
 import { Transport } from 'tone/build/esm/core/clock/Transport';
 import { TypedEmitter } from 'tiny-typed-emitter';
-import { Sampler } from './Sampler';
-import { SerializedEngine, SerializedSampler } from './types';
+import { SerializedTrack, Track } from './Track';
+import { SerializedEngine } from './types';
 import { entries, PropertyUpdateEvents } from './helpers';
 
 type EngineEvents = {
-  samplerAdded: (sampler: Sampler) => void;
-  samplerRemoved: (sampler: Sampler) => void;
+  trackAdded: (track: Track) => void;
+  trackRemoved: (track: Track) => void;
   change: (engine: Engine) => void;
+  start: (time?: Time | undefined, offset?: number | undefined) => void;
+  stop: (time?: Time | undefined) => void;
 } & PropertyUpdateEvents<SerializedEngine>;
 
 export class Engine extends TypedEmitter<EngineEvents> {
-  protected samplers = new Map<string, Sampler>();
+  public tracks: Track[] = [];
 
   public currentPatternIndex = 0;
 
@@ -22,45 +24,45 @@ export class Engine extends TypedEmitter<EngineEvents> {
 
     this.setMaxListeners(1000);
 
-    this.on('samplerAdded', () => this.emit('change', this));
-    this.on('samplerRemoved', () => this.emit('change', this));
+    this.on('trackAdded', () => this.emit('change', this));
+    this.on('trackRemoved', () => this.emit('change', this));
   }
 
-  createSampler(serializedSampler: SerializedSampler) {
-    const sampler = new Sampler(this, serializedSampler);
-    this.samplers.set(serializedSampler.url, sampler);
-    sampler.on('change', () => this.emit('change', this));
-    this.emit('samplerAdded', sampler);
+  async hasLoaded() {
+    await Promise.all(
+      this.tracks.map(async (track) => {
+        await track.hasLoaded();
+      })
+    );
+  }
+  createTrack(serializedTrack: SerializedTrack) {
+    const track = new Track(this, serializedTrack);
+    this.tracks = [...this.tracks, track];
 
-    return sampler;
+    track.on('change', () => this.emit('change', this));
+    this.emit('trackAdded', track);
+
+    return track;
   }
 
-  getSamplers() {
-    return [...this.samplers.values()];
+  findTrack(predicate: (track: Track) => boolean): Track | undefined {
+    return this.tracks.find(predicate);
   }
 
-  getSampler(url: string) {
-    return this.samplers.get(url);
-  }
+  removeTrack(track: Track) {
+    track.dispose();
 
-  removeSampler(url: string) {
-    const maybeExistingSampler = this.samplers.get(url);
-    if (maybeExistingSampler) {
-      maybeExistingSampler.removeAllListeners();
-      maybeExistingSampler.slices.forEach((slice) => {
-        maybeExistingSampler.removeSlice(slice.id);
-      });
-      maybeExistingSampler.dispose();
-      this.samplers.delete(url);
+    const index = this.tracks.indexOf(track);
 
-      this.emit('samplerRemoved', maybeExistingSampler);
-    }
+    this.tracks = [
+      ...this.tracks.slice(0, index),
+      ...this.tracks.slice(0, index + 1),
+    ];
   }
 
   dispose() {
-    this.samplers.forEach((sampler) => {
-      this.removeSampler(sampler.url);
-    });
+    this.tracks.forEach((track) => track.dispose());
+    this.tracks = [];
   }
 
   update(serializedEngine: Partial<SerializedEngine>) {
@@ -73,18 +75,15 @@ export class Engine extends TypedEmitter<EngineEvents> {
           break;
         case 'currentPatternIndex':
           this.currentPatternIndex = entry[1] ?? 0;
-          this.samplers.forEach((sampler) => {
-            sampler.setCurrentPatternIndex(this.currentPatternIndex);
-          });
           break;
         case 'swing':
           this.transport.swing = entry[1] ?? 0;
           this.transport.swingSubdivision = '16n';
           break;
-        case 'samplers':
-          this.samplers.forEach((sampler) => this.removeSampler(sampler.url));
-          entry[1]?.forEach((serializedSampler) =>
-            this.createSampler(serializedSampler)
+        case 'tracks':
+          this.tracks.forEach((track) => this.removeTrack(track));
+          entry[1]?.forEach((serializedTrack) =>
+            this.createTrack(serializedTrack)
           );
           break;
       }
@@ -95,9 +94,7 @@ export class Engine extends TypedEmitter<EngineEvents> {
 
   serialize(): SerializedEngine {
     return {
-      samplers: [...this.samplers.values()].map((sampler) =>
-        sampler.serialize()
-      ),
+      tracks: this.tracks.map((track) => track.serialize()),
       currentPatternIndex: this.currentPatternIndex,
       bpm: this.transport.bpm.value,
       swing: this.transport.swing,
@@ -105,14 +102,10 @@ export class Engine extends TypedEmitter<EngineEvents> {
   }
 
   start(time?: Time | undefined, offset?: number | undefined) {
-    this.samplers.forEach((sampler) => {
-      sampler.slices.forEach((slice) => slice.sequence.start(time, offset));
-    });
+    this.emit('start', time, offset);
   }
 
   stop(time?: Time | undefined) {
-    this.samplers.forEach((sampler) => {
-      sampler.slices.forEach((slice) => slice.sequence.stop(time));
-    });
+    this.emit('stop', time);
   }
 }
