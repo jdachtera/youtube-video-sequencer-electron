@@ -1,13 +1,15 @@
 import { Device, SerializedDeviceBase } from './Device';
 import { entries, PropertyUpdateEvents } from '../helpers';
 
-import { Frequency, OnePoleFilter } from 'tone';
+import { Frequency, Filter as FilterNode } from 'tone';
 import { Engine } from '../Engine';
 
 export type SerializedFilter = SerializedDeviceBase & {
   name: 'Filter';
   frequency: number;
-  type: OnePoleFilter['type'];
+  resonance: number;
+  rolloff: FilterNode['rolloff'];
+  type: FilterNode['type'];
 };
 
 type DeviceChainEvents = {
@@ -17,7 +19,7 @@ type DeviceChainEvents = {
 } & PropertyUpdateEvents<SerializedFilter>;
 
 export class Filter extends Device<DeviceChainEvents> {
-  filterNode = new OnePoleFilter();
+  filterNode = new FilterNode();
 
   constructor(engine: Engine, serializedFilter: Partial<SerializedFilter>) {
     super(engine);
@@ -26,14 +28,25 @@ export class Filter extends Device<DeviceChainEvents> {
     this.set(serializedFilter);
   }
 
-  set(partialSerializedFilter: Partial<SerializedFilter>) {
-    super.set(partialSerializedFilter);
+  emitChange = () => this.emit('change', this);
 
+  set(partialSerializedFilter: Partial<SerializedFilter>) {
     entries(partialSerializedFilter).forEach((entry) => {
       if (!entry) return;
+
       switch (entry[0]) {
         case 'frequency':
-          this.filterNode.frequency = entry[1]!;
+          this.filterNode.set({
+            frequency: Frequency(Math.round(entry[1]!)).toFrequency(),
+          });
+          break;
+        case 'resonance':
+          this.filterNode.set({
+            Q: entry[1],
+          });
+          break;
+        case 'rolloff':
+          this.filterNode.rolloff = entry[1]!;
           break;
         case 'type':
           this.filterNode.type = entry[1]!;
@@ -42,7 +55,7 @@ export class Filter extends Device<DeviceChainEvents> {
       this.emit(`${entry[0]}Updated` as any, entry[1]);
     });
 
-    this.emit('change', this);
+    super.set(partialSerializedFilter);
   }
 
   dispose(): void {
@@ -56,7 +69,9 @@ export class Filter extends Device<DeviceChainEvents> {
       volume: this.output.gain.value,
       inputGain: this.input.gain.value,
       type: this.filterNode.type,
-      frequency: Frequency(this.filterNode.frequency).toFrequency(),
+      frequency: Frequency(this.filterNode.frequency.value).toFrequency(),
+      resonance: this.filterNode.Q.value,
+      rolloff: this.filterNode.rolloff,
     };
   }
 }

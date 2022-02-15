@@ -28,6 +28,8 @@ export class Engine extends TypedEmitter<EngineEvents> {
     this.on('trackRemoved', () => this.emit('change', this));
   }
 
+  emitChange = () => this.emit('change', this);
+
   async hasLoaded() {
     await Promise.all(
       this.tracks.map(async (track) => {
@@ -39,7 +41,7 @@ export class Engine extends TypedEmitter<EngineEvents> {
     const track = new Track(this, serializedTrack);
     this.tracks = [...this.tracks, track];
 
-    track.on('change', () => this.emit('change', this));
+    track.on('change', this.emitChange);
     this.emit('trackAdded', track);
 
     return track;
@@ -50,14 +52,16 @@ export class Engine extends TypedEmitter<EngineEvents> {
   }
 
   removeTrack(track: Track) {
+    track.off('change', this.emitChange);
     track.dispose();
 
     const index = this.tracks.indexOf(track);
 
     this.tracks = [
       ...this.tracks.slice(0, index),
-      ...this.tracks.slice(0, index + 1),
+      ...this.tracks.slice(index + 1),
     ];
+    this.emit('trackRemoved', track);
   }
 
   dispose() {

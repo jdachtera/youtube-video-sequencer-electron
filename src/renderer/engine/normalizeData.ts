@@ -94,6 +94,8 @@ export const normalizeFilterData = (
   volume: filter.volume ?? 1,
   frequency: filter.frequency ?? 4000,
   type: filter.type ?? 'lowpass',
+  resonance: filter.resonance ?? 0.1,
+  rolloff: filter.rolloff ?? -12,
 });
 
 export const normalizeDeviceData = (

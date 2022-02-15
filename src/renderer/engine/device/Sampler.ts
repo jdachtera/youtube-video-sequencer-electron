@@ -37,22 +37,19 @@ export class Sampler extends Device<SamplerEvents> {
 
   zoom = 1;
 
-  engine: Engine;
-
   private _hasLoaded = false;
 
   constructor(engine: Engine, serializedSampler: SerializedSampler) {
     super(engine);
     this.setMaxListeners(1000);
 
-    this.engine = engine;
-    this.output.toDestination();
-
-    this.on('sliceAdded', () => this.emit('change', this));
-    this.on('sliceRemoved', () => this.emit('change', this));
+    this.on('sliceAdded', this.emitChange);
+    this.on('sliceRemoved', this.emitChange);
 
     this.update(serializedSampler);
   }
+
+  emitChange = () => this.emit('change', this);
 
   private async load() {
     this._hasLoaded = false;
@@ -92,9 +89,6 @@ export class Sampler extends Device<SamplerEvents> {
         case 'zoom':
           this.zoom = entry[1] ?? 1;
           break;
-        case 'volume':
-          this.output.gain.value = entry[1] ?? 1;
-          break;
         case 'slices':
           this.slices.forEach((slice) => this.removeSlice(slice.id));
           entry[1]?.forEach((serializedSlice) =>
@@ -106,14 +100,14 @@ export class Sampler extends Device<SamplerEvents> {
       this.emit(`${entry[0]}Updated` as any, entry[1]);
     });
 
-    this.emit('change', this);
+    super.set(samplerPartial);
   }
 
   createSlice(serializedSlice: SerializedSlice) {
     const slice = new Slice(this, serializedSlice);
 
     slice.soloNode.connect(this.output);
-    slice.on('change', () => this.emit('change', this));
+    slice.on('change', this.emitChange);
 
     this.slices.set(serializedSlice.id, slice);
     this.emit('sliceAdded', slice);

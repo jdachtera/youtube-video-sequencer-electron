@@ -18,8 +18,9 @@ export class Track extends TypedEmitter<TrackEvents> {
   constructor(public engine: Engine, serializedTrack: SerializedTrack) {
     super();
     this.set(serializedTrack);
-    this.chain.on('change', () => this.emit('change', this));
   }
+
+  emitChange = () => this.emit('change', this);
 
   set(partialSerializedDevice: Partial<SerializedTrack>) {
     entries(partialSerializedDevice).forEach((entry) => {
@@ -27,7 +28,12 @@ export class Track extends TypedEmitter<TrackEvents> {
       switch (entry[0]) {
         case 'chain':
           this.chain?.dispose();
+          this.chain?.off('change', this.emitChange);
+
           this.chain = new DeviceChain(this.engine, entry[1]!);
+
+          this.chain.on('change', this.emitChange);
+          this.chain.output.toDestination();
           break;
       }
     });

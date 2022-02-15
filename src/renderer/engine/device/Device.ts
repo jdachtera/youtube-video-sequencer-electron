@@ -14,23 +14,25 @@ export type SerializedDeviceBase = {
   inputGain: number;
 };
 
-type DeviceEvents<L extends ListenerSignature<L> = DefaultListener> =
-  PropertyUpdateEvents<SerializedDeviceBase> & {
-    change: (device: Device<L>) => void;
-    sequenceEvent: (time: number, step: Step) => void;
-  };
+type DeviceEvents = PropertyUpdateEvents<SerializedDeviceBase> & {
+  change: (device: Device) => void;
+  sequenceEvent: (time: number, step: Step) => void;
+};
 
 export abstract class Device<
   L extends ListenerSignature<L> = DefaultListener
-> extends TypedEmitter<DeviceEvents<L> & L> {
+> extends TypedEmitter<DeviceEvents & L> {
   input = new Gain();
   output = new Gain();
 
-  private inputDevice?: Device;
+  private inputDevice?: Device<ListenerSignature<unknown>>;
 
   constructor(public engine: Engine) {
     super();
   }
+
+  abstract emitChange(): void;
+  abstract serialize(): SerializedDevice;
 
   async hasLoaded(): Promise<void> {
     //
@@ -58,15 +60,19 @@ export abstract class Device<
           break;
       }
     });
+    this.emitChange();
   }
 
   setInputDevice(device?: Device) {
-    this.inputDevice?.output.disconnect(this.input);
-    this.inputDevice?.off('sequenceEvent', this.handleSequenceEvent);
+    try {
+      this.inputDevice?.output.disconnect(this.input);
+      this.inputDevice?.off('sequenceEvent', this.handleSequenceEvent);
+    } catch {
+      //
+    }
+
     this.inputDevice = device;
     this.inputDevice?.output.connect(this.input);
     this.inputDevice?.on('sequenceEvent', this.handleSequenceEvent);
   }
-
-  abstract serialize(): SerializedDevice;
 }

@@ -54,7 +54,18 @@ export function App() {
               }}
             >
               <For each={tracks()}>
-                {(track) => <DeviceView device={track.chain} />}
+                {(track) => (
+                  <div>
+                    <DeviceView device={track.chain} />
+                    <button
+                      onClick={() => {
+                        engine.removeTrack(track);
+                      }}
+                    >
+                      Remove Track
+                    </button>
+                  </div>
+                )}
               </For>
             </div>
 

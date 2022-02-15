@@ -23,25 +23,24 @@ export class DeviceChain extends Device<DeviceChainEvents> {
     this.set(serializedChain);
   }
 
-  set(partialSerializedDevice: Partial<SerializedDeviceChain>) {
-    super.set(partialSerializedDevice);
+  emitChange = () => this.emit('change', this);
 
+  set(partialSerializedDevice: Partial<SerializedDeviceChain>) {
     entries(partialSerializedDevice).forEach((entry) => {
       if (!entry) return;
       switch (entry[0]) {
         case 'devices':
           this.disposeDevices();
-          this.setDevices(
-            entry[1]!.map((serializedDevice) =>
-              createDevice(this.engine, serializedDevice)
-            )
+
+          entry[1]!.forEach((serializedDevice) =>
+            this.addDevice(createDevice(this.engine, serializedDevice))
           );
           break;
       }
       this.emit(`${entry[0]}Updated` as any, entry[1]);
     });
 
-    this.emit('change', this);
+    super.set(partialSerializedDevice);
   }
 
   async hasLoaded() {
@@ -53,7 +52,11 @@ export class DeviceChain extends Device<DeviceChainEvents> {
   }
 
   protected setDevices(devices: Device[]) {
+    this.devices.forEach((device) => {
+      device.output.disconnect();
+    });
     this.devices = devices;
+
     this.connectDevices();
   }
 
@@ -61,15 +64,21 @@ export class DeviceChain extends Device<DeviceChainEvents> {
     return this.devices.find(predicate);
   }
 
-  addDevice(device: Device, index: number) {
+  addDevice(device: Device, index: number = this.devices.length) {
+    device.on('change', this.emitChange);
+
     this.setDevices([
       ...this.devices.slice(0, index),
       device,
       ...this.devices.slice(index + 1),
     ]);
+
+    this.emit('deviceAdded', device);
+    this.emit('change', this);
   }
 
   removeDevice(device: Device) {
+    device.off('change', this.emitChange);
     device.setInputDevice(undefined);
 
     const index = this.devices.indexOf(device);
@@ -78,6 +87,8 @@ export class DeviceChain extends Device<DeviceChainEvents> {
       ...this.devices.slice(0, index),
       ...this.devices.slice(index + 1),
     ]);
+    this.emit('deviceRemoved', device);
+    this.emit('change', this);
   }
 
   moveDevice(device: Device, index: number) {
@@ -104,7 +115,7 @@ export class DeviceChain extends Device<DeviceChainEvents> {
     const lastDevice = this.devices.at(this.devices.length - 1);
 
     if (lastDevice) {
-      this.setInputDevice(lastDevice);
+      lastDevice.output.connect(this.output);
     }
   }
 

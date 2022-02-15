@@ -21,6 +21,7 @@ type KnobProps = {
   max?: number;
   step?: number;
   speed?: number;
+  logarithmic?: boolean;
   fineIsDefault?: boolean;
   initialRotation?: number;
   onChange: (newValue: number) => void;
@@ -40,6 +41,7 @@ export const Knob = (props: KnobProps) => {
       max: 10,
       step: 0,
       speed: 1,
+      logarithmic: false,
       initialRotation: 0,
     },
     props
