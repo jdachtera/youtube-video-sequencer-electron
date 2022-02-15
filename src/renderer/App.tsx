@@ -11,7 +11,7 @@ import { apolloClient } from './apolloClient';
 import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
 import { Toolbar, ViewMode } from './Toolbar';
 import { GlobalStyles } from './GlobalStyles';
-import { DeviceView } from './DeviceView';
+import { DeviceView } from './Device/DeviceView';
 import { PatternView } from './PatternView';
 
 const engine = new Engine(Transport);

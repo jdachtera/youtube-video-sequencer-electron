@@ -1,5 +1,5 @@
 import { For, Match, Switch } from 'solid-js';
-import { Action } from './engine/types';
+import { Action } from '../engine/types';
 
 const SequencerPlayAction = (props: {
   action: { type: 'PLAY' } & Action;

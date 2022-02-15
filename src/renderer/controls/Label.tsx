@@ -1,6 +1,6 @@
 import { createMemo, JSXElement } from 'solid-js';
 import { css } from 'solid-styled-components';
-import { useAppTheme } from './theme';
+import { useAppTheme } from '../theme';
 
 export const Label = (props: {
   label?: JSXElement;

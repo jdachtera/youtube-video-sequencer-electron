@@ -1,7 +1,7 @@
 import { css } from 'solid-styled-components';
-import { Step } from './engine/types';
+import { Step } from '../engine/types';
 
-import { useAppTheme } from './theme';
+import { useAppTheme } from '../theme';
 
 type SequencerStepProps = {
   step: Step;

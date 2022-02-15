@@ -1,19 +1,20 @@
 import { createSignal, For } from 'solid-js';
-import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
+import { createSignalFromEventEmitter } from '../createSignalFromEventEmitter';
 import { DeviceView } from './DeviceView';
-import { createDevice } from './engine/device/createDevice';
+import { createDevice } from '../engine/device/createDevice';
 
-import { DeviceChain } from './engine/device/DeviceChain';
+import { DeviceChain } from '../engine/device/DeviceChain';
 
-import { normalizeDeviceData } from './engine/normalizeData';
-import { SerializedDevice } from './engine/types';
+import { normalizeDeviceData } from '../engine/normalizeData';
+import { SerializedDevice } from '../engine/types';
 
-import { DeviceWrapper } from './UI';
+import { DeviceWrapper } from '../UI';
 
 const deviceNames: SerializedDevice['name'][] = [
   // 'DeviceChain',
   'Filter',
   //  'Sampler',
+  'PingPongDelay',
 ];
 
 export const DeviceChainView = (props: { deviceChain: DeviceChain }) => {
@@ -44,16 +45,15 @@ export const DeviceChainView = (props: { deviceChain: DeviceChain }) => {
         )}
       </For>
       <div>
-        <select>
+        <select
+          onChange={(event) =>
+            setSelectedDeviceName(
+              event.currentTarget.value as SerializedDevice['name']
+            )
+          }
+        >
           <For each={deviceNames}>
-            {(deviceName) => (
-              <option
-                selected={selectedDeviceName() === deviceName}
-                onClick={() => setSelectedDeviceName(deviceName)}
-              >
-                {deviceName}
-              </option>
-            )}
+            {(deviceName) => <option value={deviceName}>{deviceName}</option>}
           </For>
         </select>
         <button

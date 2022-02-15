@@ -9,7 +9,7 @@ import { Sampler } from './engine/device/Sampler';
 import { Engine } from './engine/Engine';
 import { DeepPartial, normalizeData } from './engine/normalizeData';
 import { FindSlicesButton } from './FindSlicesButton';
-import { MoogKnobWithLabel } from './Knob';
+import { MoogKnobWithLabel } from './controls/Knob';
 import { LoginModal } from './LoginModal';
 
 const viewModes = ['DEVICE', 'PATTERN'] as const;

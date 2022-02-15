@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { createSignal, onMount, For, untrack, createEffect } from 'solid-js';
+import { createSignal, onMount, For, untrack } from 'solid-js';
 
 import { Region } from 'wavesurfer.js/src/plugin/regions';
 import { Transport } from 'tone';
@@ -8,7 +8,7 @@ import { SampleSlice } from './Slice';
 
 import { css } from 'solid-styled-components';
 
-import { Sampler } from './engine/device/Sampler';
+import { Sampler } from '../engine/device/Sampler';
 import { WavesurferView } from './WavesurferView';
 
 import {
@@ -17,10 +17,10 @@ import {
   LCDLine,
   AkaiButton,
   ScreenPrintBackground,
-} from './UI';
+} from '../UI';
 
-import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
-import { Slice } from './engine/device/Slice';
+import { createSignalFromEventEmitter } from '../createSignalFromEventEmitter';
+import { Slice } from '../engine/device/Slice';
 
 export const SamplerView = (props: { sampler: Sampler }) => {
   const [selectedSlice, setSelectedSlice] = createSignal<Slice>();

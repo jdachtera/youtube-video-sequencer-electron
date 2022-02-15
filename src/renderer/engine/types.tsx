@@ -1,5 +1,6 @@
 import { SerializedDeviceChain } from './device/DeviceChain';
 import { SerializedFilter } from './device/Filter';
+import { SerializedPingPongDelay } from './device/PingPongDelay';
 import { SerializedSampler } from './device/Sampler';
 import { SerializedTrack } from './Track';
 
@@ -48,7 +49,8 @@ export type Step = {
 export type SerializedDevice =
   | SerializedSampler
   | SerializedDeviceChain
-  | SerializedFilter;
+  | SerializedFilter
+  | SerializedPingPongDelay;
 
 export type SerializedEngine = {
   currentPatternIndex: number;

@@ -2,17 +2,17 @@ import { createMemo, untrack } from 'solid-js';
 
 import { css } from 'solid-styled-components';
 
-import { LCDLabel, LCD, ModuleFrame, ButtonWithLabel, RackEar } from './UI';
+import { LCDLabel, LCD, ModuleFrame, ButtonWithLabel, RackEar } from '../UI';
 
 import { WavesurferSliceView } from './WavesurferSliceView';
 
-import type { Slice } from './engine/device/Slice';
-import { MoogKnobWithLabel, NumberInput } from './Knob';
+import type { Slice } from '../engine/device/Slice';
+import { MoogKnobWithLabel, NumberInput } from '../controls/Knob';
 
-import { Toggle } from './Toggle';
-import { ShareSliceButton } from './ShareSliceButton';
-import { createStoreFromEventEmitter } from './createSignalFromEventEmitter';
-import { SlicePattern } from './PatternEditor';
+import { Toggle } from '../controls/Toggle';
+import { ShareSliceButton } from '../ShareSliceButton';
+import { createStoreFromEventEmitter } from '../createSignalFromEventEmitter';
+import { SlicePattern } from '../PatternEditor';
 import { DeviceChainView } from './DeviceChainView';
 
 const FormattedTime = (props: { timeInSeconds: number }) => {

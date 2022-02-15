@@ -2,6 +2,7 @@ import { Engine } from '../Engine';
 import { SerializedDevice } from '../types';
 import { DeviceChain } from './DeviceChain';
 import { Filter } from './Filter';
+import { PingPongDelay } from './PingPongDelay';
 import { Sampler } from './Sampler';
 
 export const createDevice = (
@@ -17,6 +18,9 @@ export const createDevice = (
       break;
     case 'Filter':
       return new Filter(engine, serializedDevice);
+      break;
+    case 'PingPongDelay':
+      return new PingPongDelay(engine, serializedDevice);
       break;
   }
 };

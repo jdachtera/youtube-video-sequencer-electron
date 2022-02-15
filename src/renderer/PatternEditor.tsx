@@ -7,10 +7,10 @@ import {
 import { Sampler } from './engine/device/Sampler';
 import { Slice } from './engine/device/Slice';
 import { Pattern, subdivisions, subdivisionTypes } from './engine/types';
-import { MoogKnobWithLabel } from './Knob';
-import { Label } from './Label';
-import { Sequencer } from './Sequencer';
-import { Toggle } from './Toggle';
+import { MoogKnobWithLabel } from './controls/Knob';
+import { Label } from './controls/Label';
+import { Sequencer } from './Device/Sequencer';
+import { Toggle } from './controls/Toggle';
 import { LCD, ScreenPrintBackground } from './UI';
 
 export const PatternEditor = (

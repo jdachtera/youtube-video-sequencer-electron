@@ -9,9 +9,9 @@ import {
   splitProps,
   untrack,
 } from 'solid-js';
-import MoogKnobSvg from './svg/moog_knob.svg';
+import MoogKnobSvg from '../svg/moog_knob.svg';
 import { css } from 'solid-styled-components';
-import { useAppTheme } from './theme';
+import { useAppTheme } from '../theme';
 import { Label } from './Label';
 import { Dynamic } from 'solid-js/web';
 

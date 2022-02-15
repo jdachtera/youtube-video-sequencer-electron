@@ -1,13 +1,15 @@
 import { Match, Switch } from 'solid-js';
 import { DeviceChainView } from './DeviceChainView';
 
-import { Device } from './engine/device/Device';
-import { DeviceChain } from './engine/device/DeviceChain';
-import { Filter } from './engine/device/Filter';
-import { Sampler } from './engine/device/Sampler';
+import { Device } from '../engine/device/Device';
+import { DeviceChain } from '../engine/device/DeviceChain';
+import { Filter } from '../engine/device/Filter';
+import { Sampler } from '../engine/device/Sampler';
 
-import { FilterView } from './FilterView';
+import { PingPongDelayView } from './PingPongDelayView';
 import { SamplerView } from './SamplerView';
+import { FilterView } from './FilterView';
+import { PingPongDelay } from 'renderer/engine/device/PingPongDelay';
 
 export const DeviceView = (props: { device: Device }) => (
   <Switch>
@@ -21,6 +23,11 @@ export const DeviceView = (props: { device: Device }) => (
     </Match>
     <Match when={props.device instanceof Filter && props.device}>
       {(device) => <FilterView filter={device}></FilterView>}
+    </Match>
+    <Match when={props.device instanceof PingPongDelay && props.device}>
+      {(device) => (
+        <PingPongDelayView pingPongDelay={device}></PingPongDelayView>
+      )}
     </Match>
   </Switch>
 );

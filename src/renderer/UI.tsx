@@ -1,5 +1,5 @@
 import { css } from 'solid-styled-components';
-import { Label } from './Label';
+import { Label } from './controls/Label';
 import ScrewHead from './svg/screw_head.svg';
 import { BiCompass } from 'solid-icons/bi';
 

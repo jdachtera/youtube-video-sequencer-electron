@@ -1,6 +1,7 @@
 import { createUniqueId } from 'solid-js';
 import { SerializedDeviceChain } from './device/DeviceChain';
 import { SerializedFilter } from './device/Filter';
+import { SerializedPingPongDelay } from './device/PingPongDelay';
 import { SerializedSampler } from './device/Sampler';
 import { SerializedTrack } from './Track';
 
@@ -99,6 +100,16 @@ export const normalizeFilterData = (
   rolloff: filter.rolloff ?? -12,
 });
 
+export const normalizePingPongDelayData = (
+  pingPongDelay: DeepPartial<SerializedPingPongDelay>
+): SerializedPingPongDelay => ({
+  name: 'PingPongDelay',
+  inputGain: pingPongDelay.inputGain ?? 1,
+  volume: pingPongDelay.volume ?? 1,
+  delayTime: pingPongDelay.delayTime ?? 100,
+  feedback: pingPongDelay.feedback ?? 0.2,
+});
+
 export const normalizeDeviceData = (
   device: DeepPartial<SerializedDevice>
 ): SerializedDevice | undefined => {
@@ -109,6 +120,8 @@ export const normalizeDeviceData = (
       return normalizeSamplerData(device);
     case 'Filter':
       return normalizeFilterData(device);
+    case 'PingPongDelay':
+      return normalizePingPongDelayData(device);
     default:
       return;
   }

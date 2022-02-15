@@ -1,8 +1,8 @@
 import { createEffect, createSignal, For, onCleanup, onMount } from 'solid-js';
 import { FilterRollOff } from 'tone';
-import { createStoreFromEventEmitter } from './createSignalFromEventEmitter';
-import { Filter, SerializedFilter } from './engine/device/Filter';
-import { MoogKnobWithLabel } from './Knob';
+import { createStoreFromEventEmitter } from '../createSignalFromEventEmitter';
+import { Filter, SerializedFilter } from '../engine/device/Filter';
+import { MoogKnobWithLabel } from '../controls/Knob';
 
 const filterTypes: BiquadFilterType[] = [
   'lowpass',

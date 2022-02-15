@@ -1,10 +1,10 @@
 import { JSX, mergeProps, splitProps } from 'solid-js';
 
-import SwitchOnSvg from './svg/switch--on.svg';
-import SwitchOffSvg from './svg/switch--off.svg';
+import SwitchOnSvg from '../svg/switch--on.svg';
+import SwitchOffSvg from '../svg/switch--off.svg';
 import { css } from 'solid-styled-components';
 import { Label } from './Label';
-import { useAppTheme } from './theme';
+import { useAppTheme } from '../theme';
 
 export const Toggle = (
   props: {

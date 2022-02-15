@@ -1,9 +1,9 @@
 import { createSignal, onMount, onCleanup, Index, mergeProps } from 'solid-js';
 
 import { createNewAction } from './SequencerAction';
-import { Slice } from './engine/device/Slice';
+import { Slice } from '../engine/device/Slice';
 import { css } from 'solid-styled-components';
-import { Action, Step } from './engine/types';
+import { Action, Step } from '../engine/types';
 import { SequencerStep } from './SequencerStep';
 
 const createDefaultAction = (allSteps: Step[]): Action => {
