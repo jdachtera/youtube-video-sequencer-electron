@@ -1,8 +1,9 @@
 import { Device, SerializedDeviceBase } from './Device';
 import { entries, PropertyUpdateEvents } from '../helpers';
 import { Engine } from '../Engine';
-import { SerializedDevice } from '../types';
+import { DeepPartial, SerializedDevice } from '../types';
 import { createDevice } from './createDevice';
+import { normalizeDeviceData } from './normalizeDeviceData';
 
 export type SerializedDeviceChain = SerializedDeviceBase & {
   name: 'DeviceChain';
@@ -17,6 +18,21 @@ type DeviceChainEvents = {
 
 export class DeviceChain extends Device<DeviceChainEvents> {
   devices: Device[] = [];
+
+  static normalizeData = (
+    deviceChain: DeepPartial<SerializedDeviceChain>
+  ): SerializedDeviceChain => ({
+    name: 'DeviceChain',
+    inputGain: deviceChain.inputGain ?? 1,
+    volume: deviceChain.volume ?? 1,
+    devices: (Array.isArray(deviceChain.devices) ? deviceChain.devices : [])
+      .filter(
+        (maybeDevice): maybeDevice is DeepPartial<SerializedDevice> =>
+          !!maybeDevice
+      )
+      .map(normalizeDeviceData)
+      .filter((maybeDevice): maybeDevice is SerializedDevice => !!maybeDevice),
+  });
 
   constructor(engine: Engine, serializedChain: SerializedDeviceChain) {
     super(engine);

@@ -4,6 +4,7 @@ import { entries, PropertyUpdateEvents } from '../helpers';
 import { PingPongDelay as PingPongDelayNode } from 'tone';
 import { Engine } from '../Engine';
 import { NormalRange, Time } from 'tone/build/esm/core/type/Units';
+import { DeepPartial } from '../types';
 
 export type SerializedPingPongDelay = SerializedDeviceBase & {
   name: 'PingPongDelay';
@@ -17,6 +18,16 @@ type PingPongDelayEvents = {
 
 export class PingPongDelay extends Device<PingPongDelayEvents> {
   pingPongDelayNode = new PingPongDelayNode();
+
+  static normalizeData = (
+    pingPongDelay: DeepPartial<SerializedPingPongDelay>
+  ): SerializedPingPongDelay => ({
+    name: 'PingPongDelay',
+    inputGain: pingPongDelay.inputGain ?? 1,
+    volume: pingPongDelay.volume ?? 1,
+    delayTime: pingPongDelay.delayTime ?? 100,
+    feedback: pingPongDelay.feedback ?? 0.2,
+  });
 
   constructor(
     engine: Engine,

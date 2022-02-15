@@ -1,10 +1,11 @@
 import { ToneAudioBuffer } from 'tone';
-import { Slice } from './Slice';
+import { SerializedSlice, Slice } from './Slice';
 import type { Engine } from '../Engine';
-import { SerializedSlice } from '../types';
+
 import { loadCachedVideo, storeCachedVideo } from '../blobStore';
 import { entries, PropertyUpdateEvents } from '../helpers';
 import { Device, SerializedDeviceBase } from './Device';
+import { DeepPartial } from '../types';
 
 declare const yt: {
   getYouTubeVideoSource: (url: string) => Promise<string>;
@@ -38,6 +39,21 @@ export class Sampler extends Device<SamplerEvents> {
   zoom = 1;
 
   private _hasLoaded = false;
+
+  static normalizeData = (
+    sampler: DeepPartial<SerializedSampler>
+  ): SerializedSampler => ({
+    name: 'Sampler',
+    inputGain: sampler.inputGain ?? 1,
+    volume: sampler.volume ?? 1,
+    url: sampler.url ?? '',
+    zoom: sampler.zoom ?? 0,
+    slices: (Array.isArray(sampler.slices) ? sampler.slices : [])
+      .filter(
+        (maybeStep): maybeStep is DeepPartial<SerializedSlice> => !!maybeStep
+      )
+      .map(Slice.normalizeData),
+  });
 
   constructor(engine: Engine, serializedSampler: SerializedSampler) {
     super(engine);

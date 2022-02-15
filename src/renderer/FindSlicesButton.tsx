@@ -2,12 +2,11 @@ import { createQuery } from '@merged/solid-apollo';
 import Dismiss from 'solid-dismiss';
 import { createMemo, createSignal, For, JSX, splitProps } from 'solid-js';
 import { css } from 'solid-styled-components';
-import { Sampler, SerializedSampler } from './engine/device/Sampler';
 
+import { Sampler } from './engine/device/Sampler';
+import { Slice } from './engine/device/Slice';
 import { Engine } from './engine/Engine';
-import { normalizeSliceData } from './engine/normalizeData';
 import { SlicesDocument, TagsDocument } from './Slice.generated';
-
 import { ButtonWithLabel } from './UI';
 
 export const Pagination = (
@@ -192,7 +191,7 @@ export const FindSlicesButton = (props: { engine: Engine }) => {
                         await sampler.hasLoaded();
 
                         sampler.createSlice(
-                          normalizeSliceData({
+                          Slice.normalizeData({
                             id,
                             name: title,
                             start,

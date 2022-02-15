@@ -3,6 +3,7 @@ import { entries, PropertyUpdateEvents } from './helpers';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { DeviceChain, SerializedDeviceChain } from './device/DeviceChain';
 import { Engine } from './Engine';
+import { DeepPartial } from './types';
 
 export type SerializedTrack = {
   chain: SerializedDeviceChain;
@@ -14,6 +15,15 @@ type TrackEvents = {
 
 export class Track extends TypedEmitter<TrackEvents> {
   chain: DeviceChain = null!;
+
+  static normalizeData = (
+    track: DeepPartial<SerializedTrack>
+  ): SerializedTrack => ({
+    chain: DeviceChain.normalizeData({
+      ...track.chain,
+      devices: track.chain?.devices,
+    }),
+  });
 
   constructor(public engine: Engine, serializedTrack: SerializedTrack) {
     super();

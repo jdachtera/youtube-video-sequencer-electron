@@ -7,9 +7,7 @@ import Wavesurfer from 'wavesurfer.js';
 import RegionsPlugin, { Region } from 'wavesurfer.js/src/plugin/regions';
 import TimelinePlugin from 'wavesurfer.js/src/plugin/timeline';
 import { Sampler } from '../engine/device/Sampler';
-import { Slice } from '../engine/device/Slice';
-import { SerializedSlice } from '../engine/types';
-import { normalizeSliceData } from '../engine/normalizeData';
+import { SerializedSlice, Slice } from '../engine/device/Slice';
 
 type WavesurferViewProps = {
   sampler: Sampler;
@@ -70,7 +68,7 @@ export const WavesurferView = (props: WavesurferViewProps) => {
     const randB = Math.floor(Math.random() * (255 - 0 + 1) + 0);
     const color = `rgba(${randR},${randG},${randB},0.8)`;
 
-    const slice: SerializedSlice = normalizeSliceData({
+    const slice: SerializedSlice = Slice.normalizeData({
       id: region.id,
       collapsed: true,
       start: region.start,

@@ -1,56 +1,16 @@
 import { SerializedDeviceChain } from './device/DeviceChain';
 import { SerializedFilter } from './device/Filter';
 import { SerializedPingPongDelay } from './device/PingPongDelay';
+import { SerializedReverb } from './device/Reverb';
 import { SerializedSampler } from './device/Sampler';
 import { SerializedTrack } from './Track';
-
-export type SerializedSlice = {
-  id: string;
-  start: number;
-  end: number;
-  volume: number;
-  playbackSpeed: number;
-  reverse: boolean;
-  color: string;
-  patterns: Pattern[];
-  name: string;
-  solo: boolean;
-  collapsed: boolean;
-  chain: SerializedDeviceChain;
-};
-
-export type Pattern = {
-  subdivision: number;
-  subdivisionType: typeof subdivisionTypes[number];
-  steps: Step[];
-};
-
-export type Action =
-  | {
-      type: 'PLAY';
-      velocity?: number;
-    }
-  | {
-      type: 'PAUSE';
-    }
-  | {
-      type: 'SET_PLAYBACK_SPEED';
-      value: number;
-    }
-  | {
-      type: 'SET_REVERSE';
-      value: boolean;
-    };
-
-export type Step = {
-  actions: Action[];
-};
 
 export type SerializedDevice =
   | SerializedSampler
   | SerializedDeviceChain
   | SerializedFilter
-  | SerializedPingPongDelay;
+  | SerializedPingPongDelay
+  | SerializedReverb;
 
 export type SerializedEngine = {
   currentPatternIndex: number;
@@ -58,6 +18,12 @@ export type SerializedEngine = {
   swing: number;
   tracks: SerializedTrack[];
 };
+
+export type DeepPartial<T> = T extends object
+  ? {
+      [P in keyof T]?: DeepPartial<T[P]>;
+    }
+  : T;
 
 export const subdivisions = [
   -0.5,

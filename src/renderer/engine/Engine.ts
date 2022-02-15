@@ -3,8 +3,10 @@ import { Time } from 'tone/build/esm/core/type/Units';
 import { Transport } from 'tone/build/esm/core/clock/Transport';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { SerializedTrack, Track } from './Track';
-import { SerializedEngine } from './types';
+import { DeepPartial, SerializedEngine } from './types';
 import { entries, PropertyUpdateEvents } from './helpers';
+
+import { Sampler, SerializedSampler } from './device/Sampler';
 
 type EngineEvents = {
   trackAdded: (track: Track) => void;
@@ -18,6 +20,42 @@ export class Engine extends TypedEmitter<EngineEvents> {
   public tracks: Track[] = [];
 
   public currentPatternIndex = 0;
+
+  static normalizeData = (
+    parsedData: DeepPartial<
+      SerializedEngine & { samplers: SerializedSampler[] }
+    >
+  ): SerializedEngine => {
+    return {
+      bpm: parsedData.bpm ?? 120,
+      swing: parsedData.swing ?? 0,
+      currentPatternIndex: parsedData.currentPatternIndex ?? 0,
+      tracks: [
+        ...(Array.isArray(parsedData.tracks) ? parsedData.tracks : [])
+          .filter(
+            (maybeTrack): maybeTrack is DeepPartial<SerializedTrack> =>
+              !!maybeTrack
+          )
+          .map((track) => Track.normalizeData({ ...track })),
+
+        ...(Array.isArray(parsedData.samplers) ? parsedData.samplers : []).map(
+          (sampler): SerializedTrack => ({
+            chain: {
+              name: 'DeviceChain',
+              inputGain: 1,
+              volume: 1,
+              devices: [
+                Sampler.normalizeData({
+                  ...sampler,
+                  name: 'Sampler',
+                }),
+              ],
+            },
+          })
+        ),
+      ],
+    };
+  };
 
   constructor(public transport: Transport) {
     super();

@@ -5,16 +5,17 @@ import { createDevice } from '../engine/device/createDevice';
 
 import { DeviceChain } from '../engine/device/DeviceChain';
 
-import { normalizeDeviceData } from '../engine/normalizeData';
 import { SerializedDevice } from '../engine/types';
 
 import { DeviceWrapper } from '../UI';
+import { normalizeDeviceData } from 'renderer/engine/device/normalizeDeviceData';
 
 const deviceNames: SerializedDevice['name'][] = [
   // 'DeviceChain',
   'Filter',
   //  'Sampler',
   'PingPongDelay',
+  'Reverb',
 ];
 
 export const DeviceChainView = (props: { deviceChain: DeviceChain }) => {

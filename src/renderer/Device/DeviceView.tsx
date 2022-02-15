@@ -10,6 +10,8 @@ import { PingPongDelayView } from './PingPongDelayView';
 import { SamplerView } from './SamplerView';
 import { FilterView } from './FilterView';
 import { PingPongDelay } from 'renderer/engine/device/PingPongDelay';
+import { Reverb } from 'renderer/engine/device/Reverb';
+import { ReverbView } from './ReverbView';
 
 export const DeviceView = (props: { device: Device }) => (
   <Switch>
@@ -28,6 +30,9 @@ export const DeviceView = (props: { device: Device }) => (
       {(device) => (
         <PingPongDelayView pingPongDelay={device}></PingPongDelayView>
       )}
+    </Match>
+    <Match when={props.device instanceof Reverb && props.device}>
+      {(device) => <ReverbView reverb={device}></ReverbView>}
     </Match>
   </Switch>
 );

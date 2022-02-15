@@ -1,5 +1,5 @@
+import { Step } from 'renderer/engine/device/Slice';
 import { css } from 'solid-styled-components';
-import { Step } from '../engine/types';
 
 import { useAppTheme } from '../theme';
 

@@ -3,6 +3,7 @@ import { entries, PropertyUpdateEvents } from '../helpers';
 
 import { Frequency, Filter as FilterNode } from 'tone';
 import { Engine } from '../Engine';
+import { DeepPartial } from '../types';
 
 export type SerializedFilter = SerializedDeviceBase & {
   name: 'Filter';
@@ -20,6 +21,18 @@ type DeviceChainEvents = {
 
 export class Filter extends Device<DeviceChainEvents> {
   filterNode = new FilterNode();
+
+  static normalizeData = (
+    filter: DeepPartial<SerializedFilter>
+  ): SerializedFilter => ({
+    name: 'Filter',
+    inputGain: filter.inputGain ?? 1,
+    volume: filter.volume ?? 1,
+    frequency: filter.frequency ?? 4000,
+    type: filter.type ?? 'lowpass',
+    resonance: filter.resonance ?? 0.1,
+    rolloff: filter.rolloff ?? -12,
+  });
 
   constructor(engine: Engine, serializedFilter: Partial<SerializedFilter>) {
     super(engine);

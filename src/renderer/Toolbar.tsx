@@ -7,10 +7,10 @@ import { debounce } from 'ts-debounce';
 import { createStoreFromEventEmitter } from './createSignalFromEventEmitter';
 import { Sampler } from './engine/device/Sampler';
 import { Engine } from './engine/Engine';
-import { DeepPartial, normalizeData } from './engine/normalizeData';
 import { FindSlicesButton } from './FindSlicesButton';
 import { MoogKnobWithLabel } from './controls/Knob';
 import { LoginModal } from './LoginModal';
+import { DeepPartial } from './engine/types';
 
 const viewModes = ['DEVICE', 'PATTERN'] as const;
 export type ViewMode = typeof viewModes[number];
@@ -107,7 +107,7 @@ export const Toolbar = (props: {
             ReturnType<Engine['serialize']>
           >;
 
-          props.engine.set(normalizeData(parsedData));
+          props.engine.set(Engine.normalizeData(parsedData));
         } catch {
           //
         }
@@ -183,7 +183,7 @@ export const Toolbar = (props: {
     }
 
     props.engine.set(
-      normalizeData(
+      Engine.normalizeData(
         parsedData ?? {
           tracks: [
             {

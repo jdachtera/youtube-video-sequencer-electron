@@ -1,5 +1,5 @@
+import { Action } from 'renderer/engine/device/Slice';
 import { For, Match, Switch } from 'solid-js';
-import { Action } from '../engine/types';
 
 const SequencerPlayAction = (props: {
   action: { type: 'PLAY' } & Action;

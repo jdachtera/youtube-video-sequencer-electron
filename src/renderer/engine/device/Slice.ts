@@ -11,10 +11,54 @@ import {
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { debounce } from 'ts-debounce';
 
-import { Pattern, SerializedSlice, Step } from '../types';
 import { entries, PropertyUpdateEvents } from '../helpers';
 import { Sampler } from './Sampler';
-import { DeviceChain } from './DeviceChain';
+import { DeviceChain, SerializedDeviceChain } from './DeviceChain';
+
+import { createUniqueId } from 'solid-js';
+import { DeepPartial, subdivisionTypes } from '../types';
+
+export type SerializedSlice = {
+  id: string;
+  start: number;
+  end: number;
+  volume: number;
+  playbackSpeed: number;
+  reverse: boolean;
+  color: string;
+  patterns: Pattern[];
+  name: string;
+  solo: boolean;
+  collapsed: boolean;
+  chain: SerializedDeviceChain;
+};
+
+export type Pattern = {
+  subdivision: number;
+  subdivisionType: typeof subdivisionTypes[number];
+  steps: Step[];
+};
+
+export type Action =
+  | {
+      type: 'PLAY';
+      velocity?: number;
+    }
+  | {
+      type: 'PAUSE';
+    }
+  | {
+      type: 'SET_PLAYBACK_SPEED';
+      value: number;
+    }
+  | {
+      type: 'SET_REVERSE';
+      value: boolean;
+    };
+
+export type Step = {
+  actions: Action[];
+};
 
 export type SliceEvents = {
   sequenceEvent: (step: Step) => void;
@@ -41,6 +85,25 @@ export class Slice extends TypedEmitter<SliceEvents> {
 
   gainNode = new Gain();
   soloNode = new Solo();
+
+  static normalizeData = (
+    slice: DeepPartial<SerializedSlice>
+  ): SerializedSlice => ({
+    id: slice.id ?? createUniqueId(),
+    collapsed: slice.collapsed ?? false,
+    name: slice.name ?? '',
+    color: slice.color ?? 'red',
+    start: slice.start ?? 0,
+    end: slice.end ?? 10,
+    playbackSpeed: slice.playbackSpeed ?? 1,
+    reverse: slice.reverse ?? false,
+    volume: slice.volume ?? 1,
+    patterns: (Array.isArray(slice.patterns) ? slice.patterns : [])
+      .filter((maybeStep): maybeStep is DeepPartial<Pattern> => !!maybeStep)
+      .map(normalizePatternData),
+    solo: slice.solo ?? false,
+    chain: DeviceChain.normalizeData(slice.chain ?? {}),
+  });
 
   constructor(public sampler: Sampler, serializedSlice: SerializedSlice) {
     super();
@@ -293,4 +356,44 @@ const createEmptyPattern = (numberOfSteps = 16): Pattern => ({
   subdivision: 16,
   subdivisionType: 'n',
   steps: Array.from({ length: numberOfSteps }).map(() => ({ actions: [] })),
+});
+
+export const normalizeStepData = (step: DeepPartial<Step>): Step => ({
+  actions: (Array.isArray(step.actions) ? step.actions : [])
+    .map((action): Action | undefined => {
+      switch (action?.type) {
+        case 'PLAY':
+          return {
+            ...action,
+            type: action.type,
+            velocity: action.velocity ?? 1,
+          };
+        case 'PAUSE':
+          return { type: 'PAUSE' };
+        case 'SET_PLAYBACK_SPEED':
+          return { ...action, type: action.type, value: action.value ?? 1 };
+        case 'SET_REVERSE':
+          return { ...action, type: action.type, value: action.value ?? false };
+        default:
+          return undefined;
+      }
+    })
+    .filter((action): action is Action => !!action),
+});
+
+export const normalizePatternData = (
+  pattern: DeepPartial<Pattern> | Step[]
+): Pattern => ({
+  subdivision: Array.isArray(pattern) ? 16 : pattern.subdivision ?? 16,
+  subdivisionType: Array.isArray(pattern)
+    ? 'n'
+    : pattern.subdivisionType ?? 'n',
+  steps: (Array.isArray(pattern)
+    ? pattern
+    : Array.isArray(pattern.steps)
+    ? pattern.steps
+    : []
+  )
+    .filter((maybeStep): maybeStep is DeepPartial<Step> => !!maybeStep)
+    .map((step) => normalizeStepData(step)),
 });
