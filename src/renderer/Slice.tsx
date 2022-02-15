@@ -13,6 +13,7 @@ import { Toggle } from './Toggle';
 import { ShareSliceButton } from './ShareSliceButton';
 import { createStoreFromEventEmitter } from './createSignalFromEventEmitter';
 import { SlicePattern } from './PatternEditor';
+import { DeviceChainView } from './DeviceChainView';
 
 const FormattedTime = (props: { timeInSeconds: number }) => {
   const minutes = createMemo(() => Math.floor(props.timeInSeconds / 60));
@@ -506,6 +507,8 @@ export const SampleSlice = (props: {
           slice={props.slice}
           currentPatternIndex={props.currentPatternIndex}
         />
+
+        <DeviceChainView deviceChain={props.slice.chain}></DeviceChainView>
       </div>
     </li>
   );

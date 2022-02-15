@@ -5,6 +5,7 @@ import { css } from 'solid-styled-components';
 import { Sampler, SerializedSampler } from './engine/device/Sampler';
 
 import { Engine } from './engine/Engine';
+import { normalizeSliceData } from './engine/normalizeData';
 import { SlicesDocument, TagsDocument } from './Slice.generated';
 
 import { ButtonWithLabel } from './UI';
@@ -190,19 +191,16 @@ export const FindSlicesButton = (props: { engine: Engine }) => {
 
                         await sampler.hasLoaded();
 
-                        sampler.createSlice({
-                          id,
-                          name: title,
-                          start,
-                          end,
-                          collapsed: false,
-                          color: 'red',
-                          patterns: [],
-                          playbackSpeed,
-                          reverse,
-                          solo: false,
-                          volume: 1,
-                        });
+                        sampler.createSlice(
+                          normalizeSliceData({
+                            id,
+                            name: title,
+                            start,
+                            end,
+                            playbackSpeed,
+                            reverse,
+                          })
+                        );
                         setOpen(false);
                       }}
                     >

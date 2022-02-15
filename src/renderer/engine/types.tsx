@@ -15,6 +15,7 @@ export type SerializedSlice = {
   name: string;
   solo: boolean;
   collapsed: boolean;
+  chain: SerializedDeviceChain;
 };
 
 export type Pattern = {

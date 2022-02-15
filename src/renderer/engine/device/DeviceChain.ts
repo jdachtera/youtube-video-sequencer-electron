@@ -31,10 +31,14 @@ export class DeviceChain extends Device<DeviceChainEvents> {
       switch (entry[0]) {
         case 'devices':
           this.disposeDevices();
+          if (entry[1]!.length) {
+            entry[1]!.forEach((serializedDevice) =>
+              this.addDevice(createDevice(this.engine, serializedDevice))
+            );
+          } else {
+            this.setDevices([]);
+          }
 
-          entry[1]!.forEach((serializedDevice) =>
-            this.addDevice(createDevice(this.engine, serializedDevice))
-          );
           break;
       }
       this.emit(`${entry[0]}Updated` as any, entry[1]);
@@ -52,6 +56,7 @@ export class DeviceChain extends Device<DeviceChainEvents> {
   }
 
   protected setDevices(devices: Device[]) {
+    this.input.disconnect();
     this.devices.forEach((device) => {
       device.output.disconnect();
     });
@@ -112,11 +117,14 @@ export class DeviceChain extends Device<DeviceChainEvents> {
       return currentDevice;
     }, undefined);
 
+    const firstDevice = this.devices.at(0);
     const lastDevice = this.devices.at(this.devices.length - 1);
 
     if (lastDevice) {
       lastDevice.output.connect(this.output);
     }
+
+    this.input.connect(firstDevice ? firstDevice.input : this.output);
   }
 
   dispose() {

@@ -69,6 +69,7 @@ export const normalizeSliceData = (
     .filter((maybeStep): maybeStep is DeepPartial<Pattern> => !!maybeStep)
     .map(normalizePatternData),
   solo: slice.solo ?? false,
+  chain: normalizeDeviceChainData(slice.chain ?? {}),
 });
 
 export const normalizeSamplerData = (

@@ -14,6 +14,7 @@ import { debounce } from 'ts-debounce';
 import { Pattern, SerializedSlice, Step } from '../types';
 import { entries, PropertyUpdateEvents } from '../helpers';
 import { Sampler } from './Sampler';
+import { DeviceChain } from './DeviceChain';
 
 export type SliceEvents = {
   sequenceEvent: (step: Step) => void;
@@ -36,21 +37,25 @@ export class Slice extends TypedEmitter<SliceEvents> {
   name = '';
   collapsed = false;
 
+  chain: DeviceChain = null!;
+
   gainNode = new Gain();
   soloNode = new Solo();
 
   constructor(public sampler: Sampler, serializedSlice: SerializedSlice) {
     super();
+
     this.setMaxListeners(1000);
 
     this.player.connect(this.gainNode);
-    this.gainNode.connect(this.soloNode);
 
     this.on('startUpdated', this.updateBuffer);
     this.on('endUpdated', this.updateBuffer);
 
     this.update(serializedSlice);
   }
+
+  emitChange = () => this.emit('change', this);
 
   protected onSequenceEvent = (time: number, step: Step) => {
     getDraw().schedule(() => {
@@ -146,6 +151,21 @@ export class Slice extends TypedEmitter<SliceEvents> {
         case 'collapsed':
           this.collapsed = entry[1] ?? false;
           break;
+        case 'chain':
+          if (this.chain) {
+            this.chain.input.disconnect(this.soloNode);
+            this.chain.dispose();
+            this.chain.off('change', this.emitChange);
+            this.gainNode.disconnect(this.chain.input);
+          }
+          this.chain = new DeviceChain(this.sampler.engine, entry[1]!);
+          this.chain.on('change', this.emitChange);
+
+          this.gainNode.connect(this.chain.input);
+          this.chain.output.connect(this.soloNode);
+
+          break;
+
         default:
       }
 
@@ -245,6 +265,7 @@ export class Slice extends TypedEmitter<SliceEvents> {
       name: this.name,
       solo: this.soloNode.solo,
       collapsed: this.collapsed,
+      chain: this.chain.serialize(),
     };
   }
 

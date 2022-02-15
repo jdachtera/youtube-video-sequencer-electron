@@ -9,6 +9,7 @@ import TimelinePlugin from 'wavesurfer.js/src/plugin/timeline';
 import { Sampler } from './engine/device/Sampler';
 import { Slice } from './engine/device/Slice';
 import { SerializedSlice } from './engine/types';
+import { normalizeSliceData } from './engine/normalizeData';
 
 type WavesurferViewProps = {
   sampler: Sampler;
@@ -69,16 +70,11 @@ export const WavesurferView = (props: WavesurferViewProps) => {
     const randB = Math.floor(Math.random() * (255 - 0 + 1) + 0);
     const color = `rgba(${randR},${randG},${randB},0.8)`;
 
-    const slice: SerializedSlice = {
+    const slice: SerializedSlice = normalizeSliceData({
       id: region.id,
       collapsed: true,
       start: region.start,
       end: region.end,
-      playbackSpeed: 1,
-      reverse: false,
-      solo: false,
-      name: '',
-      volume: 1,
       color,
       patterns: [
         {
@@ -89,7 +85,7 @@ export const WavesurferView = (props: WavesurferViewProps) => {
           })),
         },
       ],
-    };
+    });
 
     props.sampler.createSlice(slice);
     region.update({ id: region.id, color });
