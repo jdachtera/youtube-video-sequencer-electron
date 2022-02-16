@@ -18,7 +18,7 @@ export const DistortionView = (props: { distortion: Distortion }) => {
         max={1}
         step={0.01}
         value={+distortionState.distortion}
-        label={'Decay'}
+        label={'Distortion'}
       />
     </div>
   );

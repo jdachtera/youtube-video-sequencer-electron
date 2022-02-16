@@ -1,4 +1,5 @@
 import { DeepPartial, SerializedDevice } from '../types';
+import { Compressor } from './Compressor';
 import { DeviceChain } from './DeviceChain';
 import { Distortion } from './Distortion';
 import { Filter } from './Filter';
@@ -20,6 +21,8 @@ export const normalizeDeviceData = (device: DeepPartial<SerializedDevice>) => {
       return Reverb.normalizeData(device);
     case 'Distortion':
       return Distortion.normalizeData(device);
+    case 'Compressor':
+      return Compressor.normalizeData(device);
     default:
       return;
   }

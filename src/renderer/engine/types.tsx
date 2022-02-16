@@ -1,3 +1,4 @@
+import { SerializedCompressor } from './device/Compressor';
 import { SerializedDeviceChain } from './device/DeviceChain';
 import { SerializedDistortion } from './device/Distortion';
 import { SerializedFilter } from './device/Filter';
@@ -12,7 +13,8 @@ export type SerializedDevice =
   | SerializedFilter
   | SerializedPingPongDelay
   | SerializedReverb
-  | SerializedDistortion;
+  | SerializedDistortion
+  | SerializedCompressor;
 
 export type SerializedEngine = {
   currentPatternIndex: number;

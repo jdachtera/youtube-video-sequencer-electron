@@ -12,6 +12,8 @@ import { FilterView } from './FilterView';
 import { PingPongDelay } from 'renderer/engine/device/PingPongDelay';
 import { Distortion } from 'renderer/engine/device/Distortion';
 import { DistortionView } from './DistortionView';
+import { CompressorView } from './CompressorView';
+import { Compressor } from 'renderer/engine/device/Compressor';
 
 export const DeviceView = (props: { device: Device }) => (
   <Switch>
@@ -36,6 +38,9 @@ export const DeviceView = (props: { device: Device }) => (
     </Match>
     <Match when={props.device instanceof Distortion && props.device}>
       {(device) => <DistortionView distortion={device}></DistortionView>}
+    </Match>
+    <Match when={props.device instanceof Compressor && props.device}>
+      {(device) => <CompressorView compressor={device}></CompressorView>}
     </Match>
   </Switch>
 );

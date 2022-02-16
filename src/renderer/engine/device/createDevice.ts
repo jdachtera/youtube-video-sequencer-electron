@@ -1,5 +1,6 @@
 import { Engine } from '../Engine';
 import { SerializedDevice } from '../types';
+import { Compressor } from './Compressor';
 import { DeviceChain } from './DeviceChain';
 import { Distortion } from './Distortion';
 import { Filter } from './Filter';
@@ -24,5 +25,7 @@ export const createDevice = (
       return new Reverb(engine, serializedDevice);
     case 'Distortion':
       return new Distortion(engine, serializedDevice);
+    case 'Compressor':
+      return new Compressor(engine, serializedDevice);
   }
 };
