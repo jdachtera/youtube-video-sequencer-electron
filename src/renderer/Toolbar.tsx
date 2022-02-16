@@ -35,6 +35,22 @@ export const Toolbar = (props: {
     setIsPlaying(!isPlaying());
   };
 
+  const handleKeydown = (event: KeyboardEvent) => {
+    switch (event.code) {
+      case 'Space':
+        togglePlay();
+        break;
+    }
+  };
+
+  onMount(() => {
+    window.addEventListener('keydown', handleKeydown);
+  });
+
+  onCleanup(() => {
+    window.removeEventListener('keydown', handleKeydown);
+  });
+
   const handleTempoChange = (bpm: number) => {
     props.engine.set({ bpm });
   };
