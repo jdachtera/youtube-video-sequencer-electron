@@ -1,7 +1,8 @@
 import { spawn } from 'child_process';
 import path from 'path';
 
-const sourcePackages = {
+const sourcePackages: Record<string, string[]> = {
+  /*
   '@merged/solid-apollo': [
     `rm -rf node_modules`,
     `mkdir -p _node_modules`,
@@ -9,7 +10,7 @@ const sourcePackages = {
     'npm install',
     'npm run build',
     'mv node_modules _node_modules',
-  ],
+  ],*/
 };
 
 const spawnPromise = (...args: Parameters<typeof spawn>) => {
