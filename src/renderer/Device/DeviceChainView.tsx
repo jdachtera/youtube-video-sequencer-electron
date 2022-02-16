@@ -16,6 +16,7 @@ const deviceNames: SerializedDevice['name'][] = [
   //  'Sampler',
   'PingPongDelay',
   'Reverb',
+  'Distortion',
 ];
 
 export const DeviceChainView = (props: { deviceChain: DeviceChain }) => {

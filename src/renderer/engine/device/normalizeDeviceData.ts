@@ -1,5 +1,6 @@
 import { DeepPartial, SerializedDevice } from '../types';
 import { DeviceChain } from './DeviceChain';
+import { Distortion } from './Distortion';
 import { Filter } from './Filter';
 import { PingPongDelay } from './PingPongDelay';
 import { Reverb } from './Reverb';
@@ -17,6 +18,8 @@ export const normalizeDeviceData = (device: DeepPartial<SerializedDevice>) => {
       return PingPongDelay.normalizeData(device);
     case 'Reverb':
       return Reverb.normalizeData(device);
+    case 'Distortion':
+      return Distortion.normalizeData(device);
     default:
       return;
   }

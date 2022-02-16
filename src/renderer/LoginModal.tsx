@@ -1,6 +1,6 @@
 import { ApolloError } from '@apollo/client/errors';
 import { createEffect, createSignal, Show, Suspense } from 'solid-js';
-import { createMutation, createQuery } from '@merged/solid-apollo';
+import { createMutation, createQuery, useApollo } from '@merged/solid-apollo';
 import { authStore, useIsLoggedIn } from './auth';
 import { LoginDocument, UserDocument } from './User.generated';
 
@@ -17,7 +17,11 @@ export const LoginModal = () => {
 };
 
 const LoggedIn = () => {
-  const handleLogout = () => authStore.removeAccessToken();
+  const apolloClient = useApollo();
+  const handleLogout = () => {
+    authStore.removeAccessToken();
+    apolloClient.clearStore();
+  };
   const data = createQuery(UserDocument);
 
   return (
