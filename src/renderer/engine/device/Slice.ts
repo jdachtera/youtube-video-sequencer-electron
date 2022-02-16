@@ -293,15 +293,9 @@ export class Slice extends TypedEmitter<SliceEvents> {
 
   setSolo(solo: boolean, multi = false) {
     if (solo && !multi) {
-      this.sampler.engine.tracks.forEach((track) => {
-        track.chain.devices.forEach((device) => {
-          if (device instanceof SamplerDevice) {
-            device.slices.forEach((slice) => {
-              slice.update({ solo: this === slice });
-            });
-          }
-        });
-      });
+      this.sampler.slices.forEach((slice) =>
+        slice.update({ solo: this === slice })
+      );
     } else {
       this.update({ solo });
     }
@@ -342,6 +336,8 @@ export class Slice extends TypedEmitter<SliceEvents> {
     this.soloNode.dispose();
     this.gainNode.dispose();
     this.sequence.dispose();
+    this.gainNode.disconnect();
+    this.soloNode.disconnect();
     this.off('startUpdated', this.updateBuffer);
     this.off('endUpdated', this.updateBuffer);
   }
