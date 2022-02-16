@@ -14,6 +14,8 @@ import { SamplerView } from './SamplerView';
 import { FilterView } from './FilterView';
 import { DistortionView } from './DistortionView';
 import { CompressorView } from './CompressorView';
+import { ReverbDevice } from 'renderer/engine/device/Reverb';
+import { ReverbView } from './ReverbView';
 
 export const DeviceView = (props: { device: Device }) => (
   <Switch>
@@ -41,6 +43,9 @@ export const DeviceView = (props: { device: Device }) => (
     </Match>
     <Match when={props.device instanceof CompressorDevice && props.device}>
       {(device) => <CompressorView compressor={device}></CompressorView>}
+    </Match>
+    <Match when={props.device instanceof ReverbDevice && props.device}>
+      {(device) => <ReverbView reverb={device}></ReverbView>}
     </Match>
   </Switch>
 );

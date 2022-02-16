@@ -59,46 +59,49 @@ export const WavesurferView = (props: WavesurferViewProps) => {
     }
   };
 
-  const handleRegionCreated = (region: Region) => {
+  const handleRegionCreated = async (region: Region) => {
     const existingSlice = props.sampler.getSlice(region.id);
-    if (existingSlice) return;
-
-    const randR = Math.floor(Math.random() * (255 - 0 + 1) + 0);
-    const randG = Math.floor(Math.random() * (255 - 0 + 1) + 0);
-    const randB = Math.floor(Math.random() * (255 - 0 + 1) + 0);
-    const color = `rgba(${randR},${randG},${randB},0.8)`;
-
-    const slice: SerializedSlice = Slice.normalizeData({
-      id: region.id,
-      collapsed: true,
-      start: region.start,
-      end: region.end,
-      color,
-      patterns: [
-        {
-          subdivision: 16,
-          subdivisionType: 'n',
-          steps: Array.from({ length: 16 }).map(() => ({
-            actions: [],
-          })),
-        },
-      ],
-    });
-
-    props.sampler.createSlice(slice);
-    region.update({ id: region.id, color });
+    if (existingSlice) {
+      region.update({ id: region.id, color: existingSlice.color });
+    } else {
+      const randR = Math.floor(Math.random() * (255 - 0 + 1) + 0);
+      const randG = Math.floor(Math.random() * (255 - 0 + 1) + 0);
+      const randB = Math.floor(Math.random() * (255 - 0 + 1) + 0);
+      const color = `rgba(${randR},${randG},${randB},0.8)`;
+      region.update({ id: region.id, color });
+    }
   };
 
   const handleRegionUpdated = (region: Region) => {
     const slice = props.sampler.getSlice(region.id);
 
-    if (!slice) return;
+    if (!slice) {
+      const { id, start, end, color } = region;
 
-    if (slice.start !== region.start || slice.end !== region.end) {
-      slice.update({
-        start: region.start,
-        end: region.end,
+      const slice: SerializedSlice = Slice.normalizeData({
+        id,
+        collapsed: true,
+        start,
+        end,
+        color,
+        patterns: [
+          {
+            subdivision: 16,
+            subdivisionType: 'n',
+            steps: Array.from({ length: 16 }).map(() => ({
+              actions: [],
+            })),
+          },
+        ],
       });
+      props.sampler.createSlice(slice);
+    } else {
+      if (slice.start !== region.start || slice.end !== region.end) {
+        slice.update({
+          start: region.start,
+          end: region.end,
+        });
+      }
     }
   };
 

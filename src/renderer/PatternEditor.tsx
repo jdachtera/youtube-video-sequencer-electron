@@ -83,71 +83,66 @@ export const SlicePattern = (
       <LCD>foo</LCD>
       <Label label={sliceState.name} />
       <ScreenPrintBackground background={sliceState.color}>
-        {
-          <>
-            {' '}
-            <Sequencer
-              steps={currentPattern().steps}
-              onChange={(steps) => {
-                props.slice.updatePattern(props.currentPatternIndex, {
-                  steps,
-                });
-              }}
-              slice={props.slice}
-            />{' '}
-            <Toggle
-              label="Solo"
-              checked={sliceState.solo}
-              onChange={(solo, altKey) => {
-                props.slice.setSolo(solo, altKey);
-              }}
-            />
-            <MoogKnobWithLabel
-              label="Steps"
-              step={1}
-              min={1}
-              max={1024}
-              speed={0.1}
-              fineIsDefault
-              value={currentPattern()?.steps?.length}
-              onChange={(patternLength) => {
-                props.slice.updatePatternLength(
-                  props.currentPatternIndex,
-                  patternLength
-                );
-              }}
-            />
-            <select
-              value={currentPattern()?.subdivision ?? 16}
-              onChange={(event) => {
-                props.slice.updatePattern(props.currentPatternIndex, {
-                  subdivision: +event.currentTarget.value,
-                });
-              }}
-            >
-              <For each={subdivisions}>
-                {(subdivision) => (
-                  <option value={subdivision}>{subdivision}</option>
-                )}
-              </For>
-            </select>
-            <select
-              value={currentPattern()?.subdivisionType ?? 'n'}
-              onChange={(event) => {
-                props.slice.updatePattern(props.currentPatternIndex, {
-                  subdivisionType: event.currentTarget
-                    .value as Pattern['subdivisionType'],
-                });
-              }}
-            >
-              <For each={subdivisionTypes}>
-                {(subdivisionType) => (
-                  <option value={subdivisionType}>{subdivisionType}</option>
-                )}
-              </For>
-            </select>
-          </>
-        }
+        <Sequencer
+          steps={currentPattern().steps}
+          onChange={(steps) => {
+            props.slice.updatePattern(props.currentPatternIndex, {
+              steps,
+            });
+          }}
+          slice={props.slice}
+        />{' '}
+        <Toggle
+          label="Solo"
+          checked={sliceState.solo}
+          onChange={(solo, altKey) => {
+            props.slice.setSolo(solo, altKey);
+          }}
+        />
+        <MoogKnobWithLabel
+          label="Steps"
+          step={1}
+          min={1}
+          max={1024}
+          speed={0.1}
+          fineIsDefault
+          value={currentPattern()?.steps?.length}
+          onChange={(patternLength) => {
+            props.slice.updatePatternLength(
+              props.currentPatternIndex,
+              patternLength
+            );
+          }}
+        />
+        <select
+          value={currentPattern()?.subdivision ?? 16}
+          onChange={(event) => {
+            props.slice.updatePattern(props.currentPatternIndex, {
+              subdivision: +event.currentTarget.value,
+            });
+          }}
+        >
+          <For each={subdivisions}>
+            {(subdivision) => (
+              <option value={subdivision}>{subdivision}</option>
+            )}
+          </For>
+        </select>
+        <select
+          value={currentPattern()?.subdivisionType ?? 'n'}
+          onChange={(event) => {
+            props.slice.updatePattern(props.currentPatternIndex, {
+              subdivisionType: event.currentTarget
+                .value as Pattern['subdivisionType'],
+            });
+          }}
+        >
+          <For each={subdivisionTypes}>
+            {(subdivisionType) => (
+              <option value={subdivisionType}>{subdivisionType}</option>
+            )}
+          </For>
+        </select>
       </ScreenPrintBackground>
     </div>
   );

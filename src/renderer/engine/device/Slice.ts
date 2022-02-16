@@ -94,7 +94,7 @@ export class Slice extends TypedEmitter<SliceEvents> {
     name: slice.name ?? '',
     color: slice.color ?? 'red',
     start: slice.start ?? 0,
-    end: slice.end ?? 10,
+    end: slice.end ?? 0,
     playbackSpeed: slice.playbackSpeed ?? 1,
     reverse: slice.reverse ?? false,
     volume: slice.volume ?? 1,
@@ -204,16 +204,6 @@ export class Slice extends TypedEmitter<SliceEvents> {
           this.updateSequence();
           break;
         }
-        case 'start':
-        case 'end':
-          this[entry[0]] = entry[1] ?? 0;
-          break;
-        case 'color':
-          this.name = entry[1] ?? '';
-          break;
-        case 'collapsed':
-          this.collapsed = entry[1] ?? false;
-          break;
         case 'chain':
           if (this.chain) {
             this.chain.input.disconnect(this.soloNode);
@@ -226,9 +216,21 @@ export class Slice extends TypedEmitter<SliceEvents> {
 
           this.gainNode.connect(this.chain.input);
           this.chain.output.connect(this.soloNode);
-
           break;
-
+        case 'id':
+        case 'name':
+        case 'color':
+          this[entry[0]] = entry[1] ?? '';
+          break;
+        case 'start':
+          this.start = entry[1] ?? 0;
+          break;
+        case 'end':
+          this.end = entry[1] ?? 0;
+          break;
+        case 'collapsed':
+          this[entry[0]] = entry[1] ?? false;
+          break;
         default:
       }
 
@@ -245,7 +247,7 @@ export class Slice extends TypedEmitter<SliceEvents> {
     const { buffer } = this.sampler;
 
     const start = Math.max(this.start, 0);
-    const end = Math.min(this.end, buffer.length);
+    const end = Math.min(this.end, buffer.duration);
 
     const slicedBuffer =
       start < end ? buffer.slice(start, end) : new ToneAudioBuffer();
