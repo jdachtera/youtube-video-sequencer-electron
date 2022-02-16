@@ -6,7 +6,7 @@ import { Engine } from '../Engine';
 
 import { DeepPartial } from '../types';
 
-export type SerializedCompressor = SerializedDeviceBase & {
+export type SerializedCompressorDevice = SerializedDeviceBase & {
   name: 'Compressor';
   attack: number;
   release: number;
@@ -15,16 +15,16 @@ export type SerializedCompressor = SerializedDeviceBase & {
   threshold: number;
 };
 
-type CompressorEvents = {
-  change: (deviceChain: Compressor) => void;
-} & PropertyUpdateEvents<SerializedCompressor>;
+type CompressorDeviceEvents = {
+  change: (deviceChain: CompressorDevice) => void;
+} & PropertyUpdateEvents<SerializedCompressorDevice>;
 
-export class Compressor extends Device<CompressorEvents> {
+export class CompressorDevice extends Device<CompressorDeviceEvents> {
   compressorNode = new CompressorNode();
 
   static normalizeData = (
-    compressor: DeepPartial<SerializedCompressor>
-  ): SerializedCompressor => ({
+    compressor: DeepPartial<SerializedCompressorDevice>
+  ): SerializedCompressorDevice => ({
     name: 'Compressor',
     inputGain: compressor.inputGain ?? 1,
     volume: compressor.volume ?? 1,
@@ -37,7 +37,7 @@ export class Compressor extends Device<CompressorEvents> {
 
   constructor(
     engine: Engine,
-    serializedCompressor: Partial<SerializedCompressor>
+    serializedCompressor: Partial<SerializedCompressorDevice>
   ) {
     super(engine);
     this.input.connect(this.compressorNode);
@@ -47,7 +47,7 @@ export class Compressor extends Device<CompressorEvents> {
 
   emitChange = () => this.emit('change', this);
 
-  set(partialSerializedCompressor: Partial<SerializedCompressor>) {
+  set(partialSerializedCompressor: Partial<SerializedCompressorDevice>) {
     entries(partialSerializedCompressor).forEach((entry) => {
       if (!entry) return;
 
@@ -79,7 +79,7 @@ export class Compressor extends Device<CompressorEvents> {
     this.compressorNode.dispose();
   }
 
-  serialize(): SerializedCompressor {
+  serialize(): SerializedCompressorDevice {
     return {
       name: 'Compressor',
       volume: this.output.gain.value,

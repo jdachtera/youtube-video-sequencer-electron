@@ -1,9 +1,11 @@
 import { createStoreFromEventEmitter } from '../createSignalFromEventEmitter';
 
 import { MoogKnobWithLabel } from '../controls/Knob';
-import { PingPongDelay } from 'renderer/engine/device/PingPongDelay';
+import { PingPongDelayDevice } from 'renderer/engine/device/PingPongDelay';
 
-export const PingPongDelayView = (props: { pingPongDelay: PingPongDelay }) => {
+export const PingPongDelayView = (props: {
+  pingPongDelay: PingPongDelayDevice;
+}) => {
   const filterState = createStoreFromEventEmitter(
     () => props.pingPongDelay,
     ['change'],

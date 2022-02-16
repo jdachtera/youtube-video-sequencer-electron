@@ -4,7 +4,7 @@ import {
   createSignalFromEventEmitter,
   createStoreFromEventEmitter,
 } from './createSignalFromEventEmitter';
-import { Sampler } from './engine/device/Sampler';
+import { SamplerDevice } from './engine/device/Sampler';
 import { Pattern, Slice } from './engine/device/Slice';
 import { subdivisions, subdivisionTypes } from './engine/types';
 import { MoogKnobWithLabel } from './controls/Knob';
@@ -14,7 +14,7 @@ import { Toggle } from './controls/Toggle';
 import { LCD, ScreenPrintBackground } from './UI';
 
 export const PatternEditor = (
-  allProps: { sampler: Sampler } & JSX.IntrinsicElements['div']
+  allProps: { sampler: SamplerDevice } & JSX.IntrinsicElements['div']
 ) => {
   const [props, divProps] = splitProps(allProps, ['sampler']);
   const slices = createSignalFromEventEmitter(

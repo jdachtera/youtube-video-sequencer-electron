@@ -8,12 +8,8 @@ import { Gain } from 'tone';
 import { Engine } from '../Engine';
 import { entries, PropertyUpdateEvents } from '../helpers';
 
-import { DeepPartial, SerializedDevice } from '../types';
-import { DeviceChain } from './DeviceChain';
-import { Filter } from './Filter';
-import { PingPongDelay } from './PingPongDelay';
-import { Reverb } from './Reverb';
-import { Sampler } from './Sampler';
+import { SerializedDevice } from '../types';
+
 import { Step } from './Slice';
 
 export type SerializedDeviceBase = {

@@ -12,7 +12,7 @@ import { TypedEmitter } from 'tiny-typed-emitter';
 import { debounce } from 'ts-debounce';
 
 import { entries, PropertyUpdateEvents } from '../helpers';
-import { Sampler } from './Sampler';
+import { SamplerDevice } from './Sampler';
 import { DeviceChain, SerializedDeviceChain } from './DeviceChain';
 
 import { createUniqueId } from 'solid-js';
@@ -105,7 +105,7 @@ export class Slice extends TypedEmitter<SliceEvents> {
     chain: DeviceChain.normalizeData(slice.chain ?? {}),
   });
 
-  constructor(public sampler: Sampler, serializedSlice: SerializedSlice) {
+  constructor(public sampler: SamplerDevice, serializedSlice: SerializedSlice) {
     super();
 
     this.setMaxListeners(1000);
@@ -295,7 +295,7 @@ export class Slice extends TypedEmitter<SliceEvents> {
     if (solo && !multi) {
       this.sampler.engine.tracks.forEach((track) => {
         track.chain.devices.forEach((device) => {
-          if (device instanceof Sampler) {
+          if (device instanceof SamplerDevice) {
             device.slices.forEach((slice) => {
               slice.update({ solo: this === slice });
             });

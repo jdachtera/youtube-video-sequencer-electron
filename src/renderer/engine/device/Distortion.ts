@@ -1,26 +1,26 @@
 import { Device, SerializedDeviceBase } from './Device';
 import { entries, PropertyUpdateEvents } from '../helpers';
 
-import { Distortion as DistortionNode, Time } from 'tone';
+import { Distortion as DistortionNode } from 'tone';
 import { Engine } from '../Engine';
 
 import { DeepPartial } from '../types';
 
-export type SerializedDistortion = SerializedDeviceBase & {
+export type SerializedDistortionDevice = SerializedDeviceBase & {
   name: 'Distortion';
   distortion: number;
 };
 
-type DistortionEvents = {
-  change: (deviceChain: Distortion) => void;
-} & PropertyUpdateEvents<SerializedDistortion>;
+type DistortionDeviceEvents = {
+  change: (deviceChain: DistortionDevice) => void;
+} & PropertyUpdateEvents<SerializedDistortionDevice>;
 
-export class Distortion extends Device<DistortionEvents> {
+export class DistortionDevice extends Device<DistortionDeviceEvents> {
   distortionNode = new DistortionNode();
 
   static normalizeData = (
-    distortion: DeepPartial<SerializedDistortion>
-  ): SerializedDistortion => ({
+    distortion: DeepPartial<SerializedDistortionDevice>
+  ): SerializedDistortionDevice => ({
     name: 'Distortion',
     inputGain: distortion.inputGain ?? 1,
     volume: distortion.volume ?? 1,
@@ -29,7 +29,7 @@ export class Distortion extends Device<DistortionEvents> {
 
   constructor(
     engine: Engine,
-    serializedDistortion: Partial<SerializedDistortion>
+    serializedDistortion: Partial<SerializedDistortionDevice>
   ) {
     super(engine);
     this.input.connect(this.distortionNode);
@@ -39,7 +39,7 @@ export class Distortion extends Device<DistortionEvents> {
 
   emitChange = () => this.emit('change', this);
 
-  set(partialSerializedDistortion: Partial<SerializedDistortion>) {
+  set(partialSerializedDistortion: Partial<SerializedDistortionDevice>) {
     entries(partialSerializedDistortion).forEach((entry) => {
       if (!entry) return;
 
@@ -61,7 +61,7 @@ export class Distortion extends Device<DistortionEvents> {
     this.distortionNode.dispose();
   }
 
-  serialize(): SerializedDistortion {
+  serialize(): SerializedDistortionDevice {
     return {
       name: 'Distortion',
       volume: this.output.gain.value,

@@ -6,23 +6,23 @@ import { Engine } from '../Engine';
 import { NormalRange } from 'tone/build/esm/core/type/Units';
 import { DeepPartial } from '../types';
 
-export type SerializedReverb = SerializedDeviceBase & {
+export type SerializedReverbDevice = SerializedDeviceBase & {
   name: 'Reverb';
   decay: number;
   preDelay: number;
   wet: NormalRange;
 };
 
-type ReverbEvents = {
-  change: (deviceChain: Reverb) => void;
-} & PropertyUpdateEvents<SerializedReverb>;
+type ReverbDeviceEvents = {
+  change: (deviceChain: ReverbDevice) => void;
+} & PropertyUpdateEvents<SerializedReverbDevice>;
 
-export class Reverb extends Device<ReverbEvents> {
+export class ReverbDevice extends Device<ReverbDeviceEvents> {
   reverbNode = new ReverbNode();
 
   static normalizeData = (
-    reverb: DeepPartial<SerializedReverb>
-  ): SerializedReverb => ({
+    reverb: DeepPartial<SerializedReverbDevice>
+  ): SerializedReverbDevice => ({
     name: 'Reverb',
     inputGain: reverb.inputGain ?? 1,
     volume: reverb.volume ?? 1,
@@ -31,7 +31,10 @@ export class Reverb extends Device<ReverbEvents> {
     wet: reverb.wet ?? 0.2,
   });
 
-  constructor(engine: Engine, serializedReverb: Partial<SerializedReverb>) {
+  constructor(
+    engine: Engine,
+    serializedReverb: Partial<SerializedReverbDevice>
+  ) {
     super(engine);
     this.input.connect(this.reverbNode);
     this.reverbNode.connect(this.output);
@@ -40,7 +43,7 @@ export class Reverb extends Device<ReverbEvents> {
 
   emitChange = () => this.emit('change', this);
 
-  set(partialSerializedReverb: Partial<SerializedReverb>) {
+  set(partialSerializedReverb: Partial<SerializedReverbDevice>) {
     entries(partialSerializedReverb).forEach((entry) => {
       if (!entry) return;
 
@@ -72,7 +75,7 @@ export class Reverb extends Device<ReverbEvents> {
     this.reverbNode.dispose();
   }
 
-  serialize(): SerializedReverb {
+  serialize(): SerializedReverbDevice {
     return {
       name: 'Reverb',
       volume: this.output.gain.value,

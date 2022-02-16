@@ -8,7 +8,7 @@ import { SampleSlice } from './Slice';
 
 import { css } from 'solid-styled-components';
 
-import { Sampler } from '../engine/device/Sampler';
+import { SamplerDevice } from '../engine/device/Sampler';
 import { WavesurferView } from './WavesurferView';
 
 import {
@@ -22,7 +22,7 @@ import {
 import { createSignalFromEventEmitter } from '../createSignalFromEventEmitter';
 import { Slice } from '../engine/device/Slice';
 
-export const SamplerView = (props: { sampler: Sampler }) => {
+export const SamplerView = (props: { sampler: SamplerDevice }) => {
   const [selectedSlice, setSelectedSlice] = createSignal<Slice>();
 
   const currentPatternIndex = createSignalFromEventEmitter(

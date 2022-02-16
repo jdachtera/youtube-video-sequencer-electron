@@ -6,7 +6,7 @@ import { SerializedTrack, Track } from './Track';
 import { DeepPartial, SerializedEngine } from './types';
 import { entries, PropertyUpdateEvents } from './helpers';
 
-import { Sampler, SerializedSampler } from './device/Sampler';
+import { SamplerDevice, SerializedSamplerDevice } from './device/Sampler';
 
 type EngineEvents = {
   trackAdded: (track: Track) => void;
@@ -23,7 +23,7 @@ export class Engine extends TypedEmitter<EngineEvents> {
 
   static normalizeData = (
     parsedData: DeepPartial<
-      SerializedEngine & { samplers: SerializedSampler[] }
+      SerializedEngine & { samplers: SerializedSamplerDevice[] }
     >
   ): SerializedEngine => {
     return {
@@ -45,7 +45,7 @@ export class Engine extends TypedEmitter<EngineEvents> {
               inputGain: 1,
               volume: 1,
               devices: [
-                Sampler.normalizeData({
+                SamplerDevice.normalizeData({
                   ...sampler,
                   name: 'Sampler',
                 }),

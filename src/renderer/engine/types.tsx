@@ -1,20 +1,20 @@
-import { SerializedCompressor } from './device/Compressor';
+import { SerializedCompressorDevice } from './device/Compressor';
 import { SerializedDeviceChain } from './device/DeviceChain';
-import { SerializedDistortion } from './device/Distortion';
-import { SerializedFilter } from './device/Filter';
-import { SerializedPingPongDelay } from './device/PingPongDelay';
-import { SerializedReverb } from './device/Reverb';
-import { SerializedSampler } from './device/Sampler';
+import { SerializedDistortionDevice } from './device/Distortion';
+import { SerializedFilterDevice } from './device/Filter';
+import { SerializedPingPongDelayDevice } from './device/PingPongDelay';
+import { SerializedReverbDevice } from './device/Reverb';
+import { SerializedSamplerDevice } from './device/Sampler';
 import { SerializedTrack } from './Track';
 
 export type SerializedDevice =
-  | SerializedSampler
+  | SerializedSamplerDevice
   | SerializedDeviceChain
-  | SerializedFilter
-  | SerializedPingPongDelay
-  | SerializedReverb
-  | SerializedDistortion
-  | SerializedCompressor;
+  | SerializedFilterDevice
+  | SerializedPingPongDelayDevice
+  | SerializedReverbDevice
+  | SerializedDistortionDevice
+  | SerializedCompressorDevice;
 
 export type SerializedEngine = {
   currentPatternIndex: number;

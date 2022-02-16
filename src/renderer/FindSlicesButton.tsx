@@ -3,7 +3,7 @@ import Dismiss from 'solid-dismiss';
 import { createMemo, createSignal, For, JSX, splitProps } from 'solid-js';
 import { css } from 'solid-styled-components';
 
-import { Sampler } from './engine/device/Sampler';
+import { SamplerDevice } from './engine/device/Sampler';
 import { Slice } from './engine/device/Slice';
 import { Engine } from './engine/Engine';
 import { SlicesDocument, TagsDocument } from './Slice.generated';
@@ -161,7 +161,7 @@ export const FindSlicesButton = (props: { engine: Engine }) => {
                             (track) =>
                               !!track.chain.findDevice(
                                 (device) =>
-                                  device instanceof Sampler &&
+                                  device instanceof SamplerDevice &&
                                   device.url === sourceUrl
                               )
                           ) ??
@@ -184,9 +184,9 @@ export const FindSlicesButton = (props: { engine: Engine }) => {
                           });
 
                         const sampler = track.chain.findDevice(
-                          (device): device is Sampler =>
-                            device instanceof Sampler
-                        ) as Sampler;
+                          (device): device is SamplerDevice =>
+                            device instanceof SamplerDevice
+                        ) as SamplerDevice;
 
                         await sampler.hasLoaded();
 

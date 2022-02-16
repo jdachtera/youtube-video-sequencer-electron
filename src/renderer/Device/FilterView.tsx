@@ -1,7 +1,7 @@
 import { createEffect, createSignal, For, onCleanup, onMount } from 'solid-js';
 import { FilterRollOff } from 'tone';
 import { createStoreFromEventEmitter } from '../createSignalFromEventEmitter';
-import { Filter, SerializedFilter } from '../engine/device/Filter';
+import { FilterDevice, SerializedFilterDevice } from '../engine/device/Filter';
 import { MoogKnobWithLabel } from '../controls/Knob';
 
 const filterTypes: BiquadFilterType[] = [
@@ -16,7 +16,7 @@ const filterTypes: BiquadFilterType[] = [
 ];
 const filterRolloffOptions: FilterRollOff[] = [-12, -24, -48, -96];
 
-export const FilterView = (props: { filter: Filter }) => {
+export const FilterView = (props: { filter: FilterDevice }) => {
   const filterState = createStoreFromEventEmitter(
     () => props.filter,
     ['change'],
@@ -32,7 +32,7 @@ export const FilterView = (props: { filter: Filter }) => {
         value={filterState.type}
         onChange={(event) =>
           props.filter.set({
-            type: event.currentTarget.value as SerializedFilter['type'],
+            type: event.currentTarget.value as SerializedFilterDevice['type'],
           })
         }
       >

@@ -1,12 +1,12 @@
 import { Engine } from '../Engine';
 import { SerializedDevice } from '../types';
-import { Compressor } from './Compressor';
+import { CompressorDevice } from './Compressor';
 import { DeviceChain } from './DeviceChain';
-import { Distortion } from './Distortion';
-import { Filter } from './Filter';
-import { PingPongDelay } from './PingPongDelay';
-import { Reverb } from './Reverb';
-import { Sampler } from './Sampler';
+import { DistortionDevice } from './Distortion';
+import { FilterDevice } from './Filter';
+import { PingPongDelayDevice } from './PingPongDelay';
+import { ReverbDevice } from './Reverb';
+import { SamplerDevice } from './Sampler';
 
 export const createDevice = (
   engine: Engine,
@@ -16,16 +16,16 @@ export const createDevice = (
     case 'DeviceChain':
       return new DeviceChain(engine, serializedDevice);
     case 'Sampler':
-      return new Sampler(engine, serializedDevice);
+      return new SamplerDevice(engine, serializedDevice);
     case 'Filter':
-      return new Filter(engine, serializedDevice);
+      return new FilterDevice(engine, serializedDevice);
     case 'PingPongDelay':
-      return new PingPongDelay(engine, serializedDevice);
+      return new PingPongDelayDevice(engine, serializedDevice);
     case 'Reverb':
-      return new Reverb(engine, serializedDevice);
+      return new ReverbDevice(engine, serializedDevice);
     case 'Distortion':
-      return new Distortion(engine, serializedDevice);
+      return new DistortionDevice(engine, serializedDevice);
     case 'Compressor':
-      return new Compressor(engine, serializedDevice);
+      return new CompressorDevice(engine, serializedDevice);
   }
 };

@@ -3,17 +3,17 @@ import { DeviceChainView } from './DeviceChainView';
 
 import { Device } from '../engine/device/Device';
 import { DeviceChain } from '../engine/device/DeviceChain';
-import { Filter } from '../engine/device/Filter';
-import { Sampler } from '../engine/device/Sampler';
+import { FilterDevice } from '../engine/device/Filter';
+import { SamplerDevice } from '../engine/device/Sampler';
+import { DistortionDevice } from 'renderer/engine/device/Distortion';
+import { CompressorDevice } from 'renderer/engine/device/Compressor';
+import { PingPongDelayDevice } from 'renderer/engine/device/PingPongDelay';
 
 import { PingPongDelayView } from './PingPongDelayView';
 import { SamplerView } from './SamplerView';
 import { FilterView } from './FilterView';
-import { PingPongDelay } from 'renderer/engine/device/PingPongDelay';
-import { Distortion } from 'renderer/engine/device/Distortion';
 import { DistortionView } from './DistortionView';
 import { CompressorView } from './CompressorView';
-import { Compressor } from 'renderer/engine/device/Compressor';
 
 export const DeviceView = (props: { device: Device }) => (
   <Switch>
@@ -22,24 +22,24 @@ export const DeviceView = (props: { device: Device }) => (
         <DeviceChainView deviceChain={deviceChain}></DeviceChainView>
       )}
     </Match>
-    <Match when={props.device instanceof Sampler && props.device}>
+    <Match when={props.device instanceof SamplerDevice && props.device}>
       {(device) => <SamplerView sampler={device}></SamplerView>}
     </Match>
-    <Match when={props.device instanceof Filter && props.device}>
+    <Match when={props.device instanceof FilterDevice && props.device}>
       {(device) => <FilterView filter={device}></FilterView>}
     </Match>
-    <Match when={props.device instanceof PingPongDelay && props.device}>
+    <Match when={props.device instanceof PingPongDelayDevice && props.device}>
       {(device) => (
         <PingPongDelayView pingPongDelay={device}></PingPongDelayView>
       )}
     </Match>
-    <Match when={props.device instanceof Distortion && props.device}>
+    <Match when={props.device instanceof DistortionDevice && props.device}>
       {(device) => <DistortionView distortion={device}></DistortionView>}
     </Match>
-    <Match when={props.device instanceof Distortion && props.device}>
+    <Match when={props.device instanceof DistortionDevice && props.device}>
       {(device) => <DistortionView distortion={device}></DistortionView>}
     </Match>
-    <Match when={props.device instanceof Compressor && props.device}>
+    <Match when={props.device instanceof CompressorDevice && props.device}>
       {(device) => <CompressorView compressor={device}></CompressorView>}
     </Match>
   </Switch>

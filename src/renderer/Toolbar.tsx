@@ -5,7 +5,7 @@ import { Offline, Transport } from 'tone';
 import { debounce } from 'ts-debounce';
 
 import { createStoreFromEventEmitter } from './createSignalFromEventEmitter';
-import { Sampler } from './engine/device/Sampler';
+import { SamplerDevice } from './engine/device/Sampler';
 import { Engine } from './engine/Engine';
 import { FindSlicesButton } from './FindSlicesButton';
 import { MoogKnobWithLabel } from './controls/Knob';
@@ -121,7 +121,10 @@ export const Toolbar = (props: {
       props.engine.tracks
         .flatMap((track) =>
           track.chain.devices
-            .filter((device): device is Sampler => device instanceof Sampler)
+            .filter(
+              (device): device is SamplerDevice =>
+                device instanceof SamplerDevice
+            )
             .flatMap((sampler) =>
               sampler
                 .getSlices()

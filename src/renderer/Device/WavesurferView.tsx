@@ -6,11 +6,11 @@ import { debounce } from 'ts-debounce';
 import Wavesurfer from 'wavesurfer.js';
 import RegionsPlugin, { Region } from 'wavesurfer.js/src/plugin/regions';
 import TimelinePlugin from 'wavesurfer.js/src/plugin/timeline';
-import { Sampler } from '../engine/device/Sampler';
+import { SamplerDevice } from '../engine/device/Sampler';
 import { SerializedSlice, Slice } from '../engine/device/Slice';
 
 type WavesurferViewProps = {
-  sampler: Sampler;
+  sampler: SamplerDevice;
   center: number;
   onRegionClick: (region: Region) => void;
 };

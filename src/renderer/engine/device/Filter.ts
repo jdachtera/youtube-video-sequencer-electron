@@ -5,7 +5,7 @@ import { Frequency, Filter as FilterNode } from 'tone';
 import { Engine } from '../Engine';
 import { DeepPartial } from '../types';
 
-export type SerializedFilter = SerializedDeviceBase & {
+export type SerializedFilterDevice = SerializedDeviceBase & {
   name: 'Filter';
   frequency: number;
   resonance: number;
@@ -13,18 +13,18 @@ export type SerializedFilter = SerializedDeviceBase & {
   type: FilterNode['type'];
 };
 
-type DeviceChainEvents = {
+type FilterDeviceEvents = {
   deviceAdded: (sampler: Device) => void;
   deviceRemoved: (sampler: Device) => void;
   change: (deviceChain: Device) => void;
-} & PropertyUpdateEvents<SerializedFilter>;
+} & PropertyUpdateEvents<SerializedFilterDevice>;
 
-export class Filter extends Device<DeviceChainEvents> {
+export class FilterDevice extends Device<FilterDeviceEvents> {
   filterNode = new FilterNode();
 
   static normalizeData = (
-    filter: DeepPartial<SerializedFilter>
-  ): SerializedFilter => ({
+    filter: DeepPartial<SerializedFilterDevice>
+  ): SerializedFilterDevice => ({
     name: 'Filter',
     inputGain: filter.inputGain ?? 1,
     volume: filter.volume ?? 1,
@@ -34,7 +34,10 @@ export class Filter extends Device<DeviceChainEvents> {
     rolloff: filter.rolloff ?? -12,
   });
 
-  constructor(engine: Engine, serializedFilter: Partial<SerializedFilter>) {
+  constructor(
+    engine: Engine,
+    serializedFilter: Partial<SerializedFilterDevice>
+  ) {
     super(engine);
     this.input.connect(this.filterNode);
     this.filterNode.connect(this.output);
@@ -43,7 +46,7 @@ export class Filter extends Device<DeviceChainEvents> {
 
   emitChange = () => this.emit('change', this);
 
-  set(partialSerializedFilter: Partial<SerializedFilter>) {
+  set(partialSerializedFilter: Partial<SerializedFilterDevice>) {
     entries(partialSerializedFilter).forEach((entry) => {
       if (!entry) return;
 
@@ -76,7 +79,7 @@ export class Filter extends Device<DeviceChainEvents> {
     this.filterNode.dispose();
   }
 
-  serialize(): SerializedFilter {
+  serialize(): SerializedFilterDevice {
     return {
       name: 'Filter',
       volume: this.output.gain.value,

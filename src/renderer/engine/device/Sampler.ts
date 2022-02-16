@@ -11,23 +11,23 @@ declare const yt: {
   getYouTubeVideoSource: (url: string) => Promise<string>;
 };
 
-export type SerializedSampler = SerializedDeviceBase & {
+export type SerializedSamplerDevice = SerializedDeviceBase & {
   name: 'Sampler';
   url: string;
   zoom: number;
   slices: SerializedSlice[];
 };
 
-type SamplerEvents = {
+type SamplerDeviceEvents = {
   sliceAdded: (slice: Slice) => void;
   sliceRemoved: (slice: Slice) => void;
   sliceUpdated: (slice: Slice) => void;
   slicePlaybackStarted: () => void;
   load: () => void;
-  change: (sampler: Sampler) => void;
-} & PropertyUpdateEvents<SerializedSampler>;
+  change: (sampler: SamplerDevice) => void;
+} & PropertyUpdateEvents<SerializedSamplerDevice>;
 
-export class Sampler extends Device<SamplerEvents> {
+export class SamplerDevice extends Device<SamplerDeviceEvents> {
   name = 'Sampler';
 
   buffer = new ToneAudioBuffer();
@@ -41,8 +41,8 @@ export class Sampler extends Device<SamplerEvents> {
   private _hasLoaded = false;
 
   static normalizeData = (
-    sampler: DeepPartial<SerializedSampler>
-  ): SerializedSampler => ({
+    sampler: DeepPartial<SerializedSamplerDevice>
+  ): SerializedSamplerDevice => ({
     name: 'Sampler',
     inputGain: sampler.inputGain ?? 1,
     volume: sampler.volume ?? 1,
@@ -55,7 +55,7 @@ export class Sampler extends Device<SamplerEvents> {
       .map(Slice.normalizeData),
   });
 
-  constructor(engine: Engine, serializedSampler: SerializedSampler) {
+  constructor(engine: Engine, serializedSampler: SerializedSamplerDevice) {
     super(engine);
     this.setMaxListeners(1000);
 
@@ -94,7 +94,7 @@ export class Sampler extends Device<SamplerEvents> {
     );
   };
 
-  update(samplerPartial: Partial<SerializedSampler>) {
+  update(samplerPartial: Partial<SerializedSamplerDevice>) {
     entries(samplerPartial).forEach((entry) => {
       if (!entry) return;
       switch (entry[0]) {
@@ -163,7 +163,7 @@ export class Sampler extends Device<SamplerEvents> {
     this.buffer.dispose();
   }
 
-  serialize(): SerializedSampler {
+  serialize(): SerializedSamplerDevice {
     return {
       name: 'Sampler',
       volume: this.output.gain.value,

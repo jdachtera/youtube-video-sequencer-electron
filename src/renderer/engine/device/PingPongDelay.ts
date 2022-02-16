@@ -6,22 +6,22 @@ import { Engine } from '../Engine';
 import { NormalRange, Time } from 'tone/build/esm/core/type/Units';
 import { DeepPartial } from '../types';
 
-export type SerializedPingPongDelay = SerializedDeviceBase & {
+export type SerializedPingPongDelayDevice = SerializedDeviceBase & {
   name: 'PingPongDelay';
   delayTime: Time;
   feedback: NormalRange;
 };
 
 type PingPongDelayEvents = {
-  change: (deviceChain: PingPongDelay) => void;
-} & PropertyUpdateEvents<SerializedPingPongDelay>;
+  change: (deviceChain: PingPongDelayDevice) => void;
+} & PropertyUpdateEvents<SerializedPingPongDelayDevice>;
 
-export class PingPongDelay extends Device<PingPongDelayEvents> {
+export class PingPongDelayDevice extends Device<PingPongDelayEvents> {
   pingPongDelayNode = new PingPongDelayNode();
 
   static normalizeData = (
-    pingPongDelay: DeepPartial<SerializedPingPongDelay>
-  ): SerializedPingPongDelay => ({
+    pingPongDelay: DeepPartial<SerializedPingPongDelayDevice>
+  ): SerializedPingPongDelayDevice => ({
     name: 'PingPongDelay',
     inputGain: pingPongDelay.inputGain ?? 1,
     volume: pingPongDelay.volume ?? 1,
@@ -31,7 +31,7 @@ export class PingPongDelay extends Device<PingPongDelayEvents> {
 
   constructor(
     engine: Engine,
-    serializedPingPongDelay: Partial<SerializedPingPongDelay>
+    serializedPingPongDelay: Partial<SerializedPingPongDelayDevice>
   ) {
     super(engine);
     this.input.connect(this.pingPongDelayNode);
@@ -41,7 +41,7 @@ export class PingPongDelay extends Device<PingPongDelayEvents> {
 
   emitChange = () => this.emit('change', this);
 
-  set(partialSerializedPingPongDelay: Partial<SerializedPingPongDelay>) {
+  set(partialSerializedPingPongDelay: Partial<SerializedPingPongDelayDevice>) {
     entries(partialSerializedPingPongDelay).forEach((entry) => {
       if (!entry) return;
 
@@ -68,7 +68,7 @@ export class PingPongDelay extends Device<PingPongDelayEvents> {
     this.pingPongDelayNode.dispose();
   }
 
-  serialize(): SerializedPingPongDelay {
+  serialize(): SerializedPingPongDelayDevice {
     return {
       name: 'PingPongDelay',
       volume: this.output.gain.value,
