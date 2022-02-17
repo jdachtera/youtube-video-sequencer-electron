@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
   Gain,
   getDraw,
@@ -71,6 +72,7 @@ export type SliceEvents = {
 
 export class Slice extends TypedEmitter<SliceEvents> {
   player = new Player();
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   sequence: Sequence<Step> = null!;
 
   id = '';
@@ -84,6 +86,7 @@ export class Slice extends TypedEmitter<SliceEvents> {
 
   currentPosition = 0;
 
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   chain: DeviceChain = null!;
 
   gainNode = new Gain();
@@ -118,7 +121,7 @@ export class Slice extends TypedEmitter<SliceEvents> {
     this.on('startUpdated', this.updateBuffer);
     this.on('endUpdated', this.updateBuffer);
 
-    this.update(serializedSlice);
+    this.set(serializedSlice);
   }
 
   emitChange = () => this.emit('change', this);
@@ -181,7 +184,7 @@ export class Slice extends TypedEmitter<SliceEvents> {
     }
   }
 
-  update(slicePartial: Partial<SerializedSlice>) {
+  set(slicePartial: Partial<SerializedSlice>) {
     entries(slicePartial).forEach((entry) => {
       if (!entry) return;
 
@@ -238,6 +241,7 @@ export class Slice extends TypedEmitter<SliceEvents> {
           entry[0];
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.emit(`${entry[0]}Updated` as any, entry[1]);
     });
 
@@ -281,7 +285,7 @@ export class Slice extends TypedEmitter<SliceEvents> {
       ...this.patterns.slice(patternIndex + 1),
     ];
 
-    this.update({ patterns: updatedPatterns });
+    this.set({ patterns: updatedPatterns });
   }
 
   updatePatternLength(patternIndex: number, newLength: number) {
@@ -300,15 +304,15 @@ export class Slice extends TypedEmitter<SliceEvents> {
   setSolo(solo: boolean, multi = false) {
     if (solo && !multi) {
       this.sampler.slices.forEach((slice) =>
-        slice.update({ solo: this === slice })
+        slice.set({ solo: this === slice })
       );
     } else {
-      this.update({ solo });
+      this.set({ solo });
     }
   }
 
   setCurrentPatternIndex = (index: number) => {
-    this.update({ patterns: this.ensurePatternExists(this.patterns, index) });
+    this.set({ patterns: this.ensurePatternExists(this.patterns, index) });
   };
 
   duplicate() {

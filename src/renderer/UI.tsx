@@ -5,13 +5,6 @@ import { BiCompass } from 'solid-icons/bi';
 
 import { PropsWithChildren, splitProps, JSX, Show, mergeProps } from 'solid-js';
 
-const rackEarStyle = css`
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0px 0px 1px 1px #3f3f3fae;
-  justify-content: space-between;
-`;
-
 const akaiButtonStyles = css`
   border: 2px outset white;
   border-radius: 3px;
@@ -67,12 +60,10 @@ export const RackEar = (
     justify-content: space-between;
   `;
   return (
-    <div class={rackEarStyle} onClick={divProps.onClick}>
+    <div class={rackEarStyle} {...divProps}>
       <RackMountHole
         class={css`
           margin: 10px;
-          margin-top: 20px;
-          margin-bottom: 20px;
         `}
       >
         <Screw width="25px" />
@@ -80,8 +71,7 @@ export const RackEar = (
       <RackMountHole
         class={css`
           margin: 10px;
-          margin-top: 20px;
-          margin-bottom: 20px;
+
           display: ${props.collapsed ? 'none' : 'flex'};
         `}
       >
@@ -314,7 +304,7 @@ export const DeviceWrapper = (
         `]: true,
       }}
     >
-      <RackEar onClick={props.onClickRackEar} />
+      <RackEar onClick={(event) => props.onClickRackEar?.(event)} />
       <BiCompass
         color="lavender"
         size="64px"
@@ -333,28 +323,40 @@ export const DeviceWrapper = (
   );
 };
 
+const lcdStyles = css`
+  display: flex;
+  -webkit-appearance: none;
+  flex-direction: column;
+  background: radial-gradient(#cfcfcf, #b3b3b3);
+  color: rgb(63, 63, 63);
+  font-size: 20px;
+  box-shadow: inset 2px 2px 5px 1px #000000c1;
+  border-radius: 3px;
+  text-shadow: 1px 1px 1px rgba(119, 119, 119, 0.849);
+  padding: 8px;
+  font-family: 'chesstype';
+`;
 export const LCD = (props: JSX.IntrinsicElements['div']) => {
   return (
     <div
       {...props}
       classList={{
-        [css`
-          display: flex;
-          flex-direction: column;
-          background: radial-gradient(#cfcfcf, #b3b3b3);
-          color: rgb(63, 63, 63);
-          font-size: 20px;
-          box-shadow: inset 2px 2px 5px 1px #000000c1;
-          border-radius: 3px;
-          text-shadow: 1px 1px 1px rgba(119, 119, 119, 0.849);
-          padding: 8px;
-          font-family: 'chesstype';
-        `]: true,
+        [lcdStyles]: true,
         ...props.classList,
       }}
-    >
-      {props.children}
-    </div>
+    />
+  );
+};
+
+export const InputLCD = (props: JSX.IntrinsicElements['input']) => {
+  return (
+    <input
+      {...props}
+      classList={{
+        [lcdStyles]: true,
+        ...props.classList,
+      }}
+    />
   );
 };
 

@@ -47,7 +47,7 @@ export const ShareSliceButton = (props: { slice: Slice }) => {
               type="text"
               value={slice().name}
               onInput={(event) => {
-                props.slice.update({ name: event.currentTarget.value });
+                props.slice.set({ name: event.currentTarget.value });
               }}
             />
             Tags:

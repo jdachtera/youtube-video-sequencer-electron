@@ -49,7 +49,9 @@ export class DeviceChain extends Device<DeviceChainEvents> {
       switch (entry[0]) {
         case 'devices':
           this.disposeDevices();
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           if (entry[1]!.length) {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             entry[1]!.forEach((serializedDevice) =>
               this.addDevice(createDevice(this.engine, serializedDevice))
             );
@@ -59,6 +61,7 @@ export class DeviceChain extends Device<DeviceChainEvents> {
 
           break;
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.emit(`${entry[0]}Updated` as any, entry[1]);
     });
 

@@ -100,16 +100,12 @@ export const WavesurferView = (props: WavesurferViewProps) => {
       props.sampler.createSlice(slice);
     } else {
       if (slice.start !== region.start || slice.end !== region.end) {
-        slice.update({
+        slice.set({
           start: region.start,
           end: region.end,
         });
       }
     }
-  };
-
-  const startPlayback = () => {
-    wavesurfer.play();
   };
 
   const handleRegionRemoved = (region: Region) => {
@@ -125,9 +121,6 @@ export const WavesurferView = (props: WavesurferViewProps) => {
         TimelinePlugin.create({
           container: timelineRef,
           zoomDebounce: 1,
-          timeInterval: (pxPersec: number) => {
-            return 0.2;
-          },
           height: 30,
         }),
       ],

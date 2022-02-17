@@ -8,11 +8,11 @@ import {
   splitProps,
 } from 'solid-js';
 
-import { createNewAction } from './SequencerAction';
+// import { createNewAction } from './SequencerAction';
 import { Action, Slice, Step } from '../engine/device/Slice';
 import { css } from 'solid-styled-components';
 import { SequencerStep } from './SequencerStep';
-
+/*
 const createDefaultAction = (allSteps: Step[]): Action => {
   const firstStepWithPlayAction = allSteps.find((step) =>
     step.actions.find((action) => action.type === 'PLAY')
@@ -29,7 +29,7 @@ const createDefaultAction = (allSteps: Step[]): Action => {
   }
   return createNewAction('PLAY');
 };
-
+*/
 export const Sequencer = (
   propsWithoutDefaults: Omit<JSX.IntrinsicElements['ul'], 'onChange'> & {
     steps: Step[];
@@ -79,7 +79,7 @@ export const Sequencer = (
     setSelectedStep(newStep);
     props.onChange(newSteps);
   };
-
+  /*
   const handleAddAction = () => {
     const selectedStepValue = selectedStep();
     if (!selectedStepValue) return;
@@ -105,7 +105,7 @@ export const Sequencer = (
       selectedStepValue
     );
   };
-
+*/
   const toggleStep = (step: Step) => {
     setSelectedStep(step);
     handleUpdateActions(props.onToggleStep(step), step);

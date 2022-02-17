@@ -5,13 +5,11 @@ import {
   createStoreFromEventEmitter,
 } from './createSignalFromEventEmitter';
 import { SamplerDevice } from './engine/device/Sampler';
-import { Pattern, Slice, Step } from './engine/device/Slice';
+import { Pattern, Slice } from './engine/device/Slice';
 import { subdivisions, subdivisionTypes } from './engine/types';
-import { MoogKnobWithLabel } from './controls/Knob';
-import { Label } from './controls/Label';
 import { Sequencer } from './Device/Sequencer';
-import { Toggle } from './controls/Toggle';
-import { LCD, ScreenPrintBackground } from './UI';
+
+import { ButtonWithLabel, InputLCD, ScreenPrintBackground } from './UI';
 
 export const PatternEditor = (
   allProps: { sampler: SamplerDevice } & JSX.IntrinsicElements['div']
@@ -80,7 +78,7 @@ export const SlicePattern = (
         `]: true,
       }}
     >
-      <LCD
+      <InputLCD
         classList={{
           [css`
             width: 150px;
@@ -88,9 +86,11 @@ export const SlicePattern = (
             text-overflow: ellipsis;
           `]: true,
         }}
-      >
-        {sliceState.name}
-      </LCD>
+        value={sliceState.name}
+        onInput={(event) => {
+          props.slice.set({ name: event.currentTarget.value });
+        }}
+      />
       <div
         classList={{
           [css`
@@ -98,11 +98,12 @@ export const SlicePattern = (
           `]: true,
         }}
       >
-        <Toggle
+        <ButtonWithLabel
           label="Solo"
-          checked={sliceState.solo}
-          onChange={(solo, altKey) => {
-            props.slice.setSolo(solo, altKey);
+          activated={sliceState.solo}
+          labelOnButton={true}
+          onClick={(event) => {
+            props.slice.setSolo(!sliceState.solo, event.altKey);
           }}
         />
         <input

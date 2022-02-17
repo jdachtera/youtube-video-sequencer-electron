@@ -7,7 +7,6 @@ import { DeepPartial, SerializedEngine } from './types';
 import { entries, PropertyUpdateEvents } from './helpers';
 
 import { SamplerDevice, SerializedSamplerDevice } from './device/Sampler';
-import { DeviceChain } from './device/DeviceChain';
 
 type EngineEvents = {
   trackAdded: (track: Track) => void;
@@ -122,6 +121,7 @@ export class Engine extends TypedEmitter<EngineEvents> {
           );
           break;
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.emit(`${entry[0]}Updated` as any, entry[1]);
     });
     this.emit('change', this);

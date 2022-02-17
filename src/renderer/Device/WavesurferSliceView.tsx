@@ -72,9 +72,10 @@ export const WavesurferSliceView = (
 
   createEffect(() => {
     const duration = buffer()?.duration;
+    if (!waveformRef) return;
     if (duration) {
       wavesurfer.seekTo(0);
-      wavesurfer.zoom(waveformRef!.clientWidth / duration);
+      wavesurfer.zoom(waveformRef.clientWidth / duration);
       wavesurfer.setCurrentTime(props.currentTime);
     }
   });

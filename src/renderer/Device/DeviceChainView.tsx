@@ -93,6 +93,7 @@ export const DeviceChainView = (
               return props.deviceChain.addDevice(
                 createDevice(
                   props.deviceChain.engine,
+                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                   normalizeDeviceData({
                     name: selectedDeviceName(),
                   })!

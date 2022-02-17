@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { createSignal, onMount, For, untrack, createEffect } from 'solid-js';
+import { createSignal, onMount, For, untrack } from 'solid-js';
 
 import { Region } from 'wavesurfer.js/src/plugin/regions';
 import { Transport } from 'tone';
@@ -45,7 +45,6 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
 
   const [waveformCenter, setWaveformCenter] = createSignal(0);
   const [length, setLength] = createSignal(0);
-  const [playing, setPlaying] = createSignal(0);
 
   const stopPlayer = () => {
     props.sampler.stop();

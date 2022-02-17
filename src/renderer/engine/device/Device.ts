@@ -46,6 +46,7 @@ export abstract class Device<
     //
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   handleSequenceEvent = (time: number, step: Step) => {
     //
   };

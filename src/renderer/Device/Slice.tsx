@@ -1,22 +1,14 @@
-import { createMemo, createSignal, onMount, untrack } from 'solid-js';
+import { createMemo, untrack } from 'solid-js';
 
 import { css } from 'solid-styled-components';
 
-import {
-  LCDLabel,
-  LCD,
-  ModuleFrame,
-  ButtonWithLabel,
-  RackEar,
-  DeviceWrapper,
-} from '../UI';
+import { LCDLabel, LCD, ButtonWithLabel, RackEar, DeviceWrapper } from '../UI';
 
 import { WavesurferSliceView } from './WavesurferSliceView';
 
 import type { Slice } from '../engine/device/Slice';
 import { MoogKnobWithLabel, NumberInput } from '../controls/Knob';
 
-import { Toggle } from '../controls/Toggle';
 import { ShareSliceButton } from '../ShareSliceButton';
 import {
   createSignalFromEventEmitter,
@@ -24,17 +16,6 @@ import {
 } from '../createSignalFromEventEmitter';
 import { SlicePattern } from '../PatternEditor';
 import { DeviceChainView } from './DeviceChainView';
-
-const FormattedTime = (props: { timeInSeconds: number }) => {
-  const minutes = createMemo(() => Math.floor(props.timeInSeconds / 60));
-  const seconds = createMemo(() => Math.round(props.timeInSeconds % 60));
-
-  return (
-    <>{`${minutes().toString().padStart(2, '0')}:${seconds()
-      .toString()
-      .padStart(2, '0')}`}</>
-  );
-};
 
 export const SampleSlice = (props: {
   slice: Slice;
@@ -60,13 +41,13 @@ export const SampleSlice = (props: {
   );
 
   const handleUpdateSampleStart = (start: number) => {
-    props.slice.update({
+    props.slice.set({
       start: Math.min(slice.end + 0.00001, start),
     });
   };
 
   const handleUpdateSampleEnd = (end: number) => {
-    props.slice.update({
+    props.slice.set({
       end: Math.max(slice.start + 0.00001, end),
     });
   };
@@ -80,7 +61,7 @@ export const SampleSlice = (props: {
   };
 
   const toggleCollapse = () => {
-    props.slice.update({
+    props.slice.set({
       collapsed: slice.collapsed ? false : true,
     });
   };
@@ -200,7 +181,7 @@ export const SampleSlice = (props: {
                         <LCDLabel>Name</LCDLabel>
                         <input
                           onChange={(event) => {
-                            props.slice.update({
+                            props.slice.set({
                               name: event.currentTarget.value,
                             });
                           }}
@@ -325,7 +306,7 @@ export const SampleSlice = (props: {
                             fineIsDefault
                             value={slice.start}
                             onChange={(start: number) => {
-                              props.slice.update({
+                              props.slice.set({
                                 start: Math.min(slice.end + 0.00001, start),
                               });
                             }}
@@ -371,7 +352,7 @@ export const SampleSlice = (props: {
                         max={3}
                         value={slice.playbackSpeed}
                         onChange={(playbackSpeed: number) => {
-                          props.slice.update({ playbackSpeed });
+                          props.slice.set({ playbackSpeed });
                         }}
                         label="Pitch"
                       />
@@ -411,9 +392,9 @@ export const SampleSlice = (props: {
                     />
                     <ButtonWithLabel
                       activated={slice.reverse}
-                      onClick={() =>
-                        props.slice.update({ reverse: !slice.reverse })
-                      }
+                      onClick={() => {
+                        props.slice.set({ reverse: !slice.reverse });
+                      }}
                       label="Reverse"
                     />
                     <ButtonWithLabel
@@ -435,7 +416,7 @@ export const SampleSlice = (props: {
                     >
                       <ButtonWithLabel
                         onClick={() => {
-                          props.slice.update({
+                          props.slice.set({
                             playbackSpeed: slice.playbackSpeed / 2,
                           });
                         }}
@@ -454,14 +435,14 @@ export const SampleSlice = (props: {
 
                           const playbackSpeed = sliceDuration / targetDuration;
 
-                          props.slice.update({ playbackSpeed });
+                          props.slice.set({ playbackSpeed });
                         }}
                         labelOnButton={true}
                         label="Align"
                       />
                       <ButtonWithLabel
                         onClick={() => {
-                          props.slice.update({
+                          props.slice.set({
                             playbackSpeed: slice.playbackSpeed * 2,
                           });
                         }}
@@ -476,7 +457,7 @@ export const SampleSlice = (props: {
                       max={2}
                       value={slice.volume}
                       onChange={(volume: number) => {
-                        props.slice.update({ volume });
+                        props.slice.set({ volume });
                       }}
                       label="Volume"
                     />
