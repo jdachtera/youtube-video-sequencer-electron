@@ -59,6 +59,7 @@ export class PingPongDelayDevice extends Device<PingPongDelayEvents> {
           });
           break;
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.emit(`${entry[0]}Updated` as any, entry[1]);
     });
 

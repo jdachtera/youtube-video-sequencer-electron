@@ -6,12 +6,14 @@ import {
   mergeProps,
   JSX,
   splitProps,
+  Show,
 } from 'solid-js';
 
 // import { createNewAction } from './SequencerAction';
 import { Action, Slice, Step } from '../engine/device/Slice';
 import { css } from 'solid-styled-components';
 import { SequencerStep } from './SequencerStep';
+import { Row } from 'renderer/Grid';
 /*
 const createDefaultAction = (allSteps: Step[]): Action => {
   const firstStepWithPlayAction = allSteps.find((step) =>
@@ -111,8 +113,17 @@ export const Sequencer = (
     handleUpdateActions(props.onToggleStep(step), step);
   };
 
+  const [page, setPage] = createSignal(1);
+
   return (
-    <div>
+    <Row>
+      <input
+        type="number"
+        min={1}
+        max={Math.ceil(props.steps.length / 16)}
+        value={page()}
+        onInput={(event) => setPage(event.currentTarget.valueAsNumber)}
+      />
       <ul
         {...ulProps}
         classList={{
@@ -120,20 +131,24 @@ export const Sequencer = (
           [css`
             border-radius: 4px;
             padding: 3px;
-            width: ${44 * Math.min(16, props.steps.length)}px;
+            width: ${44 * 16}px;
             background: none;
           `]: true,
         }}
       >
         <Index each={props.steps}>
-          {(step) => (
-            <SequencerStep
-              step={step()}
-              onClick={toggleStep}
-              isSelected={step() === selectedStep()}
-              isCurrent={step() === currentStep()}
-            />
-          )}
+          {(step, index) => {
+            return (
+              <Show when={index < page() * 16 && index >= page() * 16 - 16}>
+                <SequencerStep
+                  step={step()}
+                  onClick={toggleStep}
+                  isSelected={step() === selectedStep()}
+                  isCurrent={step() === currentStep()}
+                />
+              </Show>
+            );
+          }}
         </Index>
       </ul>
       {/* <div>
@@ -157,6 +172,6 @@ export const Sequencer = (
           )}
         </Show>
       </div> */}
-    </div>
+    </Row>
   );
 };

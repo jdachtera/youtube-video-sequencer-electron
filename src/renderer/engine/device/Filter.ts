@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Device, SerializedDeviceBase } from './Device';
 import { entries, PropertyUpdateEvents } from '../helpers';
 
@@ -55,6 +56,7 @@ export class FilterDevice extends Device<FilterDeviceEvents> {
       switch (entry[0]) {
         case 'frequency':
           this.filterNode.set({
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             frequency: Frequency(Math.round(entry[1]!)).toFrequency(),
           });
           break;
@@ -64,12 +66,14 @@ export class FilterDevice extends Device<FilterDeviceEvents> {
           });
           break;
         case 'rolloff':
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this.filterNode.rolloff = entry[1]!;
           break;
         case 'type':
           this.filterNode.type = entry[1]!;
           break;
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.emit(`${entry[0]}Updated` as any, entry[1]);
     });
 

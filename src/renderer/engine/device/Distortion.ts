@@ -52,6 +52,7 @@ export class DistortionDevice extends Device<DistortionDeviceEvents> {
           });
           break;
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.emit(`${entry[0]}Updated` as any, entry[1]);
     });
 

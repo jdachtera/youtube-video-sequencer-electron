@@ -79,6 +79,17 @@ export const SampleSlice = (props: {
         overflow-x: auto;
       `}
     >
+      <DeviceWrapper>
+        <SlicePattern
+          classList={{
+            [css`
+              height: 430px;
+            `]: !slice.collapsed,
+          }}
+          slice={props.slice}
+          currentPatternIndex={props.currentPatternIndex}
+        />
+      </DeviceWrapper>
       <div
         class={css`
           box-shadow: 0px 0px 2px inset #222;
@@ -470,17 +481,7 @@ export const SampleSlice = (props: {
           <RackEar collapsed={slice.collapsed} />
         </div>
       </div>
-      <DeviceWrapper>
-        <SlicePattern
-          classList={{
-            [css`
-              height: 430px;
-            `]: !slice.collapsed,
-          }}
-          slice={props.slice}
-          currentPatternIndex={props.currentPatternIndex}
-        />
-      </DeviceWrapper>
+
       <DeviceChainView
         deviceChain={props.slice.chain}
         classList={{

@@ -11,13 +11,7 @@ import { css } from 'solid-styled-components';
 import { SamplerDevice } from '../engine/device/Sampler';
 import { WavesurferView } from './WavesurferView';
 
-import {
-  LCD,
-  LCDFrame,
-  LCDLine,
-  AkaiButton,
-  ScreenPrintBackground,
-} from '../UI';
+import { LCD, LCDFrame, LCDLine, AkaiButton, DeviceWrapper } from '../UI';
 
 import { createSignalFromEventEmitter } from '../createSignalFromEventEmitter';
 import { Slice } from '../engine/device/Slice';
@@ -93,7 +87,15 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
   };
 
   return (
-    <>
+    <DeviceWrapper
+      background="#969696"
+      classList={{
+        device: true,
+      }}
+      onClickRackEar={() => {
+        props.sampler.set({ collapsed: !props.sampler.collapsed });
+      }}
+    >
       <div
         class={css`
           background-color: #b9b9b9;
@@ -148,7 +150,7 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
               <AkaiButton onClick={() => setZoom(500)} />
             </div>
           </LCDFrame>
-          {/* <ButtonWithLabel label="Foo" /> */}
+          {/* <ButtonWithLabel label="Foo" />
           <div
             class={css`
               padding: 5px;
@@ -163,7 +165,7 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
               <AkaiButton onClick={() => setZoom(400)} />
               <AkaiButton onClick={() => setZoom(500)} />
             </ScreenPrintBackground>
-          </div>
+          </div>*/}
         </div>
       </div>
       <div
@@ -196,6 +198,6 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
           </For>
         </ol>
       </div>
-    </>
+    </DeviceWrapper>
   );
 };

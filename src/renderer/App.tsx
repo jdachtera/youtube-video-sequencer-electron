@@ -68,20 +68,15 @@ export function App() {
                     [css`
                       max-width: 100vw;
                       display: flex;
-                      .device {
-                        width: 100%;
-                      }
                     `]: true,
                   }}
                 >
-                  <DeviceView device={track.chain} />
-                  <button
-                    onClick={() => {
+                  <DeviceView
+                    device={track.chain}
+                    onRequestRemoveDevice={() => {
                       engine.removeTrack(track);
                     }}
-                  >
-                    Remove Track
-                  </button>
+                  />
                 </div>
               )}
             </For>

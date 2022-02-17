@@ -2,6 +2,7 @@ import { createStoreFromEventEmitter } from '../createSignalFromEventEmitter';
 
 import { MoogKnobWithLabel } from '../controls/Knob';
 import { ReverbDevice } from 'renderer/engine/device/Reverb';
+import { Row } from 'renderer/Grid';
 
 export const ReverbView = (props: { reverb: ReverbDevice }) => {
   const reverbState = createStoreFromEventEmitter(
@@ -11,7 +12,7 @@ export const ReverbView = (props: { reverb: ReverbDevice }) => {
   );
 
   return (
-    <div>
+    <Row>
       <MoogKnobWithLabel
         onChange={(decay) => props.reverb.set({ decay })}
         min={1}
@@ -35,6 +36,6 @@ export const ReverbView = (props: { reverb: ReverbDevice }) => {
         value={reverbState.wet}
         label={'Dry/Wet'}
       />
-    </div>
+    </Row>
   );
 };

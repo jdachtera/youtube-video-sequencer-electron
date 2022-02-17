@@ -55,25 +55,13 @@ export const DeviceChainView = (
     >
       <For each={devices()}>
         {(device) => (
-          <DeviceWrapper
-            background="#969696"
-            classList={{ device: true }}
-            onClickRackEar={() => {
-              device.set({ collapsed: !device.collapsed });
-            }}
-          >
-            <DeviceView device={device} />
-            <div>
-              <button
-                type="button"
-                onClick={() => props.deviceChain.removeDevice(device)}
-              >
-                Remove Device
-              </button>
-            </div>
-          </DeviceWrapper>
+          <DeviceView
+            device={device}
+            onRequestRemoveDevice={() => props.deviceChain.removeDevice(device)}
+          />
         )}
       </For>
+
       <DeviceWrapper background="#969696" classList={{ device: true }}>
         <div>
           <select

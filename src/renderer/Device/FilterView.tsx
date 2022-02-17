@@ -3,6 +3,7 @@ import { FilterRollOff } from 'tone';
 import { createStoreFromEventEmitter } from '../createSignalFromEventEmitter';
 import { FilterDevice, SerializedFilterDevice } from '../engine/device/Filter';
 import { MoogKnobWithLabel } from '../controls/Knob';
+import { Column, Row } from 'renderer/Grid';
 
 const filterTypes: BiquadFilterType[] = [
   'lowpass',
@@ -22,54 +23,58 @@ export const FilterView = (props: { filter: FilterDevice }) => {
     ['change'],
     (filter) => ({
       ...filter.serialize(),
-      frequencyResponse: filter.filterNode.getFrequencyResponse(100),
+      frequencyResponse: filter.filterNode.getFrequencyResponse(200),
     })
   );
 
   return (
-    <div>
-      <select
-        value={filterState.type}
-        onChange={(event) =>
-          props.filter.set({
-            type: event.currentTarget.value as SerializedFilterDevice['type'],
-          })
-        }
-      >
-        <For each={filterTypes}>
-          {(type) => <option value={type}>{type}</option>}
-        </For>
-      </select>
-      <select
-        value={filterState.rolloff}
-        onChange={(event) =>
-          props.filter.set({
-            rolloff: event.currentTarget.value as unknown as FilterRollOff,
-          })
-        }
-      >
-        <For each={filterRolloffOptions}>
-          {(rolloff) => <option value={rolloff}>{rolloff}</option>}
-        </For>
-      </select>
-      <MoogKnobWithLabel
-        onChange={(frequency) => props.filter.set({ frequency })}
-        min={1}
-        max={20000}
-        value={filterState.frequency}
-        label={'Cutoff'}
-      />
-      <MoogKnobWithLabel
-        onChange={(resonance) => props.filter.set({ resonance })}
-        min={0.1}
-        max={50}
-        value={filterState.resonance}
-        label={'Resonance'}
-      />
-      <FrequencyResponseDisplay
-        frequencyResponse={filterState.frequencyResponse}
-      />
-    </div>
+    <Column>
+      <Row>
+        <select
+          value={filterState.type}
+          onChange={(event) =>
+            props.filter.set({
+              type: event.currentTarget.value as SerializedFilterDevice['type'],
+            })
+          }
+        >
+          <For each={filterTypes}>
+            {(type) => <option value={type}>{type}</option>}
+          </For>
+        </select>
+        <select
+          value={filterState.rolloff}
+          onChange={(event) =>
+            props.filter.set({
+              rolloff: event.currentTarget.value as unknown as FilterRollOff,
+            })
+          }
+        >
+          <For each={filterRolloffOptions}>
+            {(rolloff) => <option value={rolloff}>{rolloff}</option>}
+          </For>
+        </select>
+        <MoogKnobWithLabel
+          onChange={(frequency) => props.filter.set({ frequency })}
+          min={1}
+          max={20000}
+          value={filterState.frequency}
+          label={'Cutoff'}
+        />
+        <MoogKnobWithLabel
+          onChange={(resonance) => props.filter.set({ resonance })}
+          min={0.1}
+          max={50}
+          value={filterState.resonance}
+          label={'Resonance'}
+        />
+      </Row>
+      <Row>
+        <FrequencyResponseDisplay
+          frequencyResponse={filterState.frequencyResponse}
+        />
+      </Row>
+    </Column>
   );
 };
 
@@ -104,7 +109,7 @@ const FrequencyResponseDisplay = (props: {
 
     if (!ctx) return;
 
-    const getX = (i: number) => i * (width() ?? 0);
+    const getX = (i: number) => Math.log(i) * (width() ?? 0);
     const getY = (y: number) => height() - (y / 5) * (height() ?? 0);
 
     const points = props.frequencyResponse;
