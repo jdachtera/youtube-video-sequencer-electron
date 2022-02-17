@@ -6,6 +6,7 @@ import { css } from 'solid-styled-components';
 import { SamplerDevice } from './engine/device/Sampler';
 import { Slice } from './engine/device/Slice';
 import { Engine } from './engine/Engine';
+import { Track } from './engine/Track';
 import { SlicesDocument, TagsDocument } from './Slice.generated';
 import { ButtonWithLabel } from './UI';
 
@@ -165,23 +166,14 @@ export const FindSlicesButton = (props: { engine: Engine }) => {
                                   device.url === sourceUrl
                               )
                           ) ??
-                          props.engine.createTrack({
-                            chain: {
-                              name: 'DeviceChain',
-                              volume: 1,
-                              inputGain: 1,
-                              devices: [
-                                {
-                                  name: 'Sampler',
-                                  url: sourceUrl,
-                                  zoom: 1,
-                                  inputGain: 1,
-                                  volume: 1,
-                                  slices: [],
-                                },
-                              ],
-                            },
-                          });
+                          props.engine.createTrack(
+                            Track.normalizeData({
+                              chain: {
+                                name: 'DeviceChain',
+                                devices: [{ name: 'Sampler', url: sourceUrl }],
+                              },
+                            })
+                          );
 
                         const sampler = track.chain.findDevice(
                           (device): device is SamplerDevice =>

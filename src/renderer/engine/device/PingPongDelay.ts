@@ -25,7 +25,7 @@ export class PingPongDelayDevice extends Device<PingPongDelayEvents> {
     name: 'PingPongDelay',
     inputGain: pingPongDelay.inputGain ?? 1,
     volume: pingPongDelay.volume ?? 1,
-    delayTime: pingPongDelay.delayTime ?? 100,
+    delayTime: pingPongDelay.delayTime ?? 10,
     feedback: pingPongDelay.feedback ?? 0.2,
   });
 

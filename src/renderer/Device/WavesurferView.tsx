@@ -30,7 +30,7 @@ export const WavesurferView = (props: WavesurferViewProps) => {
   const scrollZoom = (event: WheelEvent) => {
     event.preventDefault();
     const newZoom = Math.min(Math.max(zoom() + event.deltaY, 1), 800);
-    props.sampler.update({ zoom: newZoom });
+    props.sampler.set({ zoom: newZoom });
   };
 
   const handleSliceAdded = (slice: Slice) => {

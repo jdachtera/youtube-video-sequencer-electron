@@ -39,6 +39,10 @@ const Styles = css`
     color: #eee;
   }
 
+  body {
+    overflow: hidden;
+  }
+
   input[type='number'] {
     text-align: left;
   }
@@ -66,6 +70,11 @@ const Styles = css`
 
   #path1209 {
     stroke: red;
+  }
+  #root {
+    width: 100%;
+    height: 100%;
+    display: flex;
   }
 `;
 

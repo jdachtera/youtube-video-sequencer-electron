@@ -29,59 +29,65 @@ export function App() {
     <ThemeProvider theme={theme}>
       <ApolloProvider client={apolloClient}>
         <GlobalStyles />
-        <div class="App">
+
+        <div
+          class={css`
+            padding: 3px;
+            background-color: #555;
+            box-shadow: inset 0 0 2px 1px #222;
+            border-radius: 5px;
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            width: 100vw;
+            height: 100vh;
+          `}
+        >
+          <Toolbar
+            engine={engine}
+            viewMode={viewMode()}
+            onViewModeChanged={setViewMode}
+          />
+
           <div
-            class={css`
-              padding: 3px;
-              background-color: #555;
-              box-shadow: inset 0 0 2px 1px #222;
-              border-radius: 5px;
-              display: flex;
-              flex-direction: column;
-            `}
+            classList={{
+              [css`
+                display: none;
+              `]: viewMode() !== 'DEVICE',
+              [css`
+                flex: 1;
+                overflow-y: auto;
+              `]: true,
+            }}
           >
-            <Toolbar
-              engine={engine}
-              viewMode={viewMode()}
-              onViewModeChanged={setViewMode}
-            />
+            <For each={tracks()}>
+              {(track) => (
+                <div>
+                  <DeviceView device={track.chain} />
+                  <button
+                    onClick={() => {
+                      engine.removeTrack(track);
+                    }}
+                  >
+                    Remove Track
+                  </button>
+                </div>
+              )}
+            </For>
+          </div>
 
-            <div
-              classList={{
-                [css`
-                  display: none;
-                `]: viewMode() !== 'DEVICE',
-              }}
-            >
-              <For each={tracks()}>
-                {(track) => (
-                  <div>
-                    <DeviceView device={track.chain} />
-                    <button
-                      onClick={() => {
-                        engine.removeTrack(track);
-                      }}
-                    >
-                      Remove Track
-                    </button>
-                  </div>
-                )}
+          <div
+            classList={{
+              [css`
+                display: none;
+              `]: viewMode() !== 'PATTERN',
+            }}
+          >
+            <DeviceWrapper background={'#bd945e'}>
+              <For each={tracks()} fallback={<div>loading sampler...</div>}>
+                {(track) => <PatternView device={track.chain} />}
               </For>
-            </div>
-
-            <div
-              classList={{
-                [css`
-                  display: none;
-                `]: viewMode() !== 'PATTERN',
-              }}
-            >
-              <DeviceWrapper background={'#bd945e'}>
-                <For each={tracks()} fallback={<div>loading sampler...</div>}>
-                  {(track) => <PatternView device={track.chain} />}
-                </For>
-              </DeviceWrapper>
-            </div>
+            </DeviceWrapper>
           </div>
         </div>
       </ApolloProvider>

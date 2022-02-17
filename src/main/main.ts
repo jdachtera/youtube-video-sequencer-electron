@@ -36,6 +36,10 @@ ipcMain.on('ipc-example', async (event, arg: string) => {
   event.reply('ipc-example', msgTemplate('pong'));
 });
 
+ipcMain.on('set-zoom', (event, arg: number) => {
+  mainWindow?.webContents.setZoomFactor(arg);
+});
+
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
   sourceMapSupport.install();

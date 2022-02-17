@@ -1,48 +1,20 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
-const { contextBridge, ipcRenderer } = require('electron');
-const ytdl = require('ytdl-core');
+// ability to require/import TypeScript files
+require('ts-node').register({
+  typeCheck: false, // faster, no type checking when require'ing files. Use another process to do actual type checking.
+  transpileOnly: true, // no type checking, just strip types and output JS.
+  files: true,
 
-contextBridge.exposeInMainWorld('electron', {
-  ipcRenderer: {
-    myPing() {
-      ipcRenderer.send('ipc-example', 'ping');
-    },
-    on(channel, func) {
-      const validChannels = ['ipc-example'];
-      if (validChannels.includes(channel)) {
-        // Deliberately strip event as it includes `sender`
-        ipcRenderer.on(channel, (event, ...args) => func(...args));
-      }
-    },
-    once(channel, func) {
-      const validChannels = ['ipc-example'];
-      if (validChannels.includes(channel)) {
-        // Deliberately strip event as it includes `sender`
-        ipcRenderer.once(channel, (event, ...args) => func(...args));
-      }
-    },
-  },
+  // manually supply our own compilerOptions, otherwise if we run this file
+  // from another project's location then ts-node will use
+  // the compilerOptions from that other location, which may not work.
+  compilerOptions: require('../../tsconfig.json').compilerOptions,
 });
 
-contextBridge.exposeInMainWorld('yt', {
-  getYouTubeVideoSource: async (url) => {
-    try {
-      const result = await ytdl.getInfo(url);
+const { contextBridge } = require('electron');
 
-      const audioTracks = result.formats.filter(
-        (entry) => !entry.hasVideo && entry.hasAudio
-      );
+const exposedVars = require('./exposedVars').default;
 
-      const sourceFormat = audioTracks
-        .sort((a, b) => a.audioBitrate > b.audioBitrate)
-        .shift();
-
-      console.log(sourceFormat);
-
-      return sourceFormat.url;
-    } catch (e) {
-      console.dir(e);
-      throw e;
-    }
-  },
+Object.entries(exposedVars).forEach(([key, value]) => {
+  console.log(key, value);
+  contextBridge.exposeInMainWorld(key, value);
 });

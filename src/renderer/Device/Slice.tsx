@@ -462,24 +462,6 @@ export const SampleSlice = (props: {
                   }}
                   label="Pitch"
                 />
-                <MoogKnobWithLabel
-                  min={0}
-                  max={props.slice.sampler.buffer.duration}
-                  speed={0.1}
-                  step={0.01}
-                  value={slice.start}
-                  onChange={handleUpdateSampleStart}
-                  label="Start"
-                />
-                <MoogKnobWithLabel
-                  min={0}
-                  max={props.slice.sampler.buffer.duration}
-                  speed={0.1}
-                  step={0.01}
-                  value={slice.end}
-                  onChange={handleUpdateSampleEnd}
-                  label="End"
-                />
                 <Toggle
                   label="Reverse"
                   checked={slice.reverse}

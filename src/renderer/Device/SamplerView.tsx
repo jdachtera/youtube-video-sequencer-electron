@@ -46,7 +46,7 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
   };
 
   const setZoom = (zoom: number) => {
-    props.sampler.update({ zoom });
+    props.sampler.set({ zoom });
   };
 
   onMount(async () => {

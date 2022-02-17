@@ -1,7 +1,7 @@
 import audioBufferToWav from 'audiobuffer-to-wav';
 import { createEffect, createSignal, For, onCleanup, onMount } from 'solid-js';
 import { css } from 'solid-styled-components';
-import { Offline, Transport } from 'tone';
+import { Offline, Transport, start } from 'tone';
 import { debounce } from 'ts-debounce';
 
 import { createStoreFromEventEmitter } from './createSignalFromEventEmitter';
@@ -11,6 +11,7 @@ import { FindSlicesButton } from './FindSlicesButton';
 import { MoogKnobWithLabel } from './controls/Knob';
 import { LoginModal } from './LoginModal';
 import { DeepPartial } from './engine/types';
+import { Track } from './engine/Track';
 
 const viewModes = ['DEVICE', 'PATTERN'] as const;
 export type ViewMode = typeof viewModes[number];
@@ -20,6 +21,15 @@ export const Toolbar = (props: {
   onViewModeChanged: (viewMode: ViewMode) => void;
 }) => {
   const [isPlaying, setIsPlaying] = createSignal(false);
+
+  const [zoomFactor, setZoomFactor] = createSignal(
+    +(localStorage.getItem('zoomFactor') ?? '1')
+  );
+
+  createEffect(() =>
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    setTimeout(() => window.host.setZoomFactor(zoomFactor()), 100)
+  );
 
   const engineState = createStoreFromEventEmitter(
     () => props.engine,
@@ -31,11 +41,17 @@ export const Toolbar = (props: {
     })
   );
 
-  const togglePlay = () => {
+  const togglePlay = async () => {
     setIsPlaying(!isPlaying());
   };
 
   const handleKeydown = (event: KeyboardEvent) => {
+    if (
+      event.target instanceof HTMLInputElement ||
+      event.target instanceof HTMLTextAreaElement
+    ) {
+      return;
+    }
     switch (event.code) {
       case 'Space':
         togglePlay();
@@ -60,23 +76,14 @@ export const Toolbar = (props: {
   };
 
   const addSampler = (event: { currentTarget: HTMLInputElement }) => {
-    props.engine.createTrack({
-      chain: {
-        name: 'DeviceChain',
-        inputGain: 1,
-        volume: 1,
-        devices: [
-          {
-            name: 'Sampler',
-            inputGain: 1,
-            volume: 1,
-            url: event.currentTarget.value,
-            zoom: 0,
-            slices: [],
-          },
-        ],
-      },
-    });
+    props.engine.createTrack(
+      Track.normalizeData({
+        chain: {
+          name: 'DeviceChain',
+          devices: [{ name: 'Sampler', url: event.currentTarget.value }],
+        },
+      })
+    );
   };
 
   const clear = () => {
@@ -233,8 +240,13 @@ export const Toolbar = (props: {
 
   createEffect(() => {
     if (isPlaying()) {
-      Transport.start();
-      props.engine.start();
+      start()
+        .then(() => {
+          Transport.start();
+          props.engine.start();
+          return;
+        })
+        .catch(console.error);
     } else {
       Transport.stop();
     }
@@ -287,17 +299,26 @@ export const Toolbar = (props: {
           onChange={handleCurrentPatternIndexChange}
         />
         <input type="text" onInput={addSampler} />
+        <button type="button" onClick={renderToWavefile}>
+          Download WAV
+        </button>
+        <button type="button" onClick={exportJSON}>
+          Export JSON
+        </button>
+        <button type="button" onClick={clear}>
+          Clear all
+        </button>
+        Load JSON: <input type="file" onChange={loadJSON} accept=".json" />
+        Zoom:
+        <input
+          type="range"
+          min="0.25"
+          max={2}
+          step="0.05"
+          value={zoomFactor()}
+          onChange={(event) => setZoomFactor(event.currentTarget.valueAsNumber)}
+        />
       </div>
-      <button type="button" onClick={renderToWavefile}>
-        Download WAV
-      </button>
-      <button type="button" onClick={exportJSON}>
-        Export JSON
-      </button>
-      <button type="button" onClick={clear}>
-        Clear all
-      </button>
-      Load JSON: <input type="file" onChange={loadJSON} accept=".json" />
     </div>
   );
 };

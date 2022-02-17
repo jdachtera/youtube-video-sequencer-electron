@@ -223,15 +223,16 @@ export class Slice extends TypedEmitter<SliceEvents> {
           this[entry[0]] = entry[1] ?? '';
           break;
         case 'start':
-          this.start = entry[1] ?? 0;
+          this.start = entry[1]!;
           break;
         case 'end':
-          this.end = entry[1] ?? 0;
+          this.end = entry[1]!;
           break;
         case 'collapsed':
           this[entry[0]] = entry[1] ?? false;
           break;
         default:
+          entry[0];
       }
 
       this.emit(`${entry[0]}Updated` as any, entry[1]);
@@ -345,6 +346,7 @@ export class Slice extends TypedEmitter<SliceEvents> {
   }
 
   play(time?: number) {
+    if (!this.player.buffer.loaded) return;
     this.player.start(time);
     this.emit('playerStarted');
   }

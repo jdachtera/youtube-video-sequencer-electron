@@ -1,4 +1,4 @@
-import { ToneAudioBuffer } from 'tone';
+import { getContext, ToneAudioBuffer } from 'tone';
 import { SerializedSlice, Slice } from './Slice';
 import type { Engine } from '../Engine';
 
@@ -7,12 +7,9 @@ import { entries, PropertyUpdateEvents } from '../helpers';
 import { Device, SerializedDeviceBase } from './Device';
 import { DeepPartial } from '../types';
 
-declare const yt: {
-  getYouTubeVideoSource: (url: string) => Promise<string>;
-};
-
 export type SerializedSamplerDevice = SerializedDeviceBase & {
   name: 'Sampler';
+  title: string;
   url: string;
   zoom: number;
   slices: SerializedSlice[];
@@ -29,14 +26,11 @@ type SamplerDeviceEvents = {
 
 export class SamplerDevice extends Device<SamplerDeviceEvents> {
   name = 'Sampler';
-
   buffer = new ToneAudioBuffer();
-
   slices = new Map<string, Slice>();
-
   url = '';
-
   zoom = 1;
+  title = '';
 
   private _hasLoaded = false;
 
@@ -44,6 +38,7 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
     sampler: DeepPartial<SerializedSamplerDevice>
   ): SerializedSamplerDevice => ({
     name: 'Sampler',
+    title: sampler.title ?? '',
     inputGain: sampler.inputGain ?? 1,
     volume: sampler.volume ?? 1,
     url: sampler.url ?? '',
@@ -62,7 +57,7 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
     this.on('sliceAdded', this.emitChange);
     this.on('sliceRemoved', this.emitChange);
 
-    this.update(serializedSampler);
+    this.set(serializedSampler);
   }
 
   emitChange = () => this.emit('change', this);
@@ -75,8 +70,20 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
     if (cachedBlob) {
       this.buffer.fromArray(cachedBlob);
     } else {
-      const sourceUrl = await yt.getYouTubeVideoSource(this.url);
-      await this.buffer.load(sourceUrl);
+      const { sourceUrl, title } = await window.yt.getYouTubeVideoMeta(
+        this.url
+      );
+      this.set({ title });
+
+      const base64StringOrBuffer = await window.yt.fetchVideo(sourceUrl);
+      const arrayBuffer =
+        typeof base64StringOrBuffer === 'string'
+          ? base64ToArrayBuffer(base64StringOrBuffer)
+          : base64StringOrBuffer;
+
+      const audioBuffer = await getContext().decodeAudioData(arrayBuffer);
+      this.buffer.set(audioBuffer);
+
       await storeCachedVideo(this.url, this.buffer.toArray());
     }
 
@@ -94,7 +101,7 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
     );
   };
 
-  update(samplerPartial: Partial<SerializedSamplerDevice>) {
+  set(samplerPartial: Partial<SerializedSamplerDevice>) {
     entries(samplerPartial).forEach((entry) => {
       if (!entry) return;
       switch (entry[0]) {
@@ -104,6 +111,9 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
           break;
         case 'zoom':
           this.zoom = entry[1] ?? 1;
+          break;
+        case 'title':
+          this.title = entry[1] ?? '';
           break;
         case 'slices':
           this.slices.forEach((slice) => this.removeSlice(slice.id));
@@ -168,9 +178,19 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
       name: 'Sampler',
       volume: this.output.gain.value,
       inputGain: this.input.gain.value,
+      title: this.title,
       url: this.url,
       zoom: this.zoom,
       slices: [...this.slices.values()].map((slice) => slice.serialize()),
     };
   }
+}
+function base64ToArrayBuffer(base64: string) {
+  const binary_string = window.atob(base64);
+  const len = binary_string.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binary_string.charCodeAt(i);
+  }
+  return bytes.buffer;
 }
