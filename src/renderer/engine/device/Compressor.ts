@@ -26,6 +26,7 @@ export class CompressorDevice extends Device<CompressorDeviceEvents> {
     compressor: DeepPartial<SerializedCompressorDevice>
   ): SerializedCompressorDevice => ({
     name: 'Compressor',
+    collapsed: false,
     inputGain: compressor.inputGain ?? 1,
     volume: compressor.volume ?? 1,
     attack: compressor.attack ?? 0.1,
@@ -33,6 +34,7 @@ export class CompressorDevice extends Device<CompressorDeviceEvents> {
     knee: compressor.knee ?? 0.3,
     ratio: compressor.ratio ?? 1,
     threshold: compressor.threshold ?? -10,
+    color: 'green',
   });
 
   constructor(
@@ -82,6 +84,8 @@ export class CompressorDevice extends Device<CompressorDeviceEvents> {
   serialize(): SerializedCompressorDevice {
     return {
       name: 'Compressor',
+      collapsed: this.collapsed,
+      color: this.color,
       volume: this.output.gain.value,
       inputGain: this.input.gain.value,
       attack: Time(this.compressorNode.attack.value).toSeconds(),

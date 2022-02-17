@@ -38,6 +38,8 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
     sampler: DeepPartial<SerializedSamplerDevice>
   ): SerializedSamplerDevice => ({
     name: 'Sampler',
+    collapsed: sampler.collapsed ?? false,
+    color: 'brown',
     title: sampler.title ?? '',
     inputGain: sampler.inputGain ?? 1,
     volume: sampler.volume ?? 1,
@@ -176,6 +178,8 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
   serialize(): SerializedSamplerDevice {
     return {
       name: 'Sampler',
+      collapsed: this.collapsed,
+      color: this.color,
       volume: this.output.gain.value,
       inputGain: this.input.gain.value,
       title: this.title,

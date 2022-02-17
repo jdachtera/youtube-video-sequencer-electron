@@ -1,4 +1,12 @@
-import { createSignal, onMount, onCleanup, Index, mergeProps } from 'solid-js';
+import {
+  createSignal,
+  onMount,
+  onCleanup,
+  Index,
+  mergeProps,
+  JSX,
+  splitProps,
+} from 'solid-js';
 
 import { createNewAction } from './SequencerAction';
 import { Action, Slice, Step } from '../engine/device/Slice';
@@ -22,12 +30,20 @@ const createDefaultAction = (allSteps: Step[]): Action => {
   return createNewAction('PLAY');
 };
 
-export const Sequencer = (propsWithoutDefaults: {
-  steps: Step[];
-  slice: Slice;
-  onChange: (steps: Step[]) => void;
-  onToggleStep?: (step: Step) => Action[];
-}) => {
+export const Sequencer = (
+  propsWithoutDefaults: Omit<JSX.IntrinsicElements['ul'], 'onChange'> & {
+    steps: Step[];
+    slice: Slice;
+    onChange: (steps: Step[]) => void;
+    onToggleStep?: (step: Step) => Action[];
+  }
+) => {
+  const [ownProps, ulProps] = splitProps(propsWithoutDefaults, [
+    'steps',
+    'slice',
+    'onChange',
+    'onToggleStep',
+  ]);
   const props = mergeProps(
     {
       onToggleStep: (step: Step): Action[] => {
@@ -37,7 +53,7 @@ export const Sequencer = (propsWithoutDefaults: {
         return [];
       },
     },
-    propsWithoutDefaults
+    ownProps
   );
 
   const [currentStep, setCurrentStep] = createSignal<Step>();
@@ -98,12 +114,16 @@ export const Sequencer = (propsWithoutDefaults: {
   return (
     <div>
       <ul
-        class={css`
-          border-radius: 4px;
-          padding: 3px;
-          max-width: 864px;
-          background: none;
-        `}
+        {...ulProps}
+        classList={{
+          ...ulProps.classList,
+          [css`
+            border-radius: 4px;
+            padding: 3px;
+            width: ${44 * Math.min(16, props.steps.length)}px;
+            background: none;
+          `]: true,
+        }}
       >
         <Index each={props.steps}>
           {(step) => (

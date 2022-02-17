@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { createSignal, onMount, For, untrack } from 'solid-js';
+import { createSignal, onMount, For, untrack, createEffect } from 'solid-js';
 
 import { Region } from 'wavesurfer.js/src/plugin/regions';
 import { Transport } from 'tone';
@@ -29,6 +29,12 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
     untrack(() => props.sampler.engine),
     ['currentPatternIndexUpdated'],
     (engine) => engine.currentPatternIndex
+  );
+
+  const collapsed = createSignalFromEventEmitter(
+    untrack(() => props.sampler),
+    ['collapsedUpdated'],
+    (sampler) => sampler.collapsed
   );
 
   const slices = createSignalFromEventEmitter(
@@ -92,19 +98,25 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
       <div
         class={css`
           background-color: #b9b9b9;
-          padding: 10px;
+          padding: 5px;
           display: flex;
         `}
       >
         <div
-          class={css`
-            padding: 50px;
-            padding-right: 200px;
-            border: 2px oustet white;
-            border-radius: 3px;
-            background: radial-gradient(#bdbdbd 0%, #f3f3f3c4 100%);
-            display: flex;
-          `}
+          classList={{
+            [css`
+              padding: 20px;
+              padding-right: 50px;
+              border: 2px oustet white;
+              border-radius: 3px;
+              background: radial-gradient(#bdbdbd 0%, #f3f3f3c4 100%);
+              display: flex;
+            `]: true,
+
+            [css`
+              display: none;
+            `]: collapsed(),
+          }}
         >
           <LCDFrame>
             <LCD>
@@ -127,7 +139,7 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
               class={css`
                 display: flex;
                 justify-content: space-evenly;
-                padding: 10px;
+                padding: 5px;
               `}
             >
               <AkaiButton onClick={() => setZoom(100)} />
@@ -140,7 +152,7 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
           {/* <ButtonWithLabel label="Foo" /> */}
           <div
             class={css`
-              padding: 10px;
+              padding: 5px;
               display: flex;
               justify-content: space-evenly;
             `}
@@ -168,7 +180,7 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
             box-shadow: inset 0px 0px 8px black;
             padding: 2px;
             border-radius: 5px;
-            margin-top: 10px;
+            margin-top: 5px;
             background-color: #111;
           `}
         >

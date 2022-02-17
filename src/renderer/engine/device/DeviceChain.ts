@@ -23,6 +23,8 @@ export class DeviceChain extends Device<DeviceChainEvents> {
     deviceChain: DeepPartial<SerializedDeviceChain>
   ): SerializedDeviceChain => ({
     name: 'DeviceChain',
+    collapsed: deviceChain.collapsed ?? false,
+    color: 'grey',
     inputGain: deviceChain.inputGain ?? 1,
     volume: deviceChain.volume ?? 1,
     devices: (Array.isArray(deviceChain.devices) ? deviceChain.devices : [])
@@ -151,6 +153,8 @@ export class DeviceChain extends Device<DeviceChainEvents> {
   serialize(): SerializedDeviceChain {
     return {
       name: 'DeviceChain',
+      collapsed: this.collapsed,
+      color: this.color,
       volume: this.output.gain.value,
       inputGain: this.input.gain.value,
       devices: this.devices.map((device) => device.serialize()),

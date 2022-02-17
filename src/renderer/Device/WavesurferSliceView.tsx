@@ -1,4 +1,10 @@
-import { createEffect, onMount, untrack } from 'solid-js';
+import {
+  createEffect,
+  mergeProps,
+  onCleanup,
+  onMount,
+  untrack,
+} from 'solid-js';
 
 import { css } from 'solid-styled-components';
 
@@ -11,12 +17,20 @@ type WavesurferSliceViewProps = {
   slice: Slice;
   center: number;
   height?: number;
-  // onRegionClick: (region: Region) => void;
+  currentTime?: number;
+  onClickWaveform: (event: MouseEvent) => void;
 };
 
-export const WavesurferSliceView = (props: WavesurferSliceViewProps) => {
+export const WavesurferSliceView = (
+  propsWithoutDefaults: WavesurferSliceViewProps
+) => {
+  const props = mergeProps({ currentTime: 0 }, propsWithoutDefaults);
+
   let waveformRef: HTMLDivElement | undefined;
   let wavesurfer: Wavesurfer;
+
+  const handleClickWaveform = (event: MouseEvent) =>
+    props.onClickWaveform(event);
 
   onMount(() => {
     if (!waveformRef) return;
@@ -32,6 +46,13 @@ export const WavesurferSliceView = (props: WavesurferSliceViewProps) => {
       height: props.height ?? 50,
       barGap: 0,
     });
+
+    waveformRef.addEventListener('click', handleClickWaveform);
+  });
+
+  onCleanup(() => {
+    if (!waveformRef) return;
+    waveformRef.removeEventListener('click', handleClickWaveform);
   });
 
   const buffer = createSignalFromEventEmitter(
@@ -46,6 +67,15 @@ export const WavesurferSliceView = (props: WavesurferSliceViewProps) => {
   createEffect(() => {
     if (wavesurfer && buffer()) {
       wavesurfer.loadDecodedBuffer(buffer());
+    }
+  });
+
+  createEffect(() => {
+    const duration = buffer()?.duration;
+    if (duration) {
+      wavesurfer.seekTo(0);
+      wavesurfer.zoom(waveformRef!.clientWidth / duration);
+      wavesurfer.setCurrentTime(props.currentTime);
     }
   });
 
@@ -64,6 +94,7 @@ export const WavesurferSliceView = (props: WavesurferSliceViewProps) => {
           text-shadow: 1px 1px red;
           wave {
             overflow: hidden !important;
+            cursor: pointer !important;
           }
         `}
       />

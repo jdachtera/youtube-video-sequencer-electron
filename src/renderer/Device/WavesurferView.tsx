@@ -27,11 +27,14 @@ export const WavesurferView = (props: WavesurferViewProps) => {
 
   let wavesurfer: Wavesurfer;
 
-  const scrollZoom = (event: WheelEvent) => {
+  const scrollZoom = debounce((event: WheelEvent) => {
     event.preventDefault();
+
     const newZoom = Math.min(Math.max(zoom() + event.deltaY, 1), 800);
-    props.sampler.set({ zoom: newZoom });
-  };
+    if (newZoom !== zoom()) {
+      props.sampler.set({ zoom: newZoom });
+    }
+  }, 100);
 
   const handleSliceAdded = (slice: Slice) => {
     const region = wavesurfer.regions.list[slice.id];

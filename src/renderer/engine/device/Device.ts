@@ -15,6 +15,8 @@ import { Step } from './Slice';
 export type SerializedDeviceBase = {
   volume: number;
   inputGain: number;
+  color: string;
+  collapsed: boolean;
 };
 
 type DeviceEvents = PropertyUpdateEvents<SerializedDeviceBase> & {
@@ -27,6 +29,9 @@ export abstract class Device<
 > extends TypedEmitter<DeviceEvents & L> {
   input = new Gain();
   output = new Gain();
+
+  collapsed = false;
+  color = 'gray';
 
   private inputDevice?: Device<ListenerSignature<unknown>>;
 
@@ -60,6 +65,9 @@ export abstract class Device<
           break;
         case 'volume':
           this.output.gain.value = entry[1] ?? 1;
+          break;
+        case 'collapsed':
+          this.collapsed = entry[1] ?? false;
           break;
       }
     });

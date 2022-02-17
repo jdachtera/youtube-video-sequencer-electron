@@ -5,7 +5,7 @@ import {
   createStoreFromEventEmitter,
 } from './createSignalFromEventEmitter';
 import { SamplerDevice } from './engine/device/Sampler';
-import { Pattern, Slice } from './engine/device/Slice';
+import { Pattern, Slice, Step } from './engine/device/Slice';
 import { subdivisions, subdivisionTypes } from './engine/types';
 import { MoogKnobWithLabel } from './controls/Knob';
 import { Label } from './controls/Label';
@@ -80,18 +80,24 @@ export const SlicePattern = (
         `]: true,
       }}
     >
-      <LCD>foo</LCD>
-      <Label label={sliceState.name} />
-      <ScreenPrintBackground background={sliceState.color}>
-        <Sequencer
-          steps={currentPattern().steps}
-          onChange={(steps) => {
-            props.slice.updatePattern(props.currentPatternIndex, {
-              steps,
-            });
-          }}
-          slice={props.slice}
-        />{' '}
+      <LCD
+        classList={{
+          [css`
+            width: 150px;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+          `]: true,
+        }}
+      >
+        {sliceState.name}
+      </LCD>
+      <div
+        classList={{
+          [css`
+            display: flex;
+          `]: true,
+        }}
+      >
         <Toggle
           label="Solo"
           checked={sliceState.solo}
@@ -99,18 +105,16 @@ export const SlicePattern = (
             props.slice.setSolo(solo, altKey);
           }}
         />
-        <MoogKnobWithLabel
-          label="Steps"
+        <input
+          type="number"
           step={1}
           min={1}
           max={1024}
-          speed={0.1}
-          fineIsDefault
           value={currentPattern()?.steps?.length}
-          onChange={(patternLength) => {
+          onChange={(event) => {
             props.slice.updatePatternLength(
               props.currentPatternIndex,
-              patternLength
+              event.currentTarget.valueAsNumber
             );
           }}
         />
@@ -143,6 +147,17 @@ export const SlicePattern = (
             )}
           </For>
         </select>
+      </div>
+      <ScreenPrintBackground background={sliceState.color}>
+        <Sequencer
+          steps={currentPattern().steps}
+          onChange={(steps) => {
+            props.slice.updatePattern(props.currentPatternIndex, {
+              steps,
+            });
+          }}
+          slice={props.slice}
+        />{' '}
       </ScreenPrintBackground>
     </div>
   );

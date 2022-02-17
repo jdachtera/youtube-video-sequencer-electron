@@ -65,6 +65,7 @@ export type SliceEvents = {
   change: (slice: Slice) => void;
   playerStarted: () => void;
   playerStopped: () => void;
+  currentPositionUpdated: (currentPosition: number) => void;
   load: () => void;
 } & PropertyUpdateEvents<SerializedSlice>;
 
@@ -80,6 +81,8 @@ export class Slice extends TypedEmitter<SliceEvents> {
   patterns: Pattern[] = [];
   name = '';
   collapsed = false;
+
+  currentPosition = 0;
 
   chain: DeviceChain = null!;
 
@@ -345,9 +348,21 @@ export class Slice extends TypedEmitter<SliceEvents> {
     this.off('endUpdated', this.updateBuffer);
   }
 
+  updatePlayPosition(startTime: number = this.player.immediate()) {
+    if (this.player.state === 'started') {
+      this.currentPosition = this.player.immediate() - startTime;
+      window.setTimeout(() => this.updatePlayPosition(startTime), 20);
+    } else {
+      this.currentPosition = 0;
+    }
+    this.emit('currentPositionUpdated', this.currentPosition);
+  }
+
   play(time?: number) {
     if (!this.player.buffer.loaded) return;
+    this.player.stop(time);
     this.player.start(time);
+    this.updatePlayPosition();
     this.emit('playerStarted');
   }
 }

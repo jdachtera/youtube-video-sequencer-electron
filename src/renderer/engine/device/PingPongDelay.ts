@@ -23,10 +23,12 @@ export class PingPongDelayDevice extends Device<PingPongDelayEvents> {
     pingPongDelay: DeepPartial<SerializedPingPongDelayDevice>
   ): SerializedPingPongDelayDevice => ({
     name: 'PingPongDelay',
+    collapsed: false,
     inputGain: pingPongDelay.inputGain ?? 1,
     volume: pingPongDelay.volume ?? 1,
     delayTime: pingPongDelay.delayTime ?? 10,
     feedback: pingPongDelay.feedback ?? 0.2,
+    color: 'violet',
   });
 
   constructor(
@@ -71,6 +73,8 @@ export class PingPongDelayDevice extends Device<PingPongDelayEvents> {
   serialize(): SerializedPingPongDelayDevice {
     return {
       name: 'PingPongDelay',
+      collapsed: this.collapsed,
+      color: this.color,
       volume: this.output.gain.value,
       inputGain: this.input.gain.value,
       delayTime: this.pingPongDelayNode.delayTime.value,

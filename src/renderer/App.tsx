@@ -57,12 +57,23 @@ export function App() {
               [css`
                 flex: 1;
                 overflow-y: auto;
+                width: 100vw;
               `]: true,
             }}
           >
             <For each={tracks()}>
               {(track) => (
-                <div>
+                <div
+                  classList={{
+                    [css`
+                      max-width: 100vw;
+                      display: flex;
+                      .device {
+                        width: 100%;
+                      }
+                    `]: true,
+                  }}
+                >
                   <DeviceView device={track.chain} />
                   <button
                     onClick={() => {

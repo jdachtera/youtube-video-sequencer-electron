@@ -26,12 +26,14 @@ export class FilterDevice extends Device<FilterDeviceEvents> {
     filter: DeepPartial<SerializedFilterDevice>
   ): SerializedFilterDevice => ({
     name: 'Filter',
+    collapsed: false,
     inputGain: filter.inputGain ?? 1,
     volume: filter.volume ?? 1,
     frequency: filter.frequency ?? 4000,
     type: filter.type ?? 'lowpass',
     resonance: filter.resonance ?? 0.1,
     rolloff: filter.rolloff ?? -12,
+    color: 'cyan',
   });
 
   constructor(
@@ -82,6 +84,8 @@ export class FilterDevice extends Device<FilterDeviceEvents> {
   serialize(): SerializedFilterDevice {
     return {
       name: 'Filter',
+      collapsed: this.collapsed,
+      color: this.color,
       volume: this.output.gain.value,
       inputGain: this.input.gain.value,
       type: this.filterNode.type,

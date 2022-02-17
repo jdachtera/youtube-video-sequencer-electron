@@ -3,7 +3,7 @@ import { Label } from './controls/Label';
 import ScrewHead from './svg/screw_head.svg';
 import { BiCompass } from 'solid-icons/bi';
 
-import { PropsWithChildren, splitProps, JSX, Show } from 'solid-js';
+import { PropsWithChildren, splitProps, JSX, Show, mergeProps } from 'solid-js';
 
 const rackEarStyle = css`
   display: flex;
@@ -55,19 +55,19 @@ export const PowerSwitch = () => {
 };
 
 export const RackEar = (
-  props: PropsWithChildren<{
-    onClick?: () => void;
+  allProps: JSX.IntrinsicElements['div'] & {
     collapsed?: boolean;
     screwCount?: number;
-  }>
+  }
 ) => {
+  const [props, divProps] = splitProps(allProps, ['collapsed', 'screwCount']);
   const rackEarStyle = css`
     display: flex;
     flex-direction: column;
     justify-content: space-between;
   `;
   return (
-    <div class={rackEarStyle} onClick={() => props.onClick?.()}>
+    <div class={rackEarStyle} onClick={divProps.onClick}>
       <RackMountHole
         class={css`
           margin: 10px;
@@ -120,11 +120,17 @@ export const RackEar2 = () => {
 };
 
 export const ButtonWithLabel = (
-  props: {
+  allProps: {
+    activated?: boolean;
     label: string;
+    labelOnButton?: boolean;
   } & JSX.IntrinsicElements['button']
 ) => {
-  const [ownProps, buttonProps] = splitProps(props, ['label']);
+  const [ownProps, buttonProps] = splitProps(allProps, ['label']);
+  const props = mergeProps(
+    { activated: false, labelOnButton: false },
+    allProps
+  );
   return (
     <div
       class={css`
@@ -151,6 +157,7 @@ export const ButtonWithLabel = (
           <button
             {...buttonProps}
             type="button"
+            classList={{ activated: props.activated }}
             class={css`
               border: 2px outset white;
               padding: 6px;
@@ -160,22 +167,38 @@ export const ButtonWithLabel = (
               font-weight: bold;
               font-size: 14px;
               font-variant: small-caps;
-              &:active {
-                border: 2px inset #ffbf47d7;
+              &:active,
+              &.activated {
                 box-shadow: 0 0 14px 2px #ff6c27;
                 background: radial-gradient(#ffed4c, #ff810b);
               }
+              &:active {
+                border: 2px inset #ffbf47d7;
+              }
             `}
-          />
+          >
+            <Show when={props.labelOnButton}>
+              <Label
+                label={ownProps.label}
+                class={css`
+                  font-size: 12px;
+                  color: black;
+                  white-space: nowrap;
+                `}
+              />
+            </Show>
+          </button>
         </div>
       </div>
-      <Label
-        label={ownProps.label}
-        class={css`
-          margin-left: 20px;
-          white-space: nowrap;
-        `}
-      />
+      <Show when={!props.labelOnButton}>
+        <Label
+          label={ownProps.label}
+          class={css`
+            margin-left: 20px;
+            white-space: nowrap;
+          `}
+        />
+      </Show>
     </div>
   );
 };
@@ -222,16 +245,22 @@ export const ScreenPrintBackground = (
   );
 };
 
-export const LCDFrame = (props: PropsWithChildren) => {
+export const LCDFrame = (allProps: JSX.IntrinsicElements['div']) => {
+  const [props, divProps] = splitProps(allProps, ['children']);
   return (
     <div
-      class={css`
-        position: relative;
-        padding: 60px;
-        border-radius: 8px;
-        padding-right: 160px;
-        background-color: black;
-      `}
+      {...divProps}
+      classList={{
+        [css`
+          position: relative;
+          padding: 60px;
+          border-radius: 8px;
+          padding-right: 160px;
+          background-color: black;
+        `]: true,
+
+        ...divProps.classList,
+      }}
     >
       <div
         class={css`
@@ -262,21 +291,30 @@ export const LCDFrame = (props: PropsWithChildren) => {
 };
 
 export const DeviceWrapper = (
-  props: PropsWithChildren<{ class?: string; background?: string }>
+  allProps: JSX.IntrinsicElements['div'] & {
+    background?: string;
+    onClickRackEar?: (event: MouseEvent) => void;
+  }
 ) => {
+  const [props, divProps] = splitProps(allProps, [
+    'background',
+    'children',
+    'onClickRackEar',
+  ]);
   return (
     <div
-      class={[
-        css`
+      {...divProps}
+      classList={{
+        ...divProps.classList,
+        [css`
           display: flex;
           background: ${props.background ?? '#969696'};
           box-shadow: 0 0 2px 2px inset #222;
           padding: 10px;
-        `,
-        props.class,
-      ].join(' ')}
+        `]: true,
+      }}
     >
-      <RackEar />
+      <RackEar onClick={props.onClickRackEar} />
       <BiCompass
         color="lavender"
         size="64px"
@@ -295,21 +333,25 @@ export const DeviceWrapper = (
   );
 };
 
-export const LCD = (props: PropsWithChildren) => {
+export const LCD = (props: JSX.IntrinsicElements['div']) => {
   return (
     <div
-      class={css`
-        display: flex;
-        flex-direction: column;
-        background: radial-gradient(#cfcfcf, #b3b3b3);
-        color: rgb(63, 63, 63);
-        font-size: 20px;
-        box-shadow: inset 2px 2px 5px 1px #000000c1;
-        border-radius: 3px;
-        text-shadow: 1px 1px 1px rgba(119, 119, 119, 0.849);
-        padding: 8px;
-        font-family: 'chesstype';
-      `}
+      {...props}
+      classList={{
+        [css`
+          display: flex;
+          flex-direction: column;
+          background: radial-gradient(#cfcfcf, #b3b3b3);
+          color: rgb(63, 63, 63);
+          font-size: 20px;
+          box-shadow: inset 2px 2px 5px 1px #000000c1;
+          border-radius: 3px;
+          text-shadow: 1px 1px 1px rgba(119, 119, 119, 0.849);
+          padding: 8px;
+          font-family: 'chesstype';
+        `]: true,
+        ...props.classList,
+      }}
     >
       {props.children}
     </div>

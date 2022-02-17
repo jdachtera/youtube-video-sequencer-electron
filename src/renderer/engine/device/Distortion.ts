@@ -22,9 +22,11 @@ export class DistortionDevice extends Device<DistortionDeviceEvents> {
     distortion: DeepPartial<SerializedDistortionDevice>
   ): SerializedDistortionDevice => ({
     name: 'Distortion',
+    collapsed: false,
     inputGain: distortion.inputGain ?? 1,
     volume: distortion.volume ?? 1,
     distortion: distortion.distortion ?? 0.1,
+    color: 'yellow',
   });
 
   constructor(
@@ -64,6 +66,8 @@ export class DistortionDevice extends Device<DistortionDeviceEvents> {
   serialize(): SerializedDistortionDevice {
     return {
       name: 'Distortion',
+      collapsed: this.collapsed,
+      color: this.color,
       volume: this.output.gain.value,
       inputGain: this.input.gain.value,
       distortion: this.distortionNode.distortion,

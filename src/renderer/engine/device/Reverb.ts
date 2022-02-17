@@ -24,11 +24,13 @@ export class ReverbDevice extends Device<ReverbDeviceEvents> {
     reverb: DeepPartial<SerializedReverbDevice>
   ): SerializedReverbDevice => ({
     name: 'Reverb',
+    collapsed: false,
     inputGain: reverb.inputGain ?? 1,
     volume: reverb.volume ?? 1,
     decay: reverb.decay ?? 100,
     preDelay: reverb.preDelay ?? 0.2,
     wet: reverb.wet ?? 0.2,
+    color: 'blue',
   });
 
   constructor(
@@ -78,6 +80,8 @@ export class ReverbDevice extends Device<ReverbDeviceEvents> {
   serialize(): SerializedReverbDevice {
     return {
       name: 'Reverb',
+      collapsed: this.collapsed,
+      color: this.color,
       volume: this.output.gain.value,
       inputGain: this.input.gain.value,
       decay: Time(this.reverbNode.decay).toSeconds(),
