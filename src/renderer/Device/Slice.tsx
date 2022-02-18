@@ -119,7 +119,7 @@ export const SampleSlice = (props: {
             }}
           />
           <ButtonWithLabel
-            label="Export"
+            label="Solo"
             activated={sliceState.solo}
             labelOnButton={true}
             onClick={(event) => {
