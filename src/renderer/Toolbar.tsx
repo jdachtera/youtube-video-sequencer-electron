@@ -1,11 +1,10 @@
-import audioBufferToWav from 'audiobuffer-to-wav';
 import { createEffect, createSignal, For, onCleanup, onMount } from 'solid-js';
 import { css } from 'solid-styled-components';
-import { Offline, Transport, start } from 'tone';
+import { Transport, start } from 'tone';
 import { debounce } from 'ts-debounce';
 
 import { createStoreFromEventEmitter } from './createSignalFromEventEmitter';
-import { SamplerDevice } from './engine/device/Sampler';
+
 import { Engine } from './engine/Engine';
 import { FindSlicesButton } from './FindSlicesButton';
 import { MoogKnobWithLabel } from './controls/Knob';
@@ -14,6 +13,7 @@ import { DeepPartial } from './engine/types';
 import { Track } from './engine/Track';
 import { ButtonWithLabel } from './UI';
 import { Row } from './Grid';
+import { exportBuffer } from './engine/helpers';
 
 const camelCaseToSpaced = (str: string) => {
   let newString = '';
@@ -152,55 +152,10 @@ export const Toolbar = (props: { engine: Engine }) => {
   };
 
   const renderToWavefile = async () => {
-    const maxLength =
-      props.engine.tracks
-        .flatMap((track) =>
-          track.chain.devices
-            .filter(
-              (device): device is SamplerDevice =>
-                device instanceof SamplerDevice
-            )
-            .flatMap((sampler) =>
-              sampler
-                .getSlices()
-                .map(
-                  (slice) =>
-                    slice.serialize().patterns[props.engine.currentPatternIndex]
-                      .steps.length
-                )
-            )
-        )
-        .sort()
-        .pop() ?? 16;
+    const timeToRender = (props.engine.getMaxSequenceLength() * 4) / 8;
+    const buffer = await props.engine.renderToBuffer(timeToRender);
 
-    const timeToRender = (maxLength * 4) / 8;
-
-    let offlineEngine: Engine | null = null;
-
-    const buffer = await Offline(async (offlineContext) => {
-      offlineEngine = new Engine(offlineContext.transport);
-      offlineEngine.set(props.engine.serialize());
-
-      await offlineEngine.hasLoaded();
-
-      offlineContext.transport.start();
-    }, timeToRender);
-
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    offlineEngine!.dispose();
-
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const wav = audioBufferToWav(buffer.get()!);
-    const blob = new window.Blob([new DataView(wav)], {
-      type: 'audio/wav',
-    });
-
-    const url = window.URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = 'audio.wav';
-    anchor.click();
-    window.URL.revokeObjectURL(url);
+    exportBuffer(buffer, 'audio.wav');
   };
 
   onMount(() => props.engine.on('change', saveToLocalStorage));

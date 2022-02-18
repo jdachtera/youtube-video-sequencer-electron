@@ -7,6 +7,7 @@ import { DeepPartial } from './types';
 import { entries, PropertyUpdateEvents } from './helpers';
 
 import { SamplerDevice, SerializedSamplerDevice } from './device/Sampler';
+import { Offline } from 'tone';
 
 export type SerializedEngine = {
   currentPatternIndex: number;
@@ -170,5 +171,46 @@ export class Engine extends TypedEmitter<EngineEvents> {
 
   stop(time?: Time | undefined) {
     this.emit('stop', time);
+  }
+
+  getMaxSequenceLength() {
+    return (
+      this.tracks
+        .flatMap((track) =>
+          track.chain.devices
+            .filter(
+              (device): device is SamplerDevice =>
+                device instanceof SamplerDevice
+            )
+            .flatMap((sampler) =>
+              sampler
+                .getSlices()
+                .map(
+                  (slice) =>
+                    slice.serialize().patterns[this.currentPatternIndex].steps
+                      .length
+                )
+            )
+        )
+        .sort()
+        .pop() ?? 16
+    );
+  }
+
+  async renderToBuffer(timeToRender: number) {
+    let offlineEngine: Engine | null = null;
+
+    const buffer = await Offline(async (offlineContext) => {
+      offlineEngine = new Engine(offlineContext.transport);
+      offlineEngine.set(this.serialize());
+
+      await offlineEngine.hasLoaded();
+
+      offlineContext.transport.start();
+    }, timeToRender);
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    offlineEngine!.dispose();
+    return buffer;
   }
 }

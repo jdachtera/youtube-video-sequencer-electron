@@ -24,6 +24,7 @@ import {
 import { SlicePattern } from '../PatternEditor';
 import { DeviceChainView } from './DeviceChainView';
 import { Row } from 'renderer/Grid';
+import { exportBuffer } from 'renderer/engine/helpers';
 
 export const SampleSlice = (props: {
   slice: Slice;
@@ -118,7 +119,7 @@ export const SampleSlice = (props: {
             }}
           />
           <ButtonWithLabel
-            label="Solo"
+            label="Export"
             activated={sliceState.solo}
             labelOnButton={true}
             onClick={(event) => {
@@ -448,11 +449,15 @@ export const SampleSlice = (props: {
                     `}
                   >
                     <ButtonWithLabel
-                      label="Solo"
-                      activated={sliceState.solo}
-                      onClick={(event) =>
-                        handleUpdateSolo(!sliceState.solo, event.altKey)
-                      }
+                      label="Export"
+                      onClick={() => {
+                        exportBuffer(
+                          props.slice.player.buffer,
+                          `${encodeURI(
+                            `${props.slice.sampler.title} (${props.slice.start}-${props.slice.end})`
+                          )}.wav`
+                        );
+                      }}
                     />
                     <ButtonWithLabel
                       activated={sliceState.reverse}
