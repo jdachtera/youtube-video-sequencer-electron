@@ -32,9 +32,9 @@ export const Toolbar = (props: { engine: Engine }) => {
     +(localStorage.getItem('zoomFactor') ?? '1')
   );
 
-  createEffect(() =>
+  createEffect(
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    setTimeout(() => window.host.setZoomFactor(zoomFactor()), 100)
+    () => window.host.setZoomFactor(zoomFactor())
   );
 
   const engineState = createStoreFromEventEmitter(
