@@ -9,7 +9,7 @@ import { Pattern, Slice } from './engine/device/Slice';
 import { subdivisions, subdivisionTypes } from './engine/types';
 import { Sequencer } from './Device/Sequencer';
 
-import { ScreenPrintBackground } from './UI';
+import { NumberInputWithArrowButtons, ScreenPrintBackground } from './UI';
 import { Row } from './Grid';
 
 export const PatternEditor = (
@@ -70,17 +70,14 @@ export const SlicePattern = (
 
   return (
     <Row {...divProps}>
-      <input
-        type="number"
+      <NumberInputWithArrowButtons
+        size={4}
         step={1}
         min={1}
         max={1024}
         value={currentPattern()?.steps?.length}
-        onChange={(event) => {
-          props.slice.updatePatternLength(
-            props.currentPatternIndex,
-            event.currentTarget.valueAsNumber
-          );
+        onChange={(length) => {
+          props.slice.updatePatternLength(props.currentPatternIndex, length);
         }}
       />
       <select

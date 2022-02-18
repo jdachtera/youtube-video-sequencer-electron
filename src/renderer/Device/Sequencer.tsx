@@ -13,6 +13,7 @@ import { Slice, Step } from '../engine/device/Slice';
 import { css } from 'solid-styled-components';
 import { SequencerStep } from './SequencerStep';
 import { Row } from 'renderer/Grid';
+import { NumberInputWithArrowButtons } from 'renderer/UI';
 
 const colors808Knobs = ['#ffffff', '#f1f827', '#f8a125', '#e72e2e'];
 
@@ -61,12 +62,13 @@ export const Sequencer = (
 
   return (
     <Row>
-      <input
-        type="number"
+      <input />
+      <NumberInputWithArrowButtons
+        size={2}
         min={1}
         max={Math.ceil(props.steps.length / 16)}
         value={page()}
-        onInput={(event) => setPage(event.currentTarget.valueAsNumber)}
+        onChange={(page) => setPage(page)}
       />
       <ul
         {...ulProps}

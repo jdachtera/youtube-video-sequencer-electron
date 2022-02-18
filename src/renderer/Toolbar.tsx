@@ -7,11 +7,14 @@ import { createStoreFromEventEmitter } from './createSignalFromEventEmitter';
 
 import { Engine } from './engine/Engine';
 import { FindSlicesButton } from './FindSlicesButton';
-import { MoogKnobWithLabel } from './controls/Knob';
 import { LoginModal } from './LoginModal';
 import { DeepPartial } from './engine/types';
 import { Track } from './engine/Track';
-import { ButtonGroup, ButtonWithLabel } from './UI';
+import {
+  ButtonGroup,
+  ButtonWithLabel,
+  NumberInputWithArrowButtons,
+} from './UI';
 import { Row } from './Grid';
 import { exportBuffer } from './engine/helpers';
 
@@ -238,11 +241,11 @@ export const Toolbar = (props: { engine: Engine }) => {
             label={'Play'}
           />
           :
-          <MoogKnobWithLabel
-            label="Tempo"
+          <NumberInputWithArrowButtons
             min={20}
             max={280}
             step={1}
+            size={4}
             value={engineState.bpm}
             onChange={handleTempoChange}
           />
@@ -271,10 +274,11 @@ export const Toolbar = (props: { engine: Engine }) => {
               )}
             </For>
           </ButtonGroup>
-          <MoogKnobWithLabel
-            label="Swing"
+          <NumberInputWithArrowButtons
             min={0}
             max={1}
+            step={0.1}
+            size={4}
             value={engineState.swing}
             onChange={handleSwingChange}
           />

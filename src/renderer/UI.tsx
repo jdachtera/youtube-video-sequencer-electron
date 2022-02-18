@@ -1,9 +1,17 @@
-import { PropsWithChildren, splitProps, JSX, Show, mergeProps } from 'solid-js';
+import {
+  PropsWithChildren,
+  splitProps,
+  JSX,
+  Show,
+  mergeProps,
+  ComponentProps,
+} from 'solid-js';
 
 import { css } from 'solid-styled-components';
 import { Label } from './controls/Label';
 import ScrewHead from './svg/screw_head.svg';
 import { BiCompass } from 'solid-icons/bi';
+import { Column, Row } from './Grid';
 
 const akaiButtonStyles = css`
   border: 2px outset white;
@@ -109,6 +117,118 @@ export const RackEar2 = () => {
   );
 };
 
+export const NumberInputWithArrowButtons = (
+  allProps: {
+    value: number;
+    onChange: (value: number) => void;
+    step?: number;
+    min?: number;
+    max?: number;
+  } & Omit<
+    ComponentProps<typeof InputWithArrowButtons>,
+    'value' | 'onChange' | 'onClickUp' | 'onClickDown' | 'step' | 'min' | 'max'
+  >
+) => {
+  const [props, inputProps] = splitProps(allProps, [
+    'onChange',
+    'value',
+    'min',
+    'max',
+    'step',
+  ]);
+
+  const triggerChange = (value: number) =>
+    props.onChange(
+      Math.min(Math.max(props.min ?? -Infinity, value), props.max ?? Infinity)
+    );
+
+  const handleUp = () => triggerChange(props.value + (props.step ?? 1));
+  const handleDown = () => triggerChange(props.value - (props.step ?? 1));
+
+  return (
+    <InputWithArrowButtons
+      {...inputProps}
+      value={props.value}
+      onKeyDown={(event) => {
+        switch (event.key) {
+          case 'ArrowUp':
+            return handleUp();
+          case 'ArrowDown':
+            return handleDown();
+        }
+      }}
+      onClickUp={handleUp}
+      onClickDown={handleDown}
+    />
+  );
+};
+
+export const InputWithArrowButtons = (
+  allProps: {
+    onClickUp: (event: MouseEvent) => void;
+    onClickDown: (event: MouseEvent) => void;
+  } & ComponentProps<typeof InputLCD>
+) => {
+  const [props, inputProps] = splitProps(allProps, [
+    'onClickUp',
+    'onClickDown',
+  ]);
+
+  const buttonStyles = css`
+    padding: 0px;
+    button {
+      padding: 0px;
+      label.override {
+        font-size: 10px;
+      }
+    }
+  `;
+
+  return (
+    <Row
+      classList={{
+        [css`
+          align-items: center;
+          justify-content: center;
+        `]: true,
+      }}
+    >
+      <div>
+        <InputLCD
+          {...inputProps}
+          classList={{
+            [css``]: true,
+          }}
+        />
+      </div>
+      <Column
+        classList={{
+          [css`
+            padding: 2px;
+          `]: true,
+        }}
+      >
+        <ButtonWithLabel
+          label="▲"
+          classList={{
+            [buttonStyles]: true,
+          }}
+          labelOnButton={true}
+          onClick={(event) => props.onClickUp(event)}
+        ></ButtonWithLabel>
+        <ButtonWithLabel
+          label="▼"
+          classList={{
+            [buttonStyles]: true,
+          }}
+          labelOnButton={true}
+          onClick={(event) => props.onClickDown(event)}
+        ></ButtonWithLabel>
+      </Column>
+    </Row>
+  );
+};
+
 export const ButtonGroup = (props: JSX.IntrinsicElements['div']) => {
   return (
     <div
@@ -158,12 +278,15 @@ export const ButtonWithLabel = (
   );
   return (
     <div
-      class={css`
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 5px;
-      `}
+      classList={{
+        [css`
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 5px;
+        `]: true,
+        ...buttonProps.classList,
+      }}
     >
       <div
         class={css`
