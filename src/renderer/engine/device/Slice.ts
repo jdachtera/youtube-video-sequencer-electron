@@ -24,6 +24,7 @@ export type SerializedSlice = {
   start: number;
   end: number;
   volume: number;
+  mute: boolean;
   playbackSpeed: number;
   reverse: boolean;
   color: string;
@@ -97,6 +98,7 @@ export class Slice extends TypedEmitter<SliceEvents> {
   ): SerializedSlice => ({
     id: slice.id ?? createUniqueId(),
     collapsed: slice.collapsed ?? false,
+    mute: slice.mute ?? false,
     name: slice.name ?? '',
     color: slice.color ?? 'red',
     start: slice.start ?? 0,
@@ -200,6 +202,9 @@ export class Slice extends TypedEmitter<SliceEvents> {
           break;
         case 'solo':
           this.soloNode.solo = entry[1] ?? false;
+          break;
+        case 'mute':
+          this.player.mute = entry[1] ?? false;
           break;
         case 'patterns': {
           this.patterns = this.ensurePatternExists(
@@ -331,6 +336,7 @@ export class Slice extends TypedEmitter<SliceEvents> {
       patterns: this.patterns,
       name: this.name,
       solo: this.soloNode.solo,
+      mute: this.player.mute,
       collapsed: this.collapsed,
       chain: this.chain.serialize(),
     };

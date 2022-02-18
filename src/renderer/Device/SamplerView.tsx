@@ -11,7 +11,7 @@ import { css } from 'solid-styled-components';
 import { SamplerDevice } from '../engine/device/Sampler';
 import { WavesurferView } from './WavesurferView';
 
-import { LCD, LCDFrame, LCDLine, AkaiButton, DeviceWrapper } from '../UI';
+import { LCD, LCDFrame, LCDLine, AkaiButton } from '../UI';
 
 import { createSignalFromEventEmitter } from '../createSignalFromEventEmitter';
 import { Slice } from '../engine/device/Slice';

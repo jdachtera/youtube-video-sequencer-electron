@@ -125,6 +125,14 @@ export const SampleSlice = (props: {
               props.slice.setSolo(!sliceState.solo, event.altKey);
             }}
           />
+          <ButtonWithLabel
+            label="Mute"
+            activated={sliceState.mute}
+            labelOnButton={true}
+            onClick={() => {
+              props.slice.set({ mute: !sliceState.mute });
+            }}
+          />
         </Row>
       </DeviceWrapper>
       <div
