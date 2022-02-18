@@ -7,7 +7,11 @@ import Wavesurfer from 'wavesurfer.js';
 import RegionsPlugin, { Region } from 'wavesurfer.js/src/plugin/regions';
 import TimelinePlugin from 'wavesurfer.js/src/plugin/timeline';
 import { SamplerDevice } from '../engine/device/Sampler';
-import { SerializedSlice, Slice } from '../engine/device/Slice';
+import {
+  normalizeStepData,
+  SerializedSlice,
+  Slice,
+} from '../engine/device/Slice';
 
 type WavesurferViewProps = {
   sampler: SamplerDevice;
@@ -87,15 +91,6 @@ export const WavesurferView = (props: WavesurferViewProps) => {
         start,
         end,
         color,
-        patterns: [
-          {
-            subdivision: 16,
-            subdivisionType: 'n',
-            steps: Array.from({ length: 16 }).map(() => ({
-              actions: [],
-            })),
-          },
-        ],
       });
       props.sampler.createSlice(slice);
     } else {

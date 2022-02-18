@@ -120,7 +120,7 @@ export const SlicePattern = (
             });
           }}
           slice={props.slice}
-        />{' '}
+        />
       </ScreenPrintBackground>
     </Row>
   );

@@ -200,7 +200,7 @@ export const FindSlicesButton = (props: { engine: Engine }) => {
                             name: title,
                             start,
                             end,
-                            playbackSpeed,
+                            playbackRate: playbackSpeed,
                             reverse,
                           })
                         );

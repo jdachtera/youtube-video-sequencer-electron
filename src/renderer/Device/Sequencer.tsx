@@ -10,53 +10,27 @@ import {
 } from 'solid-js';
 
 // import { createNewAction } from './SequencerAction';
-import { Action, Slice, Step } from '../engine/device/Slice';
+import { Slice, Step } from '../engine/device/Slice';
 import { css } from 'solid-styled-components';
 import { SequencerStep } from './SequencerStep';
 import { Row } from 'renderer/Grid';
 
 const colors808Knobs = ['#ffffff', '#f1f827', '#f8a125', '#e72e2e'];
-/*
-const createDefaultAction = (allSteps: Step[]): Action => {
-  const firstStepWithPlayAction = allSteps.find((step) =>
-    step.actions.find((action) => action.type === 'PLAY')
-  );
-  if (firstStepWithPlayAction) {
-    const firstPlayAction = firstStepWithPlayAction.actions.find(
-      (action) => action.type === 'PLAY'
-    );
-    if (firstPlayAction) {
-      return {
-        ...firstPlayAction,
-      };
-    }
-  }
-  return createNewAction('PLAY');
-};
-*/
+
 export const Sequencer = (
   propsWithoutDefaults: Omit<JSX.IntrinsicElements['ul'], 'onChange'> & {
     steps: Step[];
     slice: Slice;
     onChange: (steps: Step[]) => void;
-    onToggleStep?: (step: Step) => Action[];
   }
 ) => {
   const [ownProps, ulProps] = splitProps(propsWithoutDefaults, [
     'steps',
     'slice',
     'onChange',
-    'onToggleStep',
   ]);
   const props = mergeProps(
-    {
-      onToggleStep: (step: Step): Action[] => {
-        if (step.actions.length === 0) {
-          return [{ type: 'PLAY' }];
-        }
-        return [];
-      },
-    },
+    { onToggleStep: (step: Step): boolean => !step.play },
     ownProps
   );
 
@@ -67,10 +41,10 @@ export const Sequencer = (
 
   const [selectedStep, setSelectedStep] = createSignal<Step>();
 
-  const handleUpdateActions = (updatedActions: Action[], step: Step) => {
+  const handleToggleStep = (step: Step) => {
     const newStep = {
       ...step,
-      actions: updatedActions,
+      play: !step.play,
     };
 
     const stepIndex = props.steps.indexOf(step);
@@ -82,37 +56,6 @@ export const Sequencer = (
     ];
     setSelectedStep(newStep);
     props.onChange(newSteps);
-  };
-  /*
-  const handleAddAction = () => {
-    const selectedStepValue = selectedStep();
-    if (!selectedStepValue) return;
-    handleUpdateActions(
-      [...selectedStepValue.actions, createDefaultAction(props.steps)],
-      selectedStepValue
-    );
-  };
-
-  const handleUpdateAction = (
-    newAction: Action | null,
-    previousAction: Action
-  ) => {
-    const selectedStepValue = selectedStep();
-    if (!selectedStepValue) return;
-    const actionIndex = selectedStepValue.actions.indexOf(previousAction);
-    handleUpdateActions(
-      [
-        ...selectedStepValue.actions.slice(0, actionIndex),
-        ...(newAction ? [newAction] : []),
-        ...selectedStepValue.actions.slice(actionIndex + 1),
-      ],
-      selectedStepValue
-    );
-  };
-*/
-  const toggleStep = (step: Step) => {
-    setSelectedStep(step);
-    handleUpdateActions(props.onToggleStep(step), step);
   };
 
   const [page, setPage] = createSignal(1);
@@ -151,7 +94,7 @@ export const Sequencer = (
                     `]: true,
                   }}
                   step={step()}
-                  onClick={toggleStep}
+                  onClick={handleToggleStep}
                   isSelected={step() === selectedStep()}
                   isCurrent={step() === currentStep()}
                 />
@@ -160,27 +103,6 @@ export const Sequencer = (
           }}
         </Index>
       </ul>
-      {/* <div>
-        <Show when={selectedStep()}>
-          {(step) => (
-            <div>
-              <For each={step.actions}>
-                {(action) => {
-                  return (
-                    <SequencerAction
-                      action={action}
-                      onChange={handleUpdateAction}
-                    />
-                  );
-                }}
-              </For>
-              <button type="button" onClick={handleAddAction}>
-                Add action
-              </button>
-            </div>
-          )}
-        </Show>
-      </div> */}
     </Row>
   );
 };

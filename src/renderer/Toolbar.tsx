@@ -232,9 +232,10 @@ export const Toolbar = (props: { engine: Engine }) => {
         <Row>
           <ButtonWithLabel
             type="button"
+            activated={isPlaying()}
             onClick={togglePlay}
             labelOnButton={true}
-            label={isPlaying() ? 'Stop' : 'Play'}
+            label={'Play'}
           />
           :
           <MoogKnobWithLabel

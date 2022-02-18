@@ -25,7 +25,7 @@ export type SerializedSlice = {
   end: number;
   volume: number;
   mute: boolean;
-  playbackSpeed: number;
+  playbackRate: number;
   reverse: boolean;
   color: string;
   patterns: Pattern[];
@@ -41,25 +41,10 @@ export type Pattern = {
   steps: Step[];
 };
 
-export type Action =
-  | {
-      type: 'PLAY';
-      velocity?: number;
-    }
-  | {
-      type: 'PAUSE';
-    }
-  | {
-      type: 'SET_PLAYBACK_SPEED';
-      value: number;
-    }
-  | {
-      type: 'SET_REVERSE';
-      value: boolean;
-    };
-
 export type Step = {
-  actions: Action[];
+  play: boolean;
+  volume: number;
+  playbackRate: number;
 };
 
 export type SliceEvents = {
@@ -85,6 +70,9 @@ export class Slice extends TypedEmitter<SliceEvents> {
   name = '';
   collapsed = false;
 
+  playbackRate = 1;
+  volume = 1;
+
   currentPosition = 0;
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -103,7 +91,7 @@ export class Slice extends TypedEmitter<SliceEvents> {
     color: slice.color ?? 'red',
     start: slice.start ?? 0,
     end: slice.end ?? 0,
-    playbackSpeed: slice.playbackSpeed ?? 1,
+    playbackRate: slice.playbackRate ?? 1,
     reverse: slice.reverse ?? false,
     volume: slice.volume ?? 1,
     patterns: (Array.isArray(slice.patterns) ? slice.patterns : [])
@@ -131,28 +119,12 @@ export class Slice extends TypedEmitter<SliceEvents> {
   protected onSequenceEvent = (time: number, step: Step) => {
     getDraw().schedule(() => {
       this.emit('sequenceEvent', step);
+      this.player.playbackRate = this.playbackRate * step.playbackRate;
+      this.player.volume.value = this.volume * step.volume;
     }, time);
 
-    for (let i = 0; i < step.actions.length; i += 1) {
-      const action = step.actions[i];
-
-      switch (action.type) {
-        case 'PLAY': {
-          this.play(time);
-          break;
-        }
-        case 'PAUSE':
-          this.player.stop(time);
-          break;
-        case 'SET_PLAYBACK_SPEED':
-          this.player.playbackRate = action.value;
-          break;
-        case 'SET_REVERSE':
-          this.player.reverse = action.value;
-          break;
-        default:
-          break;
-      }
+    if (step.play) {
+      this.play(time);
     }
   };
 
@@ -192,10 +164,10 @@ export class Slice extends TypedEmitter<SliceEvents> {
 
       switch (entry[0]) {
         case 'volume':
-          this.gainNode.gain.value = entry[1] ?? 1;
+          this.volume = entry[1] ?? 1;
           break;
-        case 'playbackSpeed':
-          this.player.playbackRate = entry[1] ?? 1;
+        case 'playbackRate':
+          this.playbackRate = entry[1] ?? 1;
           break;
         case 'reverse':
           this.player.reverse = entry[1] ?? false;
@@ -300,7 +272,7 @@ export class Slice extends TypedEmitter<SliceEvents> {
       ...steps.slice(0),
       ...Array.from({
         length: Math.max(newLength - steps.length, 0),
-      }).map(() => ({ actions: [] })),
+      }).map(() => normalizeStepData({})),
     ];
 
     this.updatePattern(patternIndex, { steps: updatedSteps });
@@ -330,7 +302,7 @@ export class Slice extends TypedEmitter<SliceEvents> {
       start: this.start,
       end: this.end,
       volume: this.gainNode.gain.value,
-      playbackSpeed: this.player.playbackRate,
+      playbackRate: this.player.playbackRate,
       reverse: this.player.reverse,
       color: this.color,
       patterns: this.patterns,
@@ -380,30 +352,16 @@ export class Slice extends TypedEmitter<SliceEvents> {
 const createEmptyPattern = (numberOfSteps = 16): Pattern => ({
   subdivision: 16,
   subdivisionType: 'n',
-  steps: Array.from({ length: numberOfSteps }).map(() => ({ actions: [] })),
+  steps: Array.from({ length: numberOfSteps }).map(() => normalizeStepData({})),
 });
 
-export const normalizeStepData = (step: DeepPartial<Step>): Step => ({
-  actions: (Array.isArray(step.actions) ? step.actions : [])
-    .map((action): Action | undefined => {
-      switch (action?.type) {
-        case 'PLAY':
-          return {
-            ...action,
-            type: action.type,
-            velocity: action.velocity ?? 1,
-          };
-        case 'PAUSE':
-          return { type: 'PAUSE' };
-        case 'SET_PLAYBACK_SPEED':
-          return { ...action, type: action.type, value: action.value ?? 1 };
-        case 'SET_REVERSE':
-          return { ...action, type: action.type, value: action.value ?? false };
-        default:
-          return undefined;
-      }
-    })
-    .filter((action): action is Action => !!action),
+export const normalizeStepData = (
+  step: DeepPartial<Step & { actions: unknown[] }>
+): Step => ({
+  play: step.play ?? false,
+  playbackRate: step.playbackRate ?? 1,
+  volume: step.volume ?? 1,
+  ...(step.actions?.length && { play: true }),
 });
 
 export const normalizePatternData = (

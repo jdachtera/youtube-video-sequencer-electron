@@ -80,7 +80,7 @@ export const ShareSliceButton = (props: { slice: Slice }) => {
                       start: slice().start,
                       end: slice().end,
                       reverse: slice().reverse,
-                      playbackSpeed: slice().playbackSpeed,
+                      playbackSpeed: slice().playbackRate,
                       tagNames: tagNames(),
                     },
                   },

@@ -83,17 +83,6 @@ const sequencerStepStyles = () => {
         );
       }
     }
-
-    &.sequencerStepIsHalfActive {
-      box-shadow: 0px 0px 3px white;
-      border: 3px outset #ff6f41;
-      background: rgb(254, 243, 241);
-      background: radial-gradient(
-        circle,
-        rgb(255, 238, 0) 0%,
-        rgb(255, 65, 2) 100%
-      );
-    }
   `;
 };
 
@@ -131,12 +120,7 @@ export const SequencerStep = (allProps: SequencerStepProps) => {
         <div
           classList={{
             [sequencerStepStyles()]: true,
-            sequencerStepIsActive: !!props.step.actions.find(
-              ({ type }) => type === 'PLAY'
-            ),
-            sequencerStepIsHalfActive:
-              !!props.step.actions.length &&
-              !props.step.actions.find(({ type }) => type === 'PLAY'),
+            sequencerStepIsActive: props.step.play,
             sequencerStepIsCurrent: props.isCurrent,
             sequencerStepIsSelected: props.isSelected,
           }}

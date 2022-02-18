@@ -411,9 +411,9 @@ export const SampleSlice = (props: {
                       <MoogKnobWithLabel
                         min={0}
                         max={3}
-                        value={sliceState.playbackSpeed}
+                        value={sliceState.playbackRate}
                         onChange={(playbackSpeed: number) => {
-                          props.slice.set({ playbackSpeed });
+                          props.slice.set({ playbackRate: playbackSpeed });
                         }}
                         label="Pitch"
                       />
@@ -482,7 +482,7 @@ export const SampleSlice = (props: {
                       <ButtonWithLabel
                         onClick={() => {
                           props.slice.set({
-                            playbackSpeed: sliceState.playbackSpeed / 2,
+                            playbackRate: sliceState.playbackRate / 2,
                           });
                         }}
                         labelOnButton={true}
@@ -501,7 +501,7 @@ export const SampleSlice = (props: {
 
                           const playbackSpeed = sliceDuration / targetDuration;
 
-                          props.slice.set({ playbackSpeed });
+                          props.slice.set({ playbackRate: playbackSpeed });
                         }}
                         labelOnButton={true}
                         label="Align"
@@ -509,7 +509,7 @@ export const SampleSlice = (props: {
                       <ButtonWithLabel
                         onClick={() => {
                           props.slice.set({
-                            playbackSpeed: sliceState.playbackSpeed * 2,
+                            playbackRate: sliceState.playbackRate * 2,
                           });
                         }}
                         labelOnButton={true}
