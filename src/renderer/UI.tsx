@@ -109,6 +109,41 @@ export const RackEar2 = () => {
   );
 };
 
+export const ButtonGroup = (props: JSX.IntrinsicElements['div']) => {
+  return (
+    <div
+      {...props}
+      classList={{
+        [css`
+          display: flex;
+          flex-direction: row;
+          > :not(:first-child):not(:last-child) {
+            padding-left: 0;
+            padding-right: 0;
+            button {
+              border-left: none;
+              border-right: none;
+            }
+          }
+          > :first-child {
+            padding-right: 0;
+            button {
+              border-right: none;
+            }
+          }
+          > :last-child {
+            padding-left: 0;
+            button {
+              border-left: none;
+            }
+          }
+        `]: true,
+        ...props.classList,
+      }}
+    />
+  );
+};
+
 export const ButtonWithLabel = (
   allProps: {
     activated?: boolean;

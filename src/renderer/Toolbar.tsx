@@ -11,7 +11,7 @@ import { MoogKnobWithLabel } from './controls/Knob';
 import { LoginModal } from './LoginModal';
 import { DeepPartial } from './engine/types';
 import { Track } from './engine/Track';
-import { ButtonWithLabel } from './UI';
+import { ButtonGroup, ButtonWithLabel } from './UI';
 import { Row } from './Grid';
 import { exportBuffer } from './engine/helpers';
 
@@ -245,29 +245,31 @@ export const Toolbar = (props: { engine: Engine }) => {
             value={engineState.bpm}
             onChange={handleTempoChange}
           />
-          <For
-            each={
-              Object.keys(
-                props.engine.viewMode
-              ) as (keyof typeof props.engine.viewMode)[]
-            }
-          >
-            {(viewMode) => (
-              <ButtonWithLabel
-                activated={engineState.viewMode[viewMode]}
-                onClick={() => {
-                  props.engine.set({
-                    viewMode: {
-                      ...engineState.viewMode,
-                      [viewMode]: !engineState.viewMode[viewMode],
-                    },
-                  });
-                }}
-                labelOnButton={true}
-                label={camelCaseToSpaced(viewMode)}
-              />
-            )}
-          </For>
+          <ButtonGroup>
+            <For
+              each={
+                Object.keys(
+                  props.engine.viewMode
+                ) as (keyof typeof props.engine.viewMode)[]
+              }
+            >
+              {(viewMode) => (
+                <ButtonWithLabel
+                  activated={engineState.viewMode[viewMode]}
+                  onClick={() => {
+                    props.engine.set({
+                      viewMode: {
+                        ...engineState.viewMode,
+                        [viewMode]: !engineState.viewMode[viewMode],
+                      },
+                    });
+                  }}
+                  labelOnButton={true}
+                  label={camelCaseToSpaced(viewMode)}
+                />
+              )}
+            </For>
+          </ButtonGroup>
           <MoogKnobWithLabel
             label="Swing"
             min={0}
