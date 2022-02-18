@@ -87,15 +87,7 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
   };
 
   return (
-    <DeviceWrapper
-      background="#969696"
-      classList={{
-        device: true,
-      }}
-      onClickRackEar={() => {
-        props.sampler.set({ collapsed: !props.sampler.collapsed });
-      }}
-    >
+    <>
       <div
         class={css`
           background-color: #b9b9b9;
@@ -198,6 +190,6 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
           </For>
         </ol>
       </div>
-    </DeviceWrapper>
+    </>
   );
 };
