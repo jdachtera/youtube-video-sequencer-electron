@@ -9,7 +9,6 @@ import {
   Show,
 } from 'solid-js';
 
-// import { createNewAction } from './SequencerAction';
 import { Slice, Step } from '../engine/device/Slice';
 import { css } from 'solid-styled-components';
 import { SequencerStep } from './SequencerStep';
