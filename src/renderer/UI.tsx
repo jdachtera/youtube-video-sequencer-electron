@@ -69,7 +69,16 @@ export const RackEar = (
     justify-content: space-between;
   `;
   return (
-    <div class={rackEarStyle} {...divProps}>
+    <div
+      {...divProps}
+      classList={{
+        [rackEarStyle]: true,
+        [css`
+          cursor: pointer;
+        `]: !!divProps.onClick,
+        ...divProps.classList,
+      }}
+    >
       <RackMountHole
         class={css`
           margin: 10px;
@@ -80,7 +89,6 @@ export const RackEar = (
       <RackMountHole
         class={css`
           margin: 10px;
-
           display: ${props.collapsed ? 'none' : 'flex'};
         `}
       >
