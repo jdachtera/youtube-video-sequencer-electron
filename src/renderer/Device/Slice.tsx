@@ -2,7 +2,14 @@ import { createMemo, untrack } from 'solid-js';
 
 import { css } from 'solid-styled-components';
 
-import { LCDLabel, LCD, ButtonWithLabel, RackEar, DeviceWrapper } from '../UI';
+import {
+  LCDLabel,
+  LCD,
+  ButtonWithLabel,
+  RackEar,
+  DeviceWrapper,
+  InputLCD,
+} from '../UI';
 
 import { WavesurferSliceView } from './WavesurferSliceView';
 
@@ -16,6 +23,7 @@ import {
 } from '../createSignalFromEventEmitter';
 import { SlicePattern } from '../PatternEditor';
 import { DeviceChainView } from './DeviceChainView';
+import { Row } from 'renderer/Grid';
 
 export const SampleSlice = (props: {
   slice: Slice;
@@ -24,10 +32,16 @@ export const SampleSlice = (props: {
   onClickSlice: (slice: Slice) => void;
   onRemoveSlice: (slice: Slice) => void;
 }) => {
-  const slice = createStoreFromEventEmitter(
+  const sliceState = createStoreFromEventEmitter(
     untrack(() => props.slice),
     'change',
     (slice) => slice.serialize()
+  );
+
+  const viewMode = createSignalFromEventEmitter(
+    () => props.slice.chain.engine,
+    'viewModeUpdated',
+    (engine) => engine.viewMode
   );
 
   const currentPlayPosition = createSignalFromEventEmitter(
@@ -37,18 +51,18 @@ export const SampleSlice = (props: {
   );
 
   const currentPattern = createMemo(
-    () => slice.patterns[props.currentPatternIndex]
+    () => sliceState.patterns[props.currentPatternIndex]
   );
 
   const handleUpdateSampleStart = (start: number) => {
     props.slice.set({
-      start: Math.min(slice.end + 0.00001, start),
+      start: Math.min(sliceState.end + 0.00001, start),
     });
   };
 
   const handleUpdateSampleEnd = (end: number) => {
     props.slice.set({
-      end: Math.max(slice.start + 0.00001, end),
+      end: Math.max(sliceState.start + 0.00001, end),
     });
   };
 
@@ -62,7 +76,7 @@ export const SampleSlice = (props: {
 
   const toggleCollapse = () => {
     props.slice.set({
-      collapsed: slice.collapsed ? false : true,
+      collapsed: sliceState.collapsed ? false : true,
     });
   };
 
@@ -79,25 +93,53 @@ export const SampleSlice = (props: {
         overflow-x: auto;
       `}
     >
-      <DeviceWrapper>
-        <SlicePattern
+      <DeviceWrapper onClickRackEar={toggleCollapse}>
+        <Row
           classList={{
             [css`
+              flex: 1;
+            `]: true,
+            [css`
               height: 430px;
-            `]: !slice.collapsed,
+            `]: !sliceState.collapsed,
           }}
-          slice={props.slice}
-          currentPatternIndex={props.currentPatternIndex}
-        />
+        >
+          <InputLCD
+            classList={{
+              [css`
+                width: 150px;
+                white-space: nowrap;
+                text-overflow: ellipsis;
+              `]: true,
+            }}
+            value={sliceState.name}
+            onInput={(event) => {
+              props.slice.set({ name: event.currentTarget.value });
+            }}
+          />
+          <ButtonWithLabel
+            label="Solo"
+            activated={sliceState.solo}
+            labelOnButton={true}
+            onClick={(event) => {
+              props.slice.setSolo(!sliceState.solo, event.altKey);
+            }}
+          />
+        </Row>
       </DeviceWrapper>
       <div
-        class={css`
-          box-shadow: 0px 0px 2px inset #222;
-          border-radius: 4px;
-          margin-bottom: 2px;
-          background-color: ${slice.color};
-          transition: all 2s ease;
-        `}
+        classList={{
+          [css`
+            box-shadow: 0px 0px 2px inset #222;
+            border-radius: 4px;
+            margin-bottom: 2px;
+            background-color: ${sliceState.color};
+            transition: all 2s ease;
+          `]: true,
+          [css`
+            display: none;
+          `]: !viewMode().sliceControls,
+        }}
       >
         <div
           class={css`
@@ -105,7 +147,7 @@ export const SampleSlice = (props: {
             width: 100%;
           `}
         >
-          <RackEar onClick={toggleCollapse} collapsed={slice.collapsed} />
+          <RackEar collapsed={sliceState.collapsed} onClick={toggleCollapse} />
 
           <div
             class={css`
@@ -119,7 +161,7 @@ export const SampleSlice = (props: {
               class={css`
                 display: flex;
                 align-items: center;
-                display: ${slice.collapsed ? 'flex' : 'none'};
+                display: ${sliceState.collapsed ? 'flex' : 'none'};
               `}
             >
               <LCD>
@@ -137,7 +179,7 @@ export const SampleSlice = (props: {
               class={css`
                 display: flex;
                 align-items: center;
-                display: ${slice.collapsed ? 'none' : 'flex'};
+                display: ${sliceState.collapsed ? 'none' : 'flex'};
               `}
             >
               <div
@@ -202,7 +244,7 @@ export const SampleSlice = (props: {
                             font-family: '7seg';
                             color: #444;
                           `}
-                          value={slice.name}
+                          value={sliceState.name}
                         />
                       </div>
                       <div
@@ -315,10 +357,13 @@ export const SampleSlice = (props: {
                             max={1024}
                             speed={0.1}
                             fineIsDefault
-                            value={slice.start}
+                            value={sliceState.start}
                             onChange={(start: number) => {
                               props.slice.set({
-                                start: Math.min(slice.end + 0.00001, start),
+                                start: Math.min(
+                                  sliceState.end + 0.00001,
+                                  start
+                                ),
                               });
                             }}
                           />
@@ -337,7 +382,7 @@ export const SampleSlice = (props: {
                             max={1024}
                             speed={0.1}
                             fineIsDefault
-                            value={slice.end}
+                            value={sliceState.end}
                             onChange={handleUpdateSampleEnd}
                           />
                         </div>
@@ -354,14 +399,14 @@ export const SampleSlice = (props: {
                         max={props.slice.sampler.buffer.duration}
                         speed={0.1}
                         step={0.01}
-                        value={slice.start}
+                        value={sliceState.start}
                         onChange={handleUpdateSampleStart}
                         label="Start"
                       />
                       <MoogKnobWithLabel
                         min={0}
                         max={3}
-                        value={slice.playbackSpeed}
+                        value={sliceState.playbackSpeed}
                         onChange={(playbackSpeed: number) => {
                           props.slice.set({ playbackSpeed });
                         }}
@@ -372,7 +417,7 @@ export const SampleSlice = (props: {
                         max={props.slice.sampler.buffer.duration}
                         speed={0.1}
                         step={0.01}
-                        value={slice.end}
+                        value={sliceState.end}
                         onChange={handleUpdateSampleEnd}
                         label="End"
                       />
@@ -396,15 +441,15 @@ export const SampleSlice = (props: {
                   >
                     <ButtonWithLabel
                       label="Solo"
-                      activated={slice.solo}
+                      activated={sliceState.solo}
                       onClick={(event) =>
-                        handleUpdateSolo(!slice.solo, event.altKey)
+                        handleUpdateSolo(!sliceState.solo, event.altKey)
                       }
                     />
                     <ButtonWithLabel
-                      activated={slice.reverse}
+                      activated={sliceState.reverse}
                       onClick={() => {
-                        props.slice.set({ reverse: !slice.reverse });
+                        props.slice.set({ reverse: !sliceState.reverse });
                       }}
                       label="Reverse"
                     />
@@ -428,7 +473,7 @@ export const SampleSlice = (props: {
                       <ButtonWithLabel
                         onClick={() => {
                           props.slice.set({
-                            playbackSpeed: slice.playbackSpeed / 2,
+                            playbackSpeed: sliceState.playbackSpeed / 2,
                           });
                         }}
                         labelOnButton={true}
@@ -439,7 +484,8 @@ export const SampleSlice = (props: {
                           const bpm =
                             props.slice.sampler.engine.transport.bpm.value;
                           const barDuration = (60 / bpm) * 4;
-                          const sliceDuration = slice.end - slice.start;
+                          const sliceDuration =
+                            sliceState.end - sliceState.start;
                           const targetDuration =
                             Math.round(sliceDuration / barDuration) *
                             barDuration;
@@ -454,7 +500,7 @@ export const SampleSlice = (props: {
                       <ButtonWithLabel
                         onClick={() => {
                           props.slice.set({
-                            playbackSpeed: slice.playbackSpeed * 2,
+                            playbackSpeed: sliceState.playbackSpeed * 2,
                           });
                         }}
                         labelOnButton={true}
@@ -466,7 +512,7 @@ export const SampleSlice = (props: {
                     <MoogKnobWithLabel
                       min={0}
                       max={2}
-                      value={slice.volume}
+                      value={sliceState.volume}
                       onChange={(volume: number) => {
                         props.slice.set({ volume });
                       }}
@@ -478,9 +524,25 @@ export const SampleSlice = (props: {
             </div>
           </div>
 
-          <RackEar collapsed={slice.collapsed} />
+          <RackEar collapsed={sliceState.collapsed} />
         </div>
       </div>
+
+      <DeviceWrapper
+        classList={{
+          [css`
+            height: 430px;
+          `]: !sliceState.collapsed,
+          [css`
+            display: none;
+          `]: !viewMode().sequencers,
+        }}
+      >
+        <SlicePattern
+          slice={props.slice}
+          currentPatternIndex={props.currentPatternIndex}
+        />
+      </DeviceWrapper>
 
       <DeviceChainView
         deviceChain={props.slice.chain}
@@ -492,7 +554,7 @@ export const SampleSlice = (props: {
           `]: true,
           [css`
             display: none !important;
-          `]: slice.collapsed,
+          `]: sliceState.collapsed,
         }}
       ></DeviceChainView>
     </li>

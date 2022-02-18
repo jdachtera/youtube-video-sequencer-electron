@@ -12,14 +12,20 @@ import { MoogKnobWithLabel } from './controls/Knob';
 import { LoginModal } from './LoginModal';
 import { DeepPartial } from './engine/types';
 import { Track } from './engine/Track';
+import { ButtonWithLabel } from './UI';
+import { Row } from './Grid';
 
-const viewModes = ['DEVICE', 'PATTERN'] as const;
-export type ViewMode = typeof viewModes[number];
-export const Toolbar = (props: {
-  engine: Engine;
-  viewMode: ViewMode;
-  onViewModeChanged: (viewMode: ViewMode) => void;
-}) => {
+const camelCaseToSpaced = (str: string) => {
+  let newString = '';
+  for (let i = 0; i < str.length; i++) {
+    if (str[i] === str[i].toUpperCase()) {
+      newString += ' ';
+    }
+    newString += str[i].toLowerCase();
+  }
+  return newString;
+};
+export const Toolbar = (props: { engine: Engine }) => {
   const [isPlaying, setIsPlaying] = createSignal(false);
 
   const [zoomFactor, setZoomFactor] = createSignal(
@@ -33,9 +39,15 @@ export const Toolbar = (props: {
 
   const engineState = createStoreFromEventEmitter(
     () => props.engine,
-    ['bpmUpdated', 'swingUpdated', 'currentPatternIndexUpdated'],
+    [
+      'bpmUpdated',
+      'swingUpdated',
+      'currentPatternIndexUpdated',
+      'viewModeUpdated',
+    ],
     (engine) => ({
       bpm: engine.transport.bpm.value,
+      viewMode: engine.viewMode,
       swing: engine.transport.swing,
       currentPatternIndex: engine.currentPatternIndex,
     })
@@ -255,41 +267,77 @@ export const Toolbar = (props: {
   return (
     <div>
       <LoginModal />
-      <FindSlicesButton engine={props.engine} />
+
       <div
         class={css`
           background: #333;
           padding: 8px;
         `}
       >
-        <button type="button" onClick={togglePlay}>
-          {isPlaying() ? 'Stop' : 'Play'}
-        </button>
-        :
-        <MoogKnobWithLabel
-          label="Tempo"
-          min={20}
-          max={280}
-          step={1}
-          value={engineState.bpm}
-          onChange={handleTempoChange}
-        />
-        <select
-          onChange={(event) =>
-            props.onViewModeChanged(event.currentTarget.value as ViewMode)
-          }
-        >
-          <For each={viewModes}>
-            {(viewMode) => <option value={viewMode}>{viewMode}</option>}
+        <Row>
+          <ButtonWithLabel
+            type="button"
+            onClick={togglePlay}
+            labelOnButton={true}
+            label={isPlaying() ? 'Stop' : 'Play'}
+          />
+          :
+          <MoogKnobWithLabel
+            label="Tempo"
+            min={20}
+            max={280}
+            step={1}
+            value={engineState.bpm}
+            onChange={handleTempoChange}
+          />
+          <For
+            each={
+              Object.keys(
+                props.engine.viewMode
+              ) as (keyof typeof props.engine.viewMode)[]
+            }
+          >
+            {(viewMode) => (
+              <ButtonWithLabel
+                activated={engineState.viewMode[viewMode]}
+                onClick={() => {
+                  props.engine.set({
+                    viewMode: {
+                      ...engineState.viewMode,
+                      [viewMode]: !engineState.viewMode[viewMode],
+                    },
+                  });
+                }}
+                labelOnButton={true}
+                label={camelCaseToSpaced(viewMode)}
+              />
+            )}
           </For>
-        </select>
-        <MoogKnobWithLabel
-          label="Swing"
-          min={0}
-          max={1}
-          value={engineState.swing}
-          onChange={handleSwingChange}
-        />
+          <MoogKnobWithLabel
+            label="Swing"
+            min={0}
+            max={1}
+            value={engineState.swing}
+            onChange={handleSwingChange}
+          />
+          <ButtonWithLabel
+            onClick={renderToWavefile}
+            labelOnButton={true}
+            label={'Download WAV'}
+          />
+          <ButtonWithLabel
+            onClick={exportJSON}
+            labelOnButton={true}
+            label={'Export JSON'}
+          />
+          <ButtonWithLabel
+            onClick={clear}
+            labelOnButton={true}
+            label={'Clear all'}
+          />
+          <FindSlicesButton engine={props.engine} />
+        </Row>
+        Add video: <input type="text" onInput={addSampler} />
         Pattern:
         <input
           type="number"
@@ -298,16 +346,6 @@ export const Toolbar = (props: {
           value={engineState.currentPatternIndex}
           onChange={handleCurrentPatternIndexChange}
         />
-        <input type="text" onInput={addSampler} />
-        <button type="button" onClick={renderToWavefile}>
-          Download WAV
-        </button>
-        <button type="button" onClick={exportJSON}>
-          Export JSON
-        </button>
-        <button type="button" onClick={clear}>
-          Clear all
-        </button>
         Load JSON: <input type="file" onChange={loadJSON} accept=".json" />
         Zoom:
         <input

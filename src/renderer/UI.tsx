@@ -1,9 +1,9 @@
+import { PropsWithChildren, splitProps, JSX, Show, mergeProps } from 'solid-js';
+
 import { css } from 'solid-styled-components';
 import { Label } from './controls/Label';
 import ScrewHead from './svg/screw_head.svg';
 import { BiCompass } from 'solid-icons/bi';
-
-import { PropsWithChildren, splitProps, JSX, Show, mergeProps } from 'solid-js';
 
 const akaiButtonStyles = css`
   border: 2px outset white;
@@ -147,34 +147,43 @@ export const ButtonWithLabel = (
           <button
             {...buttonProps}
             type="button"
-            classList={{ activated: props.activated }}
-            class={css`
-              border: 2px outset white;
-              padding: 6px;
-              border-radius: 2px;
-              background: radial-gradient(#c2c2c2, #fff);
-              font-family: 'oswald';
-              font-weight: bold;
-              font-size: 14px;
-              font-variant: small-caps;
-              &:active,
-              &.activated {
-                box-shadow: 0 0 14px 2px #ff6c27;
-                background: radial-gradient(#ffed4c, #ff810b);
-              }
-              &:active {
-                border: 2px inset #ffbf47d7;
-              }
-            `}
+            classList={{
+              activated: props.activated,
+              [css`
+                cursor: pointer;
+                border: 2px outset white;
+                padding: 6px;
+                border-radius: 2px;
+                background: radial-gradient(#c2c2c2, #fff);
+                font-family: 'oswald';
+                font-weight: bold;
+                font-size: 14px;
+                font-variant: small-caps;
+                &:active,
+                &.activated {
+                  box-shadow: 0 0 14px 2px #ff6c27;
+                  background: radial-gradient(#ffed4c, #ff810b);
+                }
+                &:active {
+                  border: 2px inset #ffbf47d7;
+                }
+              `]: true,
+            }}
           >
             <Show when={props.labelOnButton}>
               <Label
                 label={ownProps.label}
-                class={css`
-                  font-size: 12px;
-                  color: black;
-                  white-space: nowrap;
-                `}
+                classList={{
+                  [css`
+                    &.override {
+                      font-size: 12px;
+                      color: black;
+                      white-space: nowrap;
+                      user-select: none;
+                      cursor: pointer;
+                    }
+                  `]: true,
+                }}
               />
             </Show>
           </button>
@@ -183,10 +192,14 @@ export const ButtonWithLabel = (
       <Show when={!props.labelOnButton}>
         <Label
           label={ownProps.label}
-          class={css`
-            margin-left: 20px;
-            white-space: nowrap;
-          `}
+          classList={{
+            [css`
+              &.override {
+                margin-left: 20px;
+                white-space: nowrap;
+              }
+            `]: true,
+          }}
         />
       </Show>
     </div>
@@ -284,12 +297,14 @@ export const DeviceWrapper = (
   allProps: JSX.IntrinsicElements['div'] & {
     background?: string;
     onClickRackEar?: (event: MouseEvent) => void;
+    showLogo?: boolean;
   }
 ) => {
   const [props, divProps] = splitProps(allProps, [
     'background',
     'children',
     'onClickRackEar',
+    'showLogo',
   ]);
   return (
     <div
@@ -305,12 +320,14 @@ export const DeviceWrapper = (
       }}
     >
       <RackEar onClick={(event) => props.onClickRackEar?.(event)} />
-      <BiCompass
-        color="lavender"
-        size="64px"
-        class="custom-icon"
-        title="a11y"
-      />
+      <Show when={props.showLogo}>
+        <BiCompass
+          color="lavender"
+          size="64px"
+          class="custom-icon"
+          title="a11y"
+        />
+      </Show>
       <div
         class={css`
           width: 100%;

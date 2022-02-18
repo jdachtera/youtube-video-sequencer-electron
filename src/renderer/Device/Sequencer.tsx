@@ -14,6 +14,8 @@ import { Action, Slice, Step } from '../engine/device/Slice';
 import { css } from 'solid-styled-components';
 import { SequencerStep } from './SequencerStep';
 import { Row } from 'renderer/Grid';
+
+const colors808Knobs = ['#ffffff', '#f1f827', '#f8a125', '#e72e2e'];
 /*
 const createDefaultAction = (allSteps: Step[]): Action => {
   const firstStepWithPlayAction = allSteps.find((step) =>
@@ -141,6 +143,13 @@ export const Sequencer = (
             return (
               <Show when={index < page() * 16 && index >= page() * 16 - 16}>
                 <SequencerStep
+                  classList={{
+                    [css`
+                      > div {
+                        background: ${colors808Knobs[Math.floor(index / 4)]};
+                      }
+                    `]: true,
+                  }}
                   step={step()}
                   onClick={toggleStep}
                   isSelected={step() === selectedStep()}

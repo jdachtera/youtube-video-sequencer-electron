@@ -3,10 +3,21 @@ import { Time } from 'tone/build/esm/core/type/Units';
 import { Transport } from 'tone/build/esm/core/clock/Transport';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { SerializedTrack, Track } from './Track';
-import { DeepPartial, SerializedEngine } from './types';
+import { DeepPartial } from './types';
 import { entries, PropertyUpdateEvents } from './helpers';
 
 import { SamplerDevice, SerializedSamplerDevice } from './device/Sampler';
+
+export type SerializedEngine = {
+  currentPatternIndex: number;
+  bpm: number;
+  swing: number;
+  tracks: SerializedTrack[];
+  viewMode: {
+    sequencers: boolean;
+    sliceControls: boolean;
+  };
+};
 
 type EngineEvents = {
   trackAdded: (track: Track) => void;
@@ -21,6 +32,11 @@ export class Engine extends TypedEmitter<EngineEvents> {
 
   public currentPatternIndex = 0;
 
+  viewMode = {
+    sequencers: true,
+    sliceControls: true,
+  };
+
   static normalizeData = (
     parsedData: DeepPartial<
       SerializedEngine & { samplers: SerializedSamplerDevice[] }
@@ -30,6 +46,10 @@ export class Engine extends TypedEmitter<EngineEvents> {
       bpm: parsedData.bpm ?? 120,
       swing: parsedData.swing ?? 0,
       currentPatternIndex: parsedData.currentPatternIndex ?? 0,
+      viewMode: {
+        sequencers: parsedData?.viewMode?.sequencers ?? true,
+        sliceControls: parsedData?.viewMode?.sliceControls ?? true,
+      },
       tracks: [
         ...(Array.isArray(parsedData.tracks) ? parsedData.tracks : [])
           .filter(
@@ -120,6 +140,13 @@ export class Engine extends TypedEmitter<EngineEvents> {
             this.createTrack(serializedTrack)
           );
           break;
+        case 'viewMode':
+          this.viewMode = {
+            ...this.viewMode,
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            ...entry[1]!,
+          };
+          break;
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.emit(`${entry[0]}Updated` as any, entry[1]);
@@ -129,6 +156,7 @@ export class Engine extends TypedEmitter<EngineEvents> {
 
   serialize(): SerializedEngine {
     return {
+      viewMode: this.viewMode,
       tracks: this.tracks.map((track) => track.serialize()),
       currentPatternIndex: this.currentPatternIndex,
       bpm: this.transport.bpm.value,

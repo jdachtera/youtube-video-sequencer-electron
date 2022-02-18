@@ -3,7 +3,7 @@ type Entry<T> = {
 }[keyof T];
 
 export function entries<T>(obj: T): Entry<T>[] {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
   return Object.entries(obj) as any;
 }
 

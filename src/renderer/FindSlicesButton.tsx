@@ -90,8 +90,15 @@ export const FindSlicesButton = (props: { engine: Engine }) => {
   let btnEl;
 
   return (
-    <div style="position: relative;">
-      <ButtonWithLabel ref={btnEl} label="Find Slice" />
+    <div
+      classList={{
+        [css`
+          position: relative;
+          display: flex;
+        `]: true,
+      }}
+    >
+      <ButtonWithLabel ref={btnEl} label="Find Slice" labelOnButton={true} />
 
       <Dismiss menuButton={btnEl} open={open} setOpen={setOpen} cursorKeys>
         <div
@@ -141,6 +148,11 @@ export const FindSlicesButton = (props: { engine: Engine }) => {
               }}
             </For>
           </ul>
+          <Pagination
+            currentPage={tagsPage()}
+            onCurrentPageChanged={setTagsPage}
+            numberOfPages={tagsData()?.tags.numberOfPages ?? 0}
+          />
           <ul>
             <For each={slicesData()?.slices.items}>
               {(slice) => {
@@ -203,9 +215,9 @@ export const FindSlicesButton = (props: { engine: Engine }) => {
             </For>
           </ul>
           <Pagination
-            currentPage={tagsPage()}
-            onCurrentPageChanged={setTagsPage}
-            numberOfPages={tagsData()?.tags.numberOfPages ?? 0}
+            currentPage={slicesPage()}
+            onCurrentPageChanged={setSlicesPage}
+            numberOfPages={slicesData()?.slices.numberOfPages ?? 0}
           />
         </div>
       </Dismiss>

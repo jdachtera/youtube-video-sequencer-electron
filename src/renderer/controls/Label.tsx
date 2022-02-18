@@ -1,25 +1,25 @@
-import { createMemo, JSXElement } from 'solid-js';
+import { createMemo, JSXElement, JSX, splitProps } from 'solid-js';
 import { css } from 'solid-styled-components';
 import { useAppTheme } from '../theme';
 
-export const Label = (props: {
-  label?: JSXElement;
-  size?: number;
-  class?: string;
-}) => {
+export const Label = (
+  allProps: {
+    label?: JSXElement;
+    size?: number;
+  } & JSX.IntrinsicElements['label']
+) => {
+  const [props, labelProps] = splitProps(allProps, ['label', 'size']);
+
   const theme = useAppTheme();
   const size = createMemo(() => props.size ?? theme.sizes.knobSize);
 
   return (
     <label
-      class={[
-        css`
+      classList={{
+        [css`
           display: block;
           background: none;
           color: ${theme.colors.labelColor};
-          /* border: ${size() / 50}px ${theme.colors.lcdBorder} solid; */
-          //border: none;
-          //border-radius: ${theme.sizes.labelBorderRadius};
           text-align: center;
           font-size: ${size() / 5}px;
           font-family: 'Oswald';
@@ -27,9 +27,10 @@ export const Label = (props: {
           text-shadow: none;
           border: none;
           border-radius: none;
-        `,
-        props.class ?? '',
-      ].join(' ')}
+        `]: true,
+        override: true,
+        ...labelProps.classList,
+      }}
     >
       {props.label}
     </label>

@@ -1,5 +1,5 @@
 import { createMemo, For, untrack, JSX, splitProps } from 'solid-js';
-import { css } from 'solid-styled-components';
+
 import {
   createSignalFromEventEmitter,
   createStoreFromEventEmitter,
@@ -9,7 +9,8 @@ import { Pattern, Slice } from './engine/device/Slice';
 import { subdivisions, subdivisionTypes } from './engine/types';
 import { Sequencer } from './Device/Sequencer';
 
-import { ButtonWithLabel, InputLCD, ScreenPrintBackground } from './UI';
+import { ScreenPrintBackground } from './UI';
+import { Row } from './Grid';
 
 export const PatternEditor = (
   allProps: { sampler: SamplerDevice } & JSX.IntrinsicElements['div']
@@ -68,87 +69,48 @@ export const SlicePattern = (
   );
 
   return (
-    <div
-      {...divProps}
-      classList={{
-        ...divProps.classList,
-        [css`
-          display: flex;
-          align-items: center;
-        `]: true,
-      }}
-    >
-      <InputLCD
-        classList={{
-          [css`
-            width: 150px;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-          `]: true,
-        }}
-        value={sliceState.name}
-        onInput={(event) => {
-          props.slice.set({ name: event.currentTarget.value });
+    <Row {...divProps}>
+      <input
+        type="number"
+        step={1}
+        min={1}
+        max={1024}
+        value={currentPattern()?.steps?.length}
+        onChange={(event) => {
+          props.slice.updatePatternLength(
+            props.currentPatternIndex,
+            event.currentTarget.valueAsNumber
+          );
         }}
       />
-      <div
-        classList={{
-          [css`
-            display: flex;
-          `]: true,
+      <select
+        value={currentPattern()?.subdivision ?? 16}
+        onChange={(event) => {
+          props.slice.updatePattern(props.currentPatternIndex, {
+            subdivision: +event.currentTarget.value,
+          });
         }}
       >
-        <ButtonWithLabel
-          label="Solo"
-          activated={sliceState.solo}
-          labelOnButton={true}
-          onClick={(event) => {
-            props.slice.setSolo(!sliceState.solo, event.altKey);
-          }}
-        />
-        <input
-          type="number"
-          step={1}
-          min={1}
-          max={1024}
-          value={currentPattern()?.steps?.length}
-          onChange={(event) => {
-            props.slice.updatePatternLength(
-              props.currentPatternIndex,
-              event.currentTarget.valueAsNumber
-            );
-          }}
-        />
-        <select
-          value={currentPattern()?.subdivision ?? 16}
-          onChange={(event) => {
-            props.slice.updatePattern(props.currentPatternIndex, {
-              subdivision: +event.currentTarget.value,
-            });
-          }}
-        >
-          <For each={subdivisions}>
-            {(subdivision) => (
-              <option value={subdivision}>{subdivision}</option>
-            )}
-          </For>
-        </select>
-        <select
-          value={currentPattern()?.subdivisionType ?? 'n'}
-          onChange={(event) => {
-            props.slice.updatePattern(props.currentPatternIndex, {
-              subdivisionType: event.currentTarget
-                .value as Pattern['subdivisionType'],
-            });
-          }}
-        >
-          <For each={subdivisionTypes}>
-            {(subdivisionType) => (
-              <option value={subdivisionType}>{subdivisionType}</option>
-            )}
-          </For>
-        </select>
-      </div>
+        <For each={subdivisions}>
+          {(subdivision) => <option value={subdivision}>{subdivision}</option>}
+        </For>
+      </select>
+      <select
+        value={currentPattern()?.subdivisionType ?? 'n'}
+        onChange={(event) => {
+          props.slice.updatePattern(props.currentPatternIndex, {
+            subdivisionType: event.currentTarget
+              .value as Pattern['subdivisionType'],
+          });
+        }}
+      >
+        <For each={subdivisionTypes}>
+          {(subdivisionType) => (
+            <option value={subdivisionType}>{subdivisionType}</option>
+          )}
+        </For>
+      </select>
+
       <ScreenPrintBackground background={sliceState.color}>
         <Sequencer
           steps={currentPattern().steps}
@@ -160,6 +122,6 @@ export const SlicePattern = (
           slice={props.slice}
         />{' '}
       </ScreenPrintBackground>
-    </div>
+    </Row>
   );
 };

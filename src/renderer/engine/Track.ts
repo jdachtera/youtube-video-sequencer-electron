@@ -14,6 +14,7 @@ type TrackEvents = {
 } & PropertyUpdateEvents<SerializedTrack>;
 
 export class Track extends TypedEmitter<TrackEvents> {
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   chain: DeviceChain = null!;
 
   static normalizeData = (
@@ -40,6 +41,7 @@ export class Track extends TypedEmitter<TrackEvents> {
           this.chain?.dispose();
           this.chain?.off('change', this.emitChange);
 
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this.chain = new DeviceChain(this.engine, entry[1]!);
 
           this.chain.on('change', this.emitChange);

@@ -1,18 +1,16 @@
-import { For, createSignal } from 'solid-js';
+import { For } from 'solid-js';
 import { ThemeProvider, css } from 'solid-styled-components';
 import { Transport } from 'tone';
 import { ApolloProvider } from '@merged/solid-apollo';
 
 import { Engine } from './engine/Engine';
 import { theme } from './theme';
-import { DeviceWrapper } from './UI';
 
 import { apolloClient } from './apolloClient';
 import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
-import { Toolbar, ViewMode } from './Toolbar';
+import { Toolbar } from './Toolbar';
 import { GlobalStyles } from './GlobalStyles';
 import { DeviceView } from './Device/DeviceView';
-import { PatternView } from './PatternView';
 
 const engine = new Engine(Transport);
 
@@ -22,8 +20,6 @@ export function App() {
     ['trackAdded', 'trackRemoved'],
     (engine) => engine.tracks
   );
-
-  const [viewMode, setViewMode] = createSignal<ViewMode>('DEVICE');
 
   return (
     <ThemeProvider theme={theme}>
@@ -43,17 +39,10 @@ export function App() {
             height: 100vh;
           `}
         >
-          <Toolbar
-            engine={engine}
-            viewMode={viewMode()}
-            onViewModeChanged={setViewMode}
-          />
+          <Toolbar engine={engine} />
 
           <div
             classList={{
-              [css`
-                display: none;
-              `]: viewMode() !== 'DEVICE',
               [css`
                 flex: 1;
                 overflow-y: auto;
@@ -80,20 +69,6 @@ export function App() {
                 </div>
               )}
             </For>
-          </div>
-
-          <div
-            classList={{
-              [css`
-                display: none;
-              `]: viewMode() !== 'PATTERN',
-            }}
-          >
-            <DeviceWrapper background={'#bd945e'}>
-              <For each={tracks()} fallback={<div>loading sampler...</div>}>
-                {(track) => <PatternView device={track.chain} />}
-              </For>
-            </DeviceWrapper>
           </div>
         </div>
       </ApolloProvider>

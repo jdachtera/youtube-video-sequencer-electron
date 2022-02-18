@@ -5,7 +5,6 @@ import { SerializedFilterDevice } from './device/Filter';
 import { SerializedPingPongDelayDevice } from './device/PingPongDelay';
 import { SerializedReverbDevice } from './device/Reverb';
 import { SerializedSamplerDevice } from './device/Sampler';
-import { SerializedTrack } from './Track';
 
 export type SerializedDevice =
   | SerializedSamplerDevice
@@ -15,13 +14,6 @@ export type SerializedDevice =
   | SerializedReverbDevice
   | SerializedDistortionDevice
   | SerializedCompressorDevice;
-
-export type SerializedEngine = {
-  currentPatternIndex: number;
-  bpm: number;
-  swing: number;
-  tracks: SerializedTrack[];
-};
 
 export type DeepPartial<T> = T extends object
   ? {
