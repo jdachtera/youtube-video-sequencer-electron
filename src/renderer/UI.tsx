@@ -5,6 +5,7 @@ import {
   Show,
   mergeProps,
   ComponentProps,
+  createMemo,
 } from 'solid-js';
 
 import { css } from 'solid-styled-components';
@@ -85,19 +86,6 @@ export const RackEar = (
       >
         <Screw width="25px" />
       </RackMountHole>
-      {/* <For each={}>
-        {() => (
-          <RackMountHole
-            class={css`
-              margin: 10px;
-              margin-top: 20px;
-              margin-bottom: 20px;
-            `}
-          >
-            <Screw width="25px" />
-          </RackMountHole>
-        )}
-      </For> */}
     </div>
   );
 };
@@ -149,6 +137,56 @@ export const NumberInputWithArrowButtons = (
     <InputWithArrowButtons
       {...inputProps}
       value={props.value}
+      onKeyDown={(event) => {
+        switch (event.key) {
+          case 'ArrowUp':
+            return handleUp();
+          case 'ArrowDown':
+            return handleDown();
+        }
+      }}
+      onClickUp={handleUp}
+      onClickDown={handleDown}
+    />
+  );
+};
+
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-constraint
+export const SelectWithArrowButtons = <Option extends unknown>(
+  allProps: {
+    selectedOption: Option;
+    options: Option[];
+    label: (option: Option) => string;
+    onChange: (value: Option) => void;
+  } & Omit<
+    ComponentProps<typeof InputWithArrowButtons>,
+    'value' | 'onChange' | 'onClickUp' | 'onClickDown' | 'step' | 'min' | 'max'
+  >
+) => {
+  const [props, inputProps] = splitProps(allProps, [
+    'onChange',
+    'selectedOption',
+    'options',
+    'label',
+  ]);
+
+  const currentIndex = createMemo(() =>
+    props.options.indexOf(props.selectedOption)
+  );
+
+  const triggerChange = (value: number) => {
+    const index = Math.min(Math.max(0, value), props.options.length - 1);
+    props.onChange(props.options[index]);
+  };
+
+  const handleUp = () => triggerChange(currentIndex() + 1);
+  const handleDown = () => triggerChange(currentIndex() - 1);
+
+  return (
+    <InputWithArrowButtons
+      {...inputProps}
+      readonly
+      value={props.label(props.selectedOption)}
       onKeyDown={(event) => {
         switch (event.key) {
           case 'ArrowUp':

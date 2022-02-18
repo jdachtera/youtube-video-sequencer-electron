@@ -105,14 +105,6 @@ export const Toolbar = (props: { engine: Engine }) => {
     props.engine.dispose();
   };
 
-  const handleCurrentPatternIndexChange = (event: {
-    currentTarget: HTMLInputElement;
-  }) => {
-    props.engine.set({
-      currentPatternIndex: event.currentTarget.valueAsNumber,
-    });
-  };
-
   const saveToLocalStorage = debounce((engine: Engine) => {
     localStorage.setItem('track', JSON.stringify(engine.serialize()));
   }, 500);
@@ -301,12 +293,13 @@ export const Toolbar = (props: { engine: Engine }) => {
         </Row>
         Add video: <input type="text" onInput={addSampler} />
         Pattern:
-        <input
-          type="number"
-          min="0"
-          step="1"
+        <NumberInputWithArrowButtons
+          min={0}
+          size={3}
           value={engineState.currentPatternIndex}
-          onChange={handleCurrentPatternIndexChange}
+          onChange={(currentPatternIndex) =>
+            props.engine.set({ currentPatternIndex })
+          }
         />
         Load JSON: <input type="file" onChange={loadJSON} accept=".json" />
         Zoom:

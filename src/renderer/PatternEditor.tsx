@@ -5,11 +5,15 @@ import {
   createStoreFromEventEmitter,
 } from './createSignalFromEventEmitter';
 import { SamplerDevice } from './engine/device/Sampler';
-import { Pattern, Slice } from './engine/device/Slice';
+import { Slice } from './engine/device/Slice';
 import { subdivisions, subdivisionTypes } from './engine/types';
 import { Sequencer } from './Device/Sequencer';
 
-import { NumberInputWithArrowButtons, ScreenPrintBackground } from './UI';
+import {
+  NumberInputWithArrowButtons,
+  ScreenPrintBackground,
+  SelectWithArrowButtons,
+} from './UI';
 import { Row } from './Grid';
 
 export const PatternEditor = (
@@ -80,34 +84,28 @@ export const SlicePattern = (
           props.slice.updatePatternLength(props.currentPatternIndex, length);
         }}
       />
-      <select
-        value={currentPattern()?.subdivision ?? 16}
-        onChange={(event) => {
+      <SelectWithArrowButtons
+        size={2}
+        label={(subdivision) => subdivision.toString()}
+        options={subdivisions}
+        selectedOption={currentPattern()?.subdivision ?? 16}
+        onChange={(subdivision) => {
           props.slice.updatePattern(props.currentPatternIndex, {
-            subdivision: +event.currentTarget.value,
+            subdivision,
           });
         }}
-      >
-        <For each={subdivisions}>
-          {(subdivision) => <option value={subdivision}>{subdivision}</option>}
-        </For>
-      </select>
-      <select
-        value={currentPattern()?.subdivisionType ?? 'n'}
-        onChange={(event) => {
+      />
+      <SelectWithArrowButtons
+        size={2}
+        label={(subdivisionType) => subdivisionType}
+        options={[...subdivisionTypes]}
+        selectedOption={currentPattern()?.subdivisionType ?? 'n' ?? 16}
+        onChange={(subdivisionType) => {
           props.slice.updatePattern(props.currentPatternIndex, {
-            subdivisionType: event.currentTarget
-              .value as Pattern['subdivisionType'],
+            subdivisionType,
           });
         }}
-      >
-        <For each={subdivisionTypes}>
-          {(subdivisionType) => (
-            <option value={subdivisionType}>{subdivisionType}</option>
-          )}
-        </For>
-      </select>
-
+      />
       <ScreenPrintBackground background={sliceState.color}>
         <Sequencer
           steps={currentPattern().steps}

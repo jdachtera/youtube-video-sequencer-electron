@@ -62,7 +62,6 @@ export const Sequencer = (
 
   return (
     <Row>
-      <input />
       <NumberInputWithArrowButtons
         size={2}
         min={1}
