@@ -93,7 +93,7 @@ export const SampleSlice = (props: {
         overflow-x: auto;
       `}
     >
-      <DeviceWrapper onClickRackEar={toggleCollapse}>
+      <DeviceWrapper onClickLeftRackEar={toggleCollapse}>
         <Row
           classList={{
             [css`

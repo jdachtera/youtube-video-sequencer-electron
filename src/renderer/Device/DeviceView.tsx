@@ -28,8 +28,12 @@ export const DeviceView = (props: {
         <DeviceWrapper
           background="#969696"
           classList={{ device: true }}
-          onClickRackEar={() => {
+          onClickLeftRackEar={() => {
             props.device.set({ collapsed: !props.device.collapsed });
+          }}
+          onClickRightRackEar={() => {
+            if (!confirm('Really remove device?')) return;
+            props.onRequestRemoveDevice(props.device);
           }}
         >
           <Switch>
@@ -71,14 +75,6 @@ export const DeviceView = (props: {
               {(device) => <SamplerView sampler={device}></SamplerView>}
             </Match>
           </Switch>{' '}
-          <div>
-            <button
-              type="button"
-              onClick={() => props.onRequestRemoveDevice(props.device)}
-            >
-              Remove Device
-            </button>
-          </div>
         </DeviceWrapper>
       );
     }}

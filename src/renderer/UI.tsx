@@ -296,14 +296,16 @@ export const LCDFrame = (allProps: JSX.IntrinsicElements['div']) => {
 export const DeviceWrapper = (
   allProps: JSX.IntrinsicElements['div'] & {
     background?: string;
-    onClickRackEar?: (event: MouseEvent) => void;
+    onClickLeftRackEar?: (event: MouseEvent) => void;
+    onClickRightRackEar?: (event: MouseEvent) => void;
     showLogo?: boolean;
   }
 ) => {
   const [props, divProps] = splitProps(allProps, [
     'background',
     'children',
-    'onClickRackEar',
+    'onClickLeftRackEar',
+    'onClickRightRackEar',
     'showLogo',
   ]);
   return (
@@ -319,7 +321,7 @@ export const DeviceWrapper = (
         `]: true,
       }}
     >
-      <RackEar onClick={(event) => props.onClickRackEar?.(event)} />
+      <RackEar onClick={(event) => props.onClickLeftRackEar?.(event)} />
       <Show when={props.showLogo}>
         <BiCompass
           color="lavender"
@@ -335,7 +337,7 @@ export const DeviceWrapper = (
       >
         {props.children}
       </div>
-      <RackEar />
+      <RackEar onClick={(event) => props.onClickRightRackEar?.(event)} />
     </div>
   );
 };
