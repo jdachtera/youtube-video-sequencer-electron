@@ -71,10 +71,6 @@ export const SampleSlice = (props: {
     props.slice.updatePatternLength(props.currentPatternIndex, patternLength);
   };
 
-  const handleUpdateSolo = (solo: boolean, altKey: boolean) => {
-    props.slice.setSolo(solo, altKey);
-  };
-
   const toggleCollapse = () => {
     props.slice.set({
       collapsed: sliceState.collapsed ? false : true,
