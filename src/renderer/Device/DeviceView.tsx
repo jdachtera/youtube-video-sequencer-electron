@@ -74,7 +74,7 @@ export const DeviceView = (props: {
             <Match when={props.device instanceof SamplerDevice && props.device}>
               {(device) => <SamplerView sampler={device}></SamplerView>}
             </Match>
-          </Switch>{' '}
+          </Switch>
         </DeviceWrapper>
       );
     }}

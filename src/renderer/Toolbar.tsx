@@ -1,6 +1,6 @@
 import { createEffect, createSignal, For, onCleanup, onMount } from 'solid-js';
 import { css } from 'renderer/emotion-solid';
-import { Transport, start, Sampler } from 'tone';
+import { Transport, start } from 'tone';
 import { debounce } from 'ts-debounce';
 
 import { createStoreFromEventEmitter } from './createSignalFromEventEmitter';

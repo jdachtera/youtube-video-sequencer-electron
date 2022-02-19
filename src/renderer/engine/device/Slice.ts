@@ -269,7 +269,7 @@ export class Slice extends TypedEmitter<SliceEvents> {
     const { steps } = this.patterns[patternIndex];
 
     const updatedSteps = [
-      ...steps.slice(0),
+      ...steps.slice(0, newLength),
       ...Array.from({
         length: Math.max(newLength - steps.length, 0),
       }).map(() => normalizeStepData({})),
