@@ -31,15 +31,6 @@ const camelCaseToSpaced = (str: string) => {
 export const Toolbar = (props: { engine: Engine }) => {
   const [isPlaying, setIsPlaying] = createSignal(false);
 
-  const [zoomFactor, setZoomFactor] = createSignal(
-    +(localStorage.getItem('zoomFactor') ?? '1')
-  );
-
-  createEffect(
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    () => window.host.setZoomFactor(zoomFactor())
-  );
-
   const engineState = createStoreFromEventEmitter(
     () => props.engine,
     [
@@ -47,12 +38,14 @@ export const Toolbar = (props: { engine: Engine }) => {
       'swingUpdated',
       'currentPatternIndexUpdated',
       'viewModeUpdated',
+      'zoomUpdated',
     ],
     (engine) => ({
       bpm: engine.transport.bpm.value,
       viewMode: engine.viewMode,
       swing: engine.transport.swing,
       currentPatternIndex: engine.currentPatternIndex,
+      zoom: engine.zoom,
     })
   );
 
@@ -308,8 +301,10 @@ export const Toolbar = (props: { engine: Engine }) => {
           min="0.25"
           max={2}
           step="0.05"
-          value={zoomFactor()}
-          onChange={(event) => setZoomFactor(event.currentTarget.valueAsNumber)}
+          value={engineState.zoom}
+          onInput={(event) => {
+            props.engine.set({ zoom: event.currentTarget.valueAsNumber });
+          }}
         />
       </div>
     </div>

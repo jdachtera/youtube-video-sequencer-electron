@@ -11,6 +11,7 @@ import { Offline } from 'tone';
 
 export type SerializedEngine = {
   currentPatternIndex: number;
+  zoom: number;
   bpm: number;
   swing: number;
   tracks: SerializedTrack[];
@@ -33,6 +34,8 @@ export class Engine extends TypedEmitter<EngineEvents> {
 
   public currentPatternIndex = 0;
 
+  zoom = 1;
+
   viewMode = {
     sequencers: true,
     sliceControls: true,
@@ -46,6 +49,7 @@ export class Engine extends TypedEmitter<EngineEvents> {
     return {
       bpm: parsedData.bpm ?? 120,
       swing: parsedData.swing ?? 0,
+      zoom: parsedData.zoom ?? 1,
       currentPatternIndex: parsedData.currentPatternIndex ?? 0,
       viewMode: {
         sequencers: parsedData?.viewMode?.sequencers ?? true,
@@ -125,6 +129,10 @@ export class Engine extends TypedEmitter<EngineEvents> {
       if (!entry) return;
 
       switch (entry[0]) {
+        case 'zoom':
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          this.zoom = entry[1]!;
+          break;
         case 'bpm':
           this.transport.bpm.value = entry[1] ?? 120;
           break;
@@ -162,6 +170,7 @@ export class Engine extends TypedEmitter<EngineEvents> {
       currentPatternIndex: this.currentPatternIndex,
       bpm: this.transport.bpm.value,
       swing: this.transport.swing,
+      zoom: this.zoom,
     };
   }
 

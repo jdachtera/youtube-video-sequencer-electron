@@ -21,6 +21,12 @@ export function App() {
     (engine) => engine.tracks
   );
 
+  const zoom = createSignalFromEventEmitter(
+    engine,
+    ['zoomUpdated'],
+    (engine) => engine.zoom
+  );
+
   return (
     <ThemeProvider theme={theme}>
       <ApolloProvider client={apolloClient}>
@@ -46,7 +52,8 @@ export function App() {
               [css`
                 flex: 1;
                 overflow-y: auto;
-                width: 100vw;
+                width: 100%;
+                zoom: ${zoom()};
               `]: true,
             }}
           >
