@@ -72,7 +72,7 @@ export const SamplerSliceView = (props: {
         overflow-x: auto;
       `}
     >
-      <Show when={viewMode.channelControls}>
+      <Show when={viewMode.channel}>
         <DeviceWrapper
           onClickLeftRackEar={toggleCollapse}
           background={sliceState.color}
@@ -119,7 +119,7 @@ export const SamplerSliceView = (props: {
           </Row>
         </DeviceWrapper>
       </Show>
-      <Show when={viewMode.sliceControls}>
+      <Show when={viewMode.slice}>
         <div
           classList={{
             [css`

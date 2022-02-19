@@ -16,8 +16,8 @@ export type SerializedEngine = {
   swing: number;
   tracks: SerializedTrack[];
   viewMode: {
-    channelControls: boolean;
-    sliceControls: boolean;
+    channel: boolean;
+    slice: boolean;
     sequencers: boolean;
     devices: boolean;
   };
@@ -39,8 +39,8 @@ export class Engine extends EngineBase<EngineEvents> {
   zoom = 1;
 
   viewMode = {
-    channelControls: true,
-    sliceControls: true,
+    channel: true,
+    slice: true,
     sequencers: true,
     devices: true,
   };
@@ -56,9 +56,9 @@ export class Engine extends EngineBase<EngineEvents> {
       zoom: parsedData.zoom ?? 1,
       currentPatternIndex: parsedData.currentPatternIndex ?? 0,
       viewMode: {
-        channelControls: parsedData?.viewMode?.channelControls ?? true,
+        channel: parsedData?.viewMode?.channel ?? true,
         sequencers: parsedData?.viewMode?.sequencers ?? true,
-        sliceControls: parsedData?.viewMode?.sliceControls ?? true,
+        slice: parsedData?.viewMode?.slice ?? true,
         devices: parsedData?.viewMode?.devices ?? true,
       },
       tracks: [
