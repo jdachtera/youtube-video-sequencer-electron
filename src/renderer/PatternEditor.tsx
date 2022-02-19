@@ -86,7 +86,6 @@ export const SlicePattern = (
       />
       <SelectWithArrowButtons
         size={2}
-        label={(subdivision) => subdivision.toString()}
         options={subdivisions}
         selectedOption={currentPattern()?.subdivision ?? 16}
         onChange={(subdivision) => {
@@ -97,7 +96,6 @@ export const SlicePattern = (
       />
       <SelectWithArrowButtons
         size={2}
-        label={(subdivisionType) => subdivisionType}
         options={[...subdivisionTypes]}
         selectedOption={currentPattern()?.subdivisionType ?? 'n' ?? 16}
         onChange={(subdivisionType) => {

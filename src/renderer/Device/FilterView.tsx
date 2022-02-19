@@ -1,9 +1,13 @@
-import { createEffect, createSignal, For, onCleanup, onMount } from 'solid-js';
+import { createEffect, createSignal, onCleanup, onMount } from 'solid-js';
 import { FilterRollOff } from 'tone';
-import { createStoreFromEventEmitter } from '../createSignalFromEventEmitter';
-import { FilterDevice, SerializedFilterDevice } from '../engine/device/Filter';
+import {
+  createSignalFromEventEmitter,
+  createStoreFromEventEmitter,
+} from '../createSignalFromEventEmitter';
+import { FilterDevice } from '../engine/device/Filter';
 import { MoogKnobWithLabel } from '../controls/Knob';
 import { Column, Row } from 'renderer/Grid';
+import { LCD, SelectWithArrowButtons } from 'renderer/UI';
 
 const filterTypes: BiquadFilterType[] = [
   'lowpass',
@@ -21,39 +25,24 @@ export const FilterView = (props: { filter: FilterDevice }) => {
   const filterState = createStoreFromEventEmitter(
     () => props.filter,
     ['change'],
-    (filter) => ({
-      ...filter.serialize(),
-      frequencyResponse: filter.filterNode.getFrequencyResponse(200),
-    })
+    (filter) => filter.serialize()
   );
 
   return (
     <Column>
       <Row>
-        <select
-          value={filterState.type}
-          onChange={(event) =>
-            props.filter.set({
-              type: event.currentTarget.value as SerializedFilterDevice['type'],
-            })
-          }
-        >
-          <For each={filterTypes}>
-            {(type) => <option value={type}>{type}</option>}
-          </For>
-        </select>
-        <select
-          value={filterState.rolloff}
-          onChange={(event) =>
-            props.filter.set({
-              rolloff: event.currentTarget.value as unknown as FilterRollOff,
-            })
-          }
-        >
-          <For each={filterRolloffOptions}>
-            {(rolloff) => <option value={rolloff}>{rolloff}</option>}
-          </For>
-        </select>
+        <SelectWithArrowButtons
+          size={8}
+          options={filterTypes}
+          selectedOption={filterState.type}
+          onChange={(type) => props.filter.set({ type })}
+        />
+        <SelectWithArrowButtons
+          size={3}
+          options={filterRolloffOptions}
+          selectedOption={filterState.rolloff}
+          onChange={(rolloff) => props.filter.set({ rolloff })}
+        />
         <MoogKnobWithLabel
           onChange={(frequency) => props.filter.set({ frequency })}
           min={1}
@@ -70,18 +59,20 @@ export const FilterView = (props: { filter: FilterDevice }) => {
         />
       </Row>
       <Row>
-        <FrequencyResponseDisplay
-          frequencyResponse={filterState.frequencyResponse}
-        />
+        <FrequencyResponseDisplay filter={props.filter} />
       </Row>
     </Column>
   );
 };
 
-const FrequencyResponseDisplay = (props: {
-  frequencyResponse: Float32Array;
-}) => {
+const FrequencyResponseDisplay = (props: { filter: FilterDevice }) => {
   let canvasRef: HTMLCanvasElement | undefined;
+
+  const frequencyResponse = createSignalFromEventEmitter(
+    () => props.filter,
+    ['frequencyUpdated', 'resonanceUpdated', 'typeUpdated', 'rolloffUpdated'],
+    (filter) => filter.filterNode.getFrequencyResponse(100)
+  );
   const [context, setContext] = createSignal<
     CanvasRenderingContext2D | null | undefined
   >();
@@ -112,10 +103,11 @@ const FrequencyResponseDisplay = (props: {
     const getX = (i: number) => Math.log(i) * (width() ?? 0);
     const getY = (y: number) => height() - (y / 5) * (height() ?? 0);
 
-    const points = props.frequencyResponse;
+    const points = frequencyResponse();
 
     ctx.clearRect(0, 0, width(), height());
     ctx.beginPath();
+
     ctx.moveTo(0, points[0]);
 
     for (let i = 0; i < points.length - 1; i++) {
@@ -136,5 +128,9 @@ const FrequencyResponseDisplay = (props: {
     ctx.stroke();
   });
 
-  return <canvas ref={canvasRef} width={500} height={150} />;
+  return (
+    <LCD>
+      <canvas ref={canvasRef} width={500} height={150} />
+    </LCD>
+  );
 };

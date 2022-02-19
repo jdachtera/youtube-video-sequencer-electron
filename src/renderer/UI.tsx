@@ -164,7 +164,7 @@ export const SelectWithArrowButtons = <Option extends unknown>(
   allProps: {
     selectedOption: Option;
     options: Option[];
-    label: (option: Option) => string;
+    label?: (option: Option) => string;
     onChange: (value: Option) => void;
   } & Omit<
     ComponentProps<typeof InputWithArrowButtons>,
@@ -194,7 +194,11 @@ export const SelectWithArrowButtons = <Option extends unknown>(
     <InputWithArrowButtons
       {...inputProps}
       readonly
-      value={props.label(props.selectedOption)}
+      value={
+        props.label
+          ? props.label(props.selectedOption)
+          : `${props.selectedOption as string}`
+      }
       onKeyDown={(event) => {
         switch (event.key) {
           case 'ArrowUp':
@@ -310,6 +314,38 @@ export const ButtonGroup = (props: JSX.IntrinsicElements['div']) => {
   );
 };
 
+export const LoadFileButton = (
+  allProps: { label: string } & JSX.IntrinsicElements['input']
+) => {
+  const [props, inputProps] = splitProps(allProps, ['label']);
+  return (
+    <div
+      classList={{
+        [css`
+          position: relative;
+          cursor: pointer;
+        `]: true,
+      }}
+    >
+      <ButtonWithLabel label={props.label} labelOnButton={true}>
+        <input
+          {...inputProps}
+          class={css`
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+          `}
+          type="file"
+        ></input>
+      </ButtonWithLabel>
+    </div>
+  );
+};
+
 export const ButtonWithLabel = (
   allProps: {
     activated?: boolean;
@@ -374,6 +410,7 @@ export const ButtonWithLabel = (
               `]: true,
             }}
           >
+            {props.children}
             <Show when={props.labelOnButton}>
               <Label
                 label={ownProps.label}

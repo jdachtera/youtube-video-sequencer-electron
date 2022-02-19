@@ -13,6 +13,8 @@ import { Track } from './engine/Track';
 import {
   ButtonGroup,
   ButtonWithLabel,
+  InputLCD,
+  LoadFileButton,
   NumberInputWithArrowButtons,
 } from './UI';
 import { Row } from './Grid';
@@ -218,6 +220,7 @@ export const Toolbar = (props: { engine: Engine }) => {
         `}
       >
         <Row>
+          <LoadFileButton label={'Load'} onChange={loadJSON} accept=".json" />
           <ButtonWithLabel
             type="button"
             activated={isPlaying()}
@@ -283,29 +286,28 @@ export const Toolbar = (props: { engine: Engine }) => {
             label={'Clear all'}
           />
           <FindSlicesButton engine={props.engine} />
+          Add video: <InputLCD onInput={addSampler} />
+          Pattern:
+          <NumberInputWithArrowButtons
+            min={0}
+            size={3}
+            value={engineState.currentPatternIndex}
+            onChange={(currentPatternIndex) =>
+              props.engine.set({ currentPatternIndex })
+            }
+          />
+          Zoom:
+          <input
+            type="range"
+            min="0.25"
+            max={2}
+            step="0.05"
+            value={engineState.zoom}
+            onInput={(event) => {
+              props.engine.set({ zoom: event.currentTarget.valueAsNumber });
+            }}
+          />
         </Row>
-        Add video: <input type="text" onInput={addSampler} />
-        Pattern:
-        <NumberInputWithArrowButtons
-          min={0}
-          size={3}
-          value={engineState.currentPatternIndex}
-          onChange={(currentPatternIndex) =>
-            props.engine.set({ currentPatternIndex })
-          }
-        />
-        Load JSON: <input type="file" onChange={loadJSON} accept=".json" />
-        Zoom:
-        <input
-          type="range"
-          min="0.25"
-          max={2}
-          step="0.05"
-          value={engineState.zoom}
-          onInput={(event) => {
-            props.engine.set({ zoom: event.currentTarget.valueAsNumber });
-          }}
-        />
       </div>
     </div>
   );
