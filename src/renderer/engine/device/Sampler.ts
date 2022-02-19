@@ -39,7 +39,7 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
   ): SerializedSamplerDevice => ({
     name: 'Sampler',
     collapsed: sampler.collapsed ?? false,
-    color: 'brown',
+    color: 'gray',
     title: sampler.title ?? '',
     inputGain: sampler.inputGain ?? 1,
     volume: sampler.volume ?? 1,

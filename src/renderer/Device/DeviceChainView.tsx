@@ -9,7 +9,7 @@ import { SerializedDevice } from '../engine/types';
 
 import { DeviceWrapper } from '../UI';
 import { normalizeDeviceData } from 'renderer/engine/device/normalizeDeviceData';
-import { css } from 'solid-styled-components';
+import { css } from 'renderer/emotion-solid';
 
 const deviceNames: SerializedDevice['name'][] = [
   // 'DeviceChain',

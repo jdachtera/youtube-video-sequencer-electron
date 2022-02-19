@@ -6,7 +6,7 @@ import { Transport } from 'tone';
 
 import { SampleSlice } from './Slice';
 
-import { css } from 'solid-styled-components';
+import { css } from 'renderer/emotion-solid';
 
 import { SamplerDevice } from '../engine/device/Sampler';
 import { WavesurferView } from './WavesurferView';

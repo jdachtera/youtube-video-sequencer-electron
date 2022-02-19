@@ -1,4 +1,4 @@
-import { useTheme } from 'solid-styled-components';
+import { useTheme } from 'renderer/emotion-solid';
 
 export const theme = {
   colors: {

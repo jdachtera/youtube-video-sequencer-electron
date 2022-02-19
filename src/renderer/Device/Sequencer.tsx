@@ -10,7 +10,7 @@ import {
 } from 'solid-js';
 
 import { Slice, Step } from '../engine/device/Slice';
-import { css } from 'solid-styled-components';
+import { css } from 'renderer/emotion-solid';
 import { SequencerStep } from './SequencerStep';
 import { Row } from 'renderer/Grid';
 import { NumberInputWithArrowButtons } from 'renderer/UI';

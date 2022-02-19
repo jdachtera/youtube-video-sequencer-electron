@@ -1,6 +1,6 @@
 import { createMemo, untrack } from 'solid-js';
 
-import { css } from 'solid-styled-components';
+import { css } from 'renderer/emotion-solid';
 
 import {
   LCDLabel,
@@ -90,7 +90,10 @@ export const SampleSlice = (props: {
         overflow-x: auto;
       `}
     >
-      <DeviceWrapper onClickLeftRackEar={toggleCollapse}>
+      <DeviceWrapper
+        onClickLeftRackEar={toggleCollapse}
+        background={sliceState.color}
+      >
         <Row
           classList={{
             [css`
@@ -538,6 +541,7 @@ export const SampleSlice = (props: {
       </div>
 
       <DeviceWrapper
+        background={sliceState.color}
         classList={{
           [css`
             height: 430px;

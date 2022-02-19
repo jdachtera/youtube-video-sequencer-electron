@@ -1,5 +1,5 @@
 import { For } from 'solid-js';
-import { ThemeProvider, css } from 'solid-styled-components';
+import { ThemeProvider, css } from 'renderer/emotion-solid';
 import { Transport } from 'tone';
 import { ApolloProvider } from '@merged/solid-apollo';
 

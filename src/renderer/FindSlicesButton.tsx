@@ -1,7 +1,7 @@
 import { createQuery } from '@merged/solid-apollo';
 import Dismiss from 'solid-dismiss';
 import { createMemo, createSignal, For, JSX, splitProps } from 'solid-js';
-import { css } from 'solid-styled-components';
+import { css } from 'renderer/emotion-solid';
 
 import { SamplerDevice } from './engine/device/Sampler';
 import { Slice } from './engine/device/Slice';

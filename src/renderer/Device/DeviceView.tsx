@@ -26,7 +26,7 @@ export const DeviceView = (props: {
     fallback={() => {
       return (
         <DeviceWrapper
-          background="#969696"
+          background={props.device.color}
           classList={{ device: true }}
           onClickLeftRackEar={() => {
             props.device.set({ collapsed: !props.device.collapsed });

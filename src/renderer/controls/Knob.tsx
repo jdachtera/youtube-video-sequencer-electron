@@ -10,7 +10,7 @@ import {
   untrack,
 } from 'solid-js';
 import MoogKnobSvg from '../svg/moog_knob.svg';
-import { css } from 'solid-styled-components';
+import { css } from 'renderer/emotion-solid';
 import { useAppTheme } from '../theme';
 import { Label } from './Label';
 import { Dynamic } from 'solid-js/web';

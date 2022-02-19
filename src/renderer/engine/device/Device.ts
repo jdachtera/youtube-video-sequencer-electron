@@ -61,6 +61,9 @@ export abstract class Device<
     entries(partialSerializedDevice).forEach((entry) => {
       if (!entry) return;
       switch (entry[0]) {
+        case 'color':
+          this.color = entry[1] ?? 'gray';
+          break;
         case 'inputGain':
           this.input.gain.value = entry[1] ?? 1;
           break;

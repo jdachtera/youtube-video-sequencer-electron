@@ -1,7 +1,7 @@
 import { createMutation } from '@merged/solid-apollo';
 import Dismiss from 'solid-dismiss';
 import { createSignal, Show, untrack } from 'solid-js';
-import { css } from 'solid-styled-components';
+import { css } from 'renderer/emotion-solid';
 
 import { useIsLoggedIn } from './auth';
 import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';

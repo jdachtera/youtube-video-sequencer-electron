@@ -1,6 +1,6 @@
 import { JSX, splitProps } from 'solid-js';
 import { Step } from 'renderer/engine/device/Slice';
-import { css } from 'solid-styled-components';
+import { css } from 'renderer/emotion-solid';
 
 import { useAppTheme } from '../theme';
 
