@@ -1,20 +1,16 @@
 import { createMutation } from '@merged/solid-apollo';
 import Dismiss from 'solid-dismiss';
-import { createSignal, Show, untrack } from 'solid-js';
+import { createSignal, Show } from 'solid-js';
 import { css } from 'renderer/emotion-solid';
 
 import { useIsLoggedIn } from './auth';
-import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
+
 import { Slice } from './engine/device/Slice';
 import { AddSliceDocument } from './Slice.generated';
 import { ButtonWithLabel } from './UI';
 
 export const ShareSliceButton = (props: { slice: Slice }) => {
-  const slice = createSignalFromEventEmitter(
-    untrack(() => props.slice),
-    'change',
-    (slice) => slice.serialize()
-  );
+  const slice = props.slice.createStore((slice) => slice.serialize(), 'change');
 
   const isLoggedIn = useIsLoggedIn();
 
@@ -45,7 +41,7 @@ export const ShareSliceButton = (props: { slice: Slice }) => {
             Name:
             <input
               type="text"
-              value={slice().name}
+              value={slice.name}
               onInput={(event) => {
                 props.slice.set({ name: event.currentTarget.value });
               }}
@@ -60,7 +56,7 @@ export const ShareSliceButton = (props: { slice: Slice }) => {
             />
             <button
               onClick={async () => {
-                if (!slice().name) {
+                if (!slice.name) {
                   alert('Please enter a name before sharing the slcie');
                   return;
                 }
@@ -75,12 +71,12 @@ export const ShareSliceButton = (props: { slice: Slice }) => {
                 await mutate({
                   variables: {
                     data: {
-                      title: slice().name,
+                      title: slice.name,
                       sourceUrl: props.slice.sampler.url,
-                      start: slice().start,
-                      end: slice().end,
-                      reverse: slice().reverse,
-                      playbackSpeed: slice().playbackRate,
+                      start: slice.start,
+                      end: slice.end,
+                      reverse: slice.reverse,
+                      playbackSpeed: slice.playbackRate,
                       tagNames: tagNames(),
                     },
                   },

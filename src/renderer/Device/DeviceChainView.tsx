@@ -1,5 +1,5 @@
 import { createSignal, For, JSX, splitProps } from 'solid-js';
-import { createSignalFromEventEmitter } from '../createSignalFromEventEmitter';
+
 import { DeviceView } from './DeviceView';
 import { createDevice } from '../engine/device/createDevice';
 
@@ -7,9 +7,12 @@ import { DeviceChain } from '../engine/device/DeviceChain';
 
 import { SerializedDevice } from '../engine/types';
 
-import { DeviceWrapper } from '../UI';
+import { ButtonWithLabel, DeviceWrapper, SelectWithArrowButtons } from '../UI';
 import { normalizeDeviceData } from 'renderer/engine/device/normalizeDeviceData';
 import { css } from 'renderer/emotion-solid';
+import { SamplerDevice } from 'renderer/engine/device/Sampler';
+import { SamplerSlicesView } from './SamplerSlicesView';
+import { Column, Row } from 'renderer/Grid';
 
 const deviceNames: SerializedDevice['name'][] = [
   // 'DeviceChain',
@@ -28,16 +31,14 @@ export const DeviceChainView = (
   const [selectedDeviceName, setSelectedDeviceName] =
     createSignal<SerializedDevice['name']>('Filter');
 
-  const devices = createSignalFromEventEmitter(
-    () => props.deviceChain,
-    ['deviceAdded', 'deviceRemoved'],
-    (chain) => chain.devices
+  const devices = props.deviceChain.createSignal(
+    (chain) => chain.devices,
+    ['deviceAdded', 'deviceRemoved']
   );
 
-  const collapsed = createSignalFromEventEmitter(
-    () => props.deviceChain,
-    ['collapsedUpdated'],
-    (chain) => chain.collapsed
+  const collapsed = props.deviceChain.createSignal(
+    (chain) => chain.collapsed,
+    'collapsedUpdated'
   );
 
   return (
@@ -53,46 +54,52 @@ export const DeviceChainView = (
         ...divProps.classList,
       }}
     >
-      <For each={devices()}>
-        {(device) => (
-          <DeviceView
-            device={device}
-            onRequestRemoveDevice={() => props.deviceChain.removeDevice(device)}
-          />
-        )}
-      </For>
+      <Column>
+        <Row>
+          <For each={devices()}>
+            {(device) => (
+              <DeviceView
+                device={device}
+                onRequestRemoveDevice={() =>
+                  props.deviceChain.removeDevice(device)
+                }
+              />
+            )}
+          </For>
+          <DeviceWrapper background="#969696" classList={{ device: true }}>
+            <SelectWithArrowButtons
+              options={deviceNames}
+              selectedOption={selectedDeviceName()}
+              onChange={(deviceName) => setSelectedDeviceName(deviceName)}
+            />
+            <ButtonWithLabel
+              label="Add device"
+              labelOnButton={true}
+              onClick={() => {
+                props.deviceChain.addDevice(
+                  createDevice(
+                    props.deviceChain.engine,
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    normalizeDeviceData({
+                      name: selectedDeviceName(),
+                    })!
+                  )
+                );
+              }}
+            />
+          </DeviceWrapper>
+        </Row>
 
-      <DeviceWrapper background="#969696" classList={{ device: true }}>
-        <div>
-          <select
-            onChange={(event) =>
-              setSelectedDeviceName(
-                event.currentTarget.value as SerializedDevice['name']
-              )
+        <Row>
+          <For each={devices()}>
+            {(device) =>
+              device instanceof SamplerDevice ? (
+                <SamplerSlicesView sampler={device} />
+              ) : null
             }
-          >
-            <For each={deviceNames}>
-              {(deviceName) => <option value={deviceName}>{deviceName}</option>}
-            </For>
-          </select>
-          <button
-            type="button"
-            onClick={() => {
-              return props.deviceChain.addDevice(
-                createDevice(
-                  props.deviceChain.engine,
-                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                  normalizeDeviceData({
-                    name: selectedDeviceName(),
-                  })!
-                )
-              );
-            }}
-          >
-            Add Device
-          </button>
-        </div>
-      </DeviceWrapper>
+          </For>
+        </Row>
+      </Column>
     </div>
   );
 };

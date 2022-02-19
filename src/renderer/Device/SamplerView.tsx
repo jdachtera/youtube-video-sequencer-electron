@@ -1,10 +1,8 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { createSignal, onMount, For, untrack } from 'solid-js';
+import { createSignal, onMount, onCleanup } from 'solid-js';
 
 import { Region } from 'wavesurfer.js/src/plugin/regions';
 import { Transport } from 'tone';
-
-import { SampleSlice } from './Slice';
 
 import { css } from 'renderer/emotion-solid';
 
@@ -13,28 +11,12 @@ import { WavesurferView } from './WavesurferView';
 
 import { LCD, LCDFrame, LCDLine, AkaiButton } from '../UI';
 
-import { createSignalFromEventEmitter } from '../createSignalFromEventEmitter';
 import { Slice } from '../engine/device/Slice';
 
 export const SamplerView = (props: { sampler: SamplerDevice }) => {
-  const [selectedSlice, setSelectedSlice] = createSignal<Slice>();
-
-  const currentPatternIndex = createSignalFromEventEmitter(
-    untrack(() => props.sampler.engine),
-    ['currentPatternIndexUpdated'],
-    (engine) => engine.currentPatternIndex
-  );
-
-  const collapsed = createSignalFromEventEmitter(
-    untrack(() => props.sampler),
-    ['collapsedUpdated'],
-    (sampler) => sampler.collapsed
-  );
-
-  const slices = createSignalFromEventEmitter(
-    untrack(() => props.sampler),
-    ['sliceAdded', 'sliceRemoved', 'sliceUpdated'],
-    (sampler) => sampler.getSlices()
+  const collapsed = props.sampler.createSignal(
+    (sampler) => sampler.collapsed,
+    'collapsedUpdated'
   );
 
   const [waveformCenter, setWaveformCenter] = createSignal(0);
@@ -48,23 +30,7 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
     props.sampler.set({ zoom });
   };
 
-  onMount(async () => {
-    Transport.on('stop', stopPlayer);
-    Transport.on('pause', stopPlayer);
-    Transport.on('loopEnd', stopPlayer);
-
-    await props.sampler.hasLoaded();
-
-    setLength(props.sampler.buffer.duration);
-  });
-
-  const handleRemoveSlice = (slice: Slice) => {
-    props.sampler.removeSlice(slice.id);
-  };
-
-  const handleClickSlice = async (slice: Slice) => {
-    setSelectedSlice(slice);
-
+  const handleSliceSelected = (slice?: Slice) => {
     if (!slice) return;
 
     const { duration } = slice.sampler.buffer;
@@ -74,10 +40,28 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
     }
   };
 
+  onMount(async () => {
+    Transport.on('stop', stopPlayer);
+    Transport.on('pause', stopPlayer);
+    Transport.on('loopEnd', stopPlayer);
+
+    await props.sampler.hasLoaded();
+
+    props.sampler.on('sliceSelected', handleSliceSelected);
+
+    setLength(props.sampler.buffer.duration);
+  });
+
+  onCleanup(() => {
+    Transport.off('stop', stopPlayer);
+    Transport.off('pause', stopPlayer);
+    Transport.off('loopEnd', stopPlayer);
+    props.sampler.off('sliceSelected', handleSliceSelected);
+  });
+
   const handleClickRegion = (region: Region) => {
-    const slice = slices().find(
-      (currentSlice) => currentSlice.serialize().id === region.id
-    );
+    const slice = props.sampler.slices.get(region.id);
+
     if (!slice) return;
 
     const { duration } = slice.player.buffer;
@@ -143,36 +127,6 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
             </div>
           </LCDFrame>
         </div>
-      </div>
-      <div
-        style={{
-          borderBottom: '1px solid #222',
-          boxShadow: '0px 0px 3px #222',
-          padding: '10px',
-        }}
-      >
-        <ol
-          class={css`
-            font-size: 10px;
-            box-shadow: inset 0px 0px 8px black;
-            padding: 2px;
-            border-radius: 5px;
-            margin-top: 5px;
-            background-color: #111;
-          `}
-        >
-          <For each={slices()}>
-            {(slice) => (
-              <SampleSlice
-                slice={slice}
-                isSelected={slice === selectedSlice()}
-                currentPatternIndex={currentPatternIndex()}
-                onClickSlice={handleClickSlice}
-                onRemoveSlice={handleRemoveSlice}
-              />
-            )}
-          </For>
-        </ol>
       </div>
     </>
   );

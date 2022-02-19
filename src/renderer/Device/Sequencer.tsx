@@ -41,6 +41,11 @@ export const Sequencer = (
 
   const [selectedStep, setSelectedStep] = createSignal<Step>();
 
+  const collapsed = props.slice.createSignal(
+    (slice) => slice.collapsed,
+    ['collapsedUpdated']
+  );
+
   const handleToggleStep = (step: Step) => {
     const newStep = {
       ...step,
@@ -62,13 +67,15 @@ export const Sequencer = (
 
   return (
     <Row>
-      <NumberInputWithArrowButtons
-        size={2}
-        min={1}
-        max={Math.ceil(props.steps.length / 16)}
-        value={page()}
-        onChange={(page) => setPage(page)}
-      />
+      <Show when={collapsed()}>
+        <NumberInputWithArrowButtons
+          size={2}
+          min={1}
+          max={Math.ceil(props.steps.length / 16)}
+          value={page()}
+          onChange={(page) => setPage(page)}
+        />
+      </Show>
       <ul
         {...ulProps}
         classList={{
@@ -84,7 +91,12 @@ export const Sequencer = (
         <Index each={props.steps}>
           {(step, index) => {
             return (
-              <Show when={index < page() * 16 && index >= page() * 16 - 16}>
+              <Show
+                when={
+                  !collapsed() ||
+                  (index < page() * 16 && index >= page() * 16 - 16)
+                }
+              >
                 <SequencerStep
                   classList={{
                     [css`

@@ -20,6 +20,7 @@ type SamplerDeviceEvents = {
   sliceRemoved: (slice: Slice) => void;
   sliceUpdated: (slice: Slice) => void;
   slicePlaybackStarted: () => void;
+  sliceSelected: (slice?: Slice) => void;
   load: () => void;
   change: (sampler: SamplerDevice) => void;
 } & PropertyUpdateEvents<SerializedSamplerDevice>;
@@ -31,6 +32,7 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
   url = '';
   zoom = 1;
   title = '';
+  selectedSlice?: Slice;
 
   private _hasLoaded = false;
 
@@ -151,6 +153,11 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
 
   getSlice(id: string) {
     return this.slices.get(id);
+  }
+
+  selectSlice(slice: Slice) {
+    this.selectedSlice = slice;
+    this.emit('sliceSelected', slice);
   }
 
   removeSlice(id: string) {

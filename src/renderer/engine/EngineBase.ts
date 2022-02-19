@@ -1,6 +1,36 @@
 import { Accessor, createEffect, createSignal, onCleanup } from 'solid-js';
 import { createStore, reconcile } from 'solid-js/store';
-import { TypedEmitter } from 'tiny-typed-emitter';
+import {
+  DefaultListener,
+  ListenerSignature,
+  TypedEmitter,
+} from 'tiny-typed-emitter';
+
+export abstract class EngineBase<
+  L extends ListenerSignature<L> = DefaultListener
+> extends TypedEmitter<L> {
+  createSignal<U extends keyof L, R>(
+    callback: (emitter: this) => R,
+    event: U | U[]
+  ) {
+    return createSignalFromEventEmitter(
+      this,
+      Array.isArray(event) ? event : [event],
+      callback
+    );
+  }
+
+  createStore<U extends keyof L, R>(
+    callback: (emitter: this) => R,
+    event: U | U[]
+  ) {
+    return createStoreFromEventEmitter(
+      this,
+      Array.isArray(event) ? event : [event],
+      callback
+    );
+  }
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const createSignalFromEventEmitter = <T, E extends TypedEmitter<any>>(

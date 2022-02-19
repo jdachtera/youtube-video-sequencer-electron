@@ -1,9 +1,5 @@
-import { createMemo, For, untrack, JSX, splitProps } from 'solid-js';
+import { createMemo, For, JSX, splitProps } from 'solid-js';
 
-import {
-  createSignalFromEventEmitter,
-  createStoreFromEventEmitter,
-} from './createSignalFromEventEmitter';
 import { SamplerDevice } from './engine/device/Sampler';
 import { Slice } from './engine/device/Slice';
 import { subdivisions, subdivisionTypes } from './engine/types';
@@ -17,19 +13,20 @@ import {
 import { Row } from './Grid';
 
 export const PatternEditor = (
-  allProps: { sampler: SamplerDevice } & JSX.IntrinsicElements['div']
+  allProps: {
+    sampler: SamplerDevice;
+    collapsed: boolean;
+  } & JSX.IntrinsicElements['div']
 ) => {
   const [props, divProps] = splitProps(allProps, ['sampler']);
-  const slices = createSignalFromEventEmitter(
-    untrack(() => props.sampler),
-    ['sliceAdded', 'sliceRemoved'],
-    (sampler) => sampler.getSlices()
+  const slices = props.sampler.createSignal(
+    (sampler) => sampler.getSlices(),
+    ['sliceAdded', 'sliceRemoved']
   );
 
-  const currentPatternIndex = createSignalFromEventEmitter(
-    untrack(() => props.sampler.engine),
-    ['currentPatternIndexUpdated'],
-    (engine) => engine.currentPatternIndex
+  const currentPatternIndex = props.sampler.engine.createSignal(
+    (engine) => engine.currentPatternIndex,
+    ['currentPatternIndexUpdated']
   );
 
   return (
@@ -56,16 +53,14 @@ export const SlicePattern = (
     'slice',
     'currentPatternIndex',
   ]);
-  const sliceState = createStoreFromEventEmitter(
-    untrack(() => props.slice),
-    ['change'],
-    (slice) => slice.serialize()
+  const sliceState = props.slice.createStore(
+    (slice) => slice.serialize(),
+    'change'
   );
 
-  const patterns = createSignalFromEventEmitter(
-    () => props.slice,
-    'patternsUpdated',
-    (slice) => slice.patterns
+  const patterns = props.slice.createSignal(
+    (slice) => slice.patterns,
+    'patternsUpdated'
   );
 
   const currentPattern = createMemo(

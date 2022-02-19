@@ -1,14 +1,11 @@
-import { createStoreFromEventEmitter } from '../createSignalFromEventEmitter';
-
 import { MoogKnobWithLabel } from '../controls/Knob';
 import { CompressorDevice } from 'renderer/engine/device/Compressor';
 import { Column, Row } from 'renderer/Grid';
 
 export const CompressorView = (props: { compressor: CompressorDevice }) => {
-  const compressorState = createStoreFromEventEmitter(
-    () => props.compressor,
-    ['change'],
-    (compressor) => compressor.serialize()
+  const compressorState = props.compressor.createStore(
+    (compressor) => compressor.serialize(),
+    'change'
   );
 
   return (

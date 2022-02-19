@@ -1,11 +1,8 @@
-import {
-  DefaultListener,
-  ListenerSignature,
-  TypedEmitter,
-} from 'tiny-typed-emitter';
+import { DefaultListener, ListenerSignature } from 'tiny-typed-emitter';
 import { Gain } from 'tone';
 
 import { Engine } from '../Engine';
+import { EngineBase } from '../EngineBase';
 import { entries, PropertyUpdateEvents } from '../helpers';
 
 import { SerializedDevice } from '../types';
@@ -26,7 +23,7 @@ type DeviceEvents = PropertyUpdateEvents<SerializedDeviceBase> & {
 
 export abstract class Device<
   L extends ListenerSignature<L> = DefaultListener
-> extends TypedEmitter<DeviceEvents & L> {
+> extends EngineBase<DeviceEvents & L> {
   input = new Gain();
   output = new Gain();
 

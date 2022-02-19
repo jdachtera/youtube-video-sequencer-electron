@@ -18,6 +18,7 @@ import { DeviceChain, SerializedDeviceChain } from './DeviceChain';
 
 import { createUniqueId } from 'solid-js';
 import { DeepPartial, subdivisionTypes } from '../types';
+import { EngineBase } from '../EngineBase';
 
 export type SerializedSlice = {
   id: string;
@@ -56,7 +57,7 @@ export type SliceEvents = {
   load: () => void;
 } & PropertyUpdateEvents<SerializedSlice>;
 
-export class Slice extends TypedEmitter<SliceEvents> {
+export class Slice extends EngineBase<SliceEvents> {
   player = new Player();
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   sequence: Sequence<Step> = null!;

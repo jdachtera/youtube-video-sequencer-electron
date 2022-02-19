@@ -7,7 +7,7 @@ import { Engine } from './engine/Engine';
 import { theme } from './theme';
 
 import { apolloClient } from './apolloClient';
-import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
+
 import { Toolbar } from './Toolbar';
 import { GlobalStyles } from './GlobalStyles';
 import { DeviceView } from './Device/DeviceView';
@@ -15,17 +15,12 @@ import { DeviceView } from './Device/DeviceView';
 const engine = new Engine(Transport);
 
 export function App() {
-  const tracks = createSignalFromEventEmitter(
-    engine,
-    ['trackAdded', 'trackRemoved'],
-    (engine) => engine.tracks
+  const tracks = engine.createSignal(
+    (engine) => engine.tracks,
+    ['trackAdded', 'trackRemoved']
   );
 
-  const zoom = createSignalFromEventEmitter(
-    engine,
-    ['zoomUpdated'],
-    (engine) => engine.zoom
-  );
+  const zoom = engine.createSignal((engine) => engine.zoom, 'zoomUpdated');
 
   return (
     <ThemeProvider theme={theme}>

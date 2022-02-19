@@ -1,16 +1,9 @@
-import {
-  createEffect,
-  mergeProps,
-  onCleanup,
-  onMount,
-  untrack,
-} from 'solid-js';
+import { createEffect, mergeProps, onCleanup, onMount } from 'solid-js';
 
 import { css } from 'renderer/emotion-solid';
 
 import Wavesurfer from 'wavesurfer.js';
 
-import { createSignalFromEventEmitter } from '../createSignalFromEventEmitter';
 import { Slice } from '../engine/device/Slice';
 
 type WavesurferSliceViewProps = {
@@ -55,13 +48,12 @@ export const WavesurferSliceView = (
     waveformRef.removeEventListener('click', handleClickWaveform);
   });
 
-  const buffer = createSignalFromEventEmitter(
-    untrack(() => props.slice),
-    ['load', 'reverseUpdated'],
+  const buffer = props.slice.createSignal(
     (slice) =>
       slice.player.buffer.length
         ? slice.player.buffer.toMono().get()
-        : undefined
+        : undefined,
+    ['load', 'reverseUpdated']
   );
 
   createEffect(() => {

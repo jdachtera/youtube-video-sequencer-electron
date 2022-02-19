@@ -1,13 +1,10 @@
-import { createStoreFromEventEmitter } from '../createSignalFromEventEmitter';
-
 import { MoogKnobWithLabel } from '../controls/Knob';
 import { DistortionDevice } from 'renderer/engine/device/Distortion';
 
 export const DistortionView = (props: { distortion: DistortionDevice }) => {
-  const distortionState = createStoreFromEventEmitter(
-    () => props.distortion,
-    ['change'],
-    (distortion) => distortion.serialize()
+  const distortionState = props.distortion.createStore(
+    (distortion) => distortion.serialize(),
+    'change'
   );
 
   return (

@@ -1,9 +1,8 @@
 import { entries, PropertyUpdateEvents } from './helpers';
-
-import { TypedEmitter } from 'tiny-typed-emitter';
 import { DeviceChain, SerializedDeviceChain } from './device/DeviceChain';
 import { Engine } from './Engine';
 import { DeepPartial } from './types';
+import { EngineBase } from './EngineBase';
 
 export type SerializedTrack = {
   chain: SerializedDeviceChain;
@@ -13,7 +12,7 @@ type TrackEvents = {
   change: (deviceChain: Track) => void;
 } & PropertyUpdateEvents<SerializedTrack>;
 
-export class Track extends TypedEmitter<TrackEvents> {
+export class Track extends EngineBase<TrackEvents> {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   chain: DeviceChain = null!;
 

@@ -1,6 +1,5 @@
-import { createEffect, onMount, onCleanup, untrack } from 'solid-js';
+import { createEffect, onMount, onCleanup } from 'solid-js';
 
-import { createSignalFromEventEmitter } from '../createSignalFromEventEmitter';
 import { debounce } from 'ts-debounce';
 
 import Wavesurfer from 'wavesurfer.js';
@@ -16,10 +15,9 @@ type WavesurferViewProps = {
 };
 
 export const WavesurferView = (props: WavesurferViewProps) => {
-  const zoom = createSignalFromEventEmitter(
-    untrack(() => props.sampler),
-    'zoomUpdated',
-    (sampler) => sampler.zoom
+  const zoom = props.sampler.createSignal(
+    (sampler) => sampler.zoom,
+    'zoomUpdated'
   );
 
   let waveformRef: HTMLDivElement | undefined;
@@ -155,11 +153,10 @@ export const WavesurferView = (props: WavesurferViewProps) => {
     wavesurfer.un('region-update-end', props.onRegionClick);
   });
 
-  const buffer = createSignalFromEventEmitter(
-    untrack(() => props.sampler),
-    'load',
+  const buffer = props.sampler.createSignal(
     (sampler) =>
-      sampler.buffer.length ? sampler.buffer.toMono().get() : undefined
+      sampler.buffer.length ? sampler.buffer.toMono().get() : undefined,
+    'load'
   );
 
   createEffect(() => {

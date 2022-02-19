@@ -1,5 +1,3 @@
-import { createStoreFromEventEmitter } from '../createSignalFromEventEmitter';
-
 import { MoogKnobWithLabel } from '../controls/Knob';
 import { PingPongDelayDevice } from 'renderer/engine/device/PingPongDelay';
 import { Row } from 'renderer/Grid';
@@ -7,19 +5,17 @@ import { Row } from 'renderer/Grid';
 export const PingPongDelayView = (props: {
   pingPongDelay: PingPongDelayDevice;
 }) => {
-  const filterState = createStoreFromEventEmitter(
-    () => props.pingPongDelay,
-    ['change'],
-    (filter) => filter.serialize()
+  const pingPongDelayState = props.pingPongDelay.createStore(
+    (pingPongDelay) => pingPongDelay.serialize(),
+    'change'
   );
-
   return (
     <Row>
       <MoogKnobWithLabel
         onChange={(delayTime) => props.pingPongDelay.set({ delayTime })}
         min={1}
         max={5000}
-        value={+filterState.delayTime}
+        value={+pingPongDelayState.delayTime}
         label={'Delay Time'}
       />
       <MoogKnobWithLabel
@@ -27,7 +23,7 @@ export const PingPongDelayView = (props: {
         min={0}
         max={1}
         step={0.05}
-        value={filterState.feedback}
+        value={pingPongDelayState.feedback}
         label={'Feedback'}
       />
     </Row>

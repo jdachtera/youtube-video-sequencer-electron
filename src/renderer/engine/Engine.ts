@@ -1,13 +1,13 @@
 /* eslint-disable max-classes-per-file */
 import { Time } from 'tone/build/esm/core/type/Units';
 import { Transport } from 'tone/build/esm/core/clock/Transport';
-import { TypedEmitter } from 'tiny-typed-emitter';
 import { SerializedTrack, Track } from './Track';
 import { DeepPartial } from './types';
 import { entries, PropertyUpdateEvents } from './helpers';
 
 import { SamplerDevice, SerializedSamplerDevice } from './device/Sampler';
 import { Offline } from 'tone';
+import { EngineBase } from './EngineBase';
 
 export type SerializedEngine = {
   currentPatternIndex: number;
@@ -29,7 +29,7 @@ type EngineEvents = {
   stop: (time?: Time | undefined) => void;
 } & PropertyUpdateEvents<SerializedEngine>;
 
-export class Engine extends TypedEmitter<EngineEvents> {
+export class Engine extends EngineBase<EngineEvents> {
   public tracks: Track[] = [];
 
   public currentPatternIndex = 0;

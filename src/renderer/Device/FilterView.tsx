@@ -1,9 +1,6 @@
 import { createEffect, createSignal, onCleanup, onMount } from 'solid-js';
 import { FilterRollOff } from 'tone';
-import {
-  createSignalFromEventEmitter,
-  createStoreFromEventEmitter,
-} from '../createSignalFromEventEmitter';
+
 import { FilterDevice } from '../engine/device/Filter';
 import { MoogKnobWithLabel } from '../controls/Knob';
 import { Column, Row } from 'renderer/Grid';
@@ -22,10 +19,9 @@ const filterTypes: BiquadFilterType[] = [
 const filterRolloffOptions: FilterRollOff[] = [-12, -24, -48, -96];
 
 export const FilterView = (props: { filter: FilterDevice }) => {
-  const filterState = createStoreFromEventEmitter(
-    () => props.filter,
-    ['change'],
-    (filter) => filter.serialize()
+  const filterState = props.filter.createStore(
+    (filter) => filter.serialize(),
+    'change'
   );
 
   return (
@@ -68,10 +64,9 @@ export const FilterView = (props: { filter: FilterDevice }) => {
 const FrequencyResponseDisplay = (props: { filter: FilterDevice }) => {
   let canvasRef: HTMLCanvasElement | undefined;
 
-  const frequencyResponse = createSignalFromEventEmitter(
-    () => props.filter,
-    ['frequencyUpdated', 'resonanceUpdated', 'typeUpdated', 'rolloffUpdated'],
-    (filter) => filter.filterNode.getFrequencyResponse(100)
+  const frequencyResponse = props.filter.createSignal(
+    (filter) => filter.filterNode.getFrequencyResponse(100),
+    ['frequencyUpdated', 'resonanceUpdated', 'typeUpdated', 'rolloffUpdated']
   );
   const [context, setContext] = createSignal<
     CanvasRenderingContext2D | null | undefined

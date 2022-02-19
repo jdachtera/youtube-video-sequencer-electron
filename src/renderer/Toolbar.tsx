@@ -3,8 +3,6 @@ import { css } from 'renderer/emotion-solid';
 import { Transport, start } from 'tone';
 import { debounce } from 'ts-debounce';
 
-import { createStoreFromEventEmitter } from './createSignalFromEventEmitter';
-
 import { Engine } from './engine/Engine';
 import { FindSlicesButton } from './FindSlicesButton';
 import { LoginModal } from './LoginModal';
@@ -34,22 +32,21 @@ const camelCaseToSpaced = (str: string) => {
 export const Toolbar = (props: { engine: Engine }) => {
   const [isPlaying, setIsPlaying] = createSignal(false);
 
-  const engineState = createStoreFromEventEmitter(
-    () => props.engine,
-    [
-      'bpmUpdated',
-      'swingUpdated',
-      'currentPatternIndexUpdated',
-      'viewModeUpdated',
-      'zoomUpdated',
-    ],
+  const engineState = props.engine.createStore(
     (engine) => ({
       bpm: engine.transport.bpm.value,
       viewMode: engine.viewMode,
       swing: engine.transport.swing,
       currentPatternIndex: engine.currentPatternIndex,
       zoom: engine.zoom,
-    })
+    }),
+    [
+      'bpmUpdated',
+      'swingUpdated',
+      'currentPatternIndexUpdated',
+      'viewModeUpdated',
+      'zoomUpdated',
+    ]
   );
 
   const togglePlay = async () => {

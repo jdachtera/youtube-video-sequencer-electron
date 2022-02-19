@@ -2,8 +2,9 @@ import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
 
 import { ApolloLink } from '@apollo/client/link/core';
-import { createSignalFromEventEmitter } from './createSignalFromEventEmitter';
+
 import { TypedEmitter } from 'tiny-typed-emitter';
+import { createSignalFromEventEmitter } from './engine/EngineBase';
 
 const withToken = setContext(() => {
   const token = authStore.getAccessToken();
