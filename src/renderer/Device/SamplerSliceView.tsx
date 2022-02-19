@@ -429,7 +429,7 @@ export const SamplerSliceView = (props: {
           </div>
         </div>
       </Show>
-      <Show when={viewMode.sequencers}>
+      <Show when={viewMode.sequencer}>
         <DeviceWrapper
           background={sliceState.color}
           classList={{

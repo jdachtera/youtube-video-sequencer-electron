@@ -64,7 +64,7 @@ export const DeviceChainView = (
           classList={{
             [css`
               display: none;
-            `]: !viewMode.devices,
+            `]: !viewMode.device,
           }}
         >
           <For each={devices()}>
