@@ -236,7 +236,7 @@ export const Toolbar = (props: { engine: Engine }) => {
             activated={isPlaying()}
             onClick={togglePlay}
             labelOnButton={true}
-            label={'Play'}
+            label={'▶'}
           />
           <ButtonWithLabel
             onClick={() => {
