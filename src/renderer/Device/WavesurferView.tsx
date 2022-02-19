@@ -83,11 +83,11 @@ export const WavesurferView = (props: WavesurferViewProps) => {
 
       const slice: SerializedSlice = Slice.normalizeData({
         id,
-        collapsed: true,
         start,
         end,
         color,
       });
+
       props.sampler.createSlice(slice);
     } else {
       if (slice.start !== region.start || slice.end !== region.end) {

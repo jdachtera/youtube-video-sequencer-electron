@@ -1,6 +1,6 @@
 import { createEffect, createSignal, For, onCleanup, onMount } from 'solid-js';
 import { css } from 'renderer/emotion-solid';
-import { Transport, start } from 'tone';
+import { Transport, start, Sampler } from 'tone';
 import { debounce } from 'ts-debounce';
 
 import { createStoreFromEventEmitter } from './createSignalFromEventEmitter';
@@ -19,6 +19,7 @@ import {
 } from './UI';
 import { Row } from './Grid';
 import { exportBuffer } from './engine/helpers';
+import { SamplerDevice } from './engine/device/Sampler';
 
 const camelCaseToSpaced = (str: string) => {
   let newString = '';
@@ -209,6 +210,8 @@ export const Toolbar = (props: { engine: Engine }) => {
     }
   });
 
+  const [minimized, setMinimized] = createSignal(false);
+
   return (
     <div>
       <LoginModal />
@@ -222,11 +225,41 @@ export const Toolbar = (props: { engine: Engine }) => {
         <Row>
           <LoadFileButton label={'Load'} onChange={loadJSON} accept=".json" />
           <ButtonWithLabel
+            onClick={exportJSON}
+            labelOnButton={true}
+            label={'Save'}
+          />
+          <ButtonWithLabel
+            onClick={renderToWavefile}
+            labelOnButton={true}
+            label={'Mixdown'}
+          />
+          <ButtonWithLabel
             type="button"
             activated={isPlaying()}
             onClick={togglePlay}
             labelOnButton={true}
             label={'Play'}
+          />
+          <ButtonWithLabel
+            onClick={() => {
+              const collapsed = !minimized();
+
+              props.engine.tracks.forEach((track) => {
+                track.chain.devices.forEach((device) => {
+                  device.set({ collapsed });
+                  if (device instanceof SamplerDevice) {
+                    device.slices.forEach((slice) => {
+                      slice.set({ collapsed });
+                    });
+                  }
+                });
+              });
+
+              setMinimized(collapsed);
+            }}
+            labelOnButton={true}
+            label={minimized() ? 'Maximize' : 'Minimize'}
           />
           :
           <NumberInputWithArrowButtons
@@ -269,16 +302,6 @@ export const Toolbar = (props: { engine: Engine }) => {
             size={4}
             value={engineState.swing}
             onChange={handleSwingChange}
-          />
-          <ButtonWithLabel
-            onClick={renderToWavefile}
-            labelOnButton={true}
-            label={'Download WAV'}
-          />
-          <ButtonWithLabel
-            onClick={exportJSON}
-            labelOnButton={true}
-            label={'Export JSON'}
           />
           <ButtonWithLabel
             onClick={clear}

@@ -108,7 +108,7 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
 
             [css`
               display: none;
-            `]: collapsed(),
+            `]: !collapsed(),
           }}
         >
           <LCDFrame>
@@ -142,22 +142,6 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
               <AkaiButton onClick={() => setZoom(500)} />
             </div>
           </LCDFrame>
-          {/* <ButtonWithLabel label="Foo" />
-          <div
-            class={css`
-              padding: 5px;
-              display: flex;
-              justify-content: space-evenly;
-            `}
-          >
-            <ScreenPrintBackground label="Function">
-              <AkaiButton onClick={() => setZoom(100)} />
-              <AkaiButton onClick={() => setZoom(200)} />
-              <AkaiButton onClick={() => setZoom(300)} />
-              <AkaiButton onClick={() => setZoom(400)} />
-              <AkaiButton onClick={() => setZoom(500)} />
-            </ScreenPrintBackground>
-          </div>*/}
         </div>
       </div>
       <div
