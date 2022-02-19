@@ -34,9 +34,7 @@ export const SamplerSlicesView = (props: {
         class={css`
           font-size: 10px;
           box-shadow: inset 0px 0px 8px black;
-          padding: 2px;
           border-radius: 5px;
-          margin-top: 5px;
           background-color: #111;
         `}
       >

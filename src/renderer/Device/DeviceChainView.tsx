@@ -1,4 +1,4 @@
-import { createSignal, For, JSX, splitProps } from 'solid-js';
+import { createSignal, For, JSX, Show as div, splitProps } from 'solid-js';
 
 import { DeviceView } from './DeviceView';
 import { createDevice } from '../engine/device/createDevice';
@@ -31,6 +31,11 @@ export const DeviceChainView = (
   const [selectedDeviceName, setSelectedDeviceName] =
     createSignal<SerializedDevice['name']>('Filter');
 
+  const viewMode = props.deviceChain.engine.createStore(
+    (engine) => engine.viewMode,
+    ['viewModeUpdated']
+  );
+
   const devices = props.deviceChain.createSignal(
     (chain) => chain.devices,
     ['deviceAdded', 'deviceRemoved']
@@ -55,7 +60,13 @@ export const DeviceChainView = (
       }}
     >
       <Column>
-        <Row>
+        <Row
+          classList={{
+            [css`
+              display: none;
+            `]: !viewMode.devices,
+          }}
+        >
           <For each={devices()}>
             {(device) => (
               <DeviceView
@@ -66,6 +77,7 @@ export const DeviceChainView = (
               />
             )}
           </For>
+
           <DeviceWrapper background="#969696" classList={{ device: true }}>
             <SelectWithArrowButtons
               options={deviceNames}

@@ -16,8 +16,10 @@ export type SerializedEngine = {
   swing: number;
   tracks: SerializedTrack[];
   viewMode: {
-    sequencers: boolean;
+    channelControls: boolean;
     sliceControls: boolean;
+    sequencers: boolean;
+    devices: boolean;
   };
 };
 
@@ -37,8 +39,10 @@ export class Engine extends EngineBase<EngineEvents> {
   zoom = 1;
 
   viewMode = {
-    sequencers: true,
+    channelControls: true,
     sliceControls: true,
+    sequencers: true,
+    devices: true,
   };
 
   static normalizeData = (
@@ -52,8 +56,10 @@ export class Engine extends EngineBase<EngineEvents> {
       zoom: parsedData.zoom ?? 1,
       currentPatternIndex: parsedData.currentPatternIndex ?? 0,
       viewMode: {
+        channelControls: parsedData?.viewMode?.channelControls ?? true,
         sequencers: parsedData?.viewMode?.sequencers ?? true,
         sliceControls: parsedData?.viewMode?.sliceControls ?? true,
+        devices: parsedData?.viewMode?.devices ?? true,
       },
       tracks: [
         ...(Array.isArray(parsedData.tracks) ? parsedData.tracks : [])
