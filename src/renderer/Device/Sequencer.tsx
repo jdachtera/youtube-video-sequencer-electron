@@ -7,13 +7,14 @@ import {
   JSX,
   splitProps,
   Show,
+  createEffect,
 } from 'solid-js';
 
 import { Slice, Step } from '../engine/device/Slice';
 import { css } from 'renderer/emotion-solid';
 import { SequencerStep } from './SequencerStep';
 import { Row } from 'renderer/Grid';
-import { NumberInputWithArrowButtons } from 'renderer/UI';
+import { ButtonWithLabel, NumberInputWithArrowButtons } from 'renderer/UI';
 
 const colors808Knobs = ['#ffffff', '#f1f827', '#f8a125', '#e72e2e'];
 
@@ -34,17 +35,27 @@ export const Sequencer = (
     ownProps
   );
 
+  const [page, setPage] = createSignal(1);
   const [currentStep, setCurrentStep] = createSignal<Step>();
+  const [autoPage, setAutoPage] = createSignal(true);
+  const collapsed = props.slice.createSignal(
+    (slice) => slice.collapsed,
+    ['collapsedUpdated']
+  );
+
+  createEffect(() => {
+    if (autoPage() && collapsed()) {
+      const step = currentStep();
+      if (step) {
+        setPage(Math.floor(props.steps.indexOf(step) / 16) + 1);
+      }
+    }
+  });
 
   onMount(() => props.slice.on('sequenceEvent', setCurrentStep));
   onCleanup(() => props.slice.off('sequenceEvent', setCurrentStep));
 
   const [selectedStep, setSelectedStep] = createSignal<Step>();
-
-  const collapsed = props.slice.createSignal(
-    (slice) => slice.collapsed,
-    ['collapsedUpdated']
-  );
 
   const handleToggleStep = (step: Step) => {
     const newStep = {
@@ -63,11 +74,15 @@ export const Sequencer = (
     props.onChange(newSteps);
   };
 
-  const [page, setPage] = createSignal(1);
-
   return (
     <Row>
       <Show when={collapsed()}>
+        <ButtonWithLabel
+          label="Auto"
+          labelOnButton
+          activated={autoPage()}
+          onClick={() => setAutoPage(!autoPage())}
+        />
         <NumberInputWithArrowButtons
           size={2}
           min={1}
@@ -101,7 +116,9 @@ export const Sequencer = (
                   classList={{
                     [css`
                       > div {
-                        background: ${colors808Knobs[Math.floor(index / 4)]};
+                        background: ${colors808Knobs[
+                          Math.floor((index % 16) / 4)
+                        ]};
                       }
                     `]: true,
                   }}
