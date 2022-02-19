@@ -1,5 +1,6 @@
 import {
   Component,
+  ComponentProps,
   createEffect,
   createMemo,
   createSignal,
@@ -9,11 +10,13 @@ import {
   splitProps,
   untrack,
 } from 'solid-js';
-import MoogKnobSvg from '../svg/moog_knob.svg';
+import { Dynamic } from 'solid-js/web';
 import { css } from 'renderer/emotion-solid';
+
+import MoogKnobSvg from '../svg/moog_knob.svg';
 import { useAppTheme } from '../theme';
 import { Label } from './Label';
-import { Dynamic } from 'solid-js/web';
+import { LCDLabel } from 'renderer/UI';
 
 type KnobProps = {
   value?: number;
@@ -92,7 +95,6 @@ export const Knob = (props: KnobProps) => {
       x: lastPosition().x - currentPosition.x,
       y: lastPosition().y - currentPosition.y,
     };
-
     handleChange(
       delta.y / window.innerHeight,
       !props.fineIsDefault && event.altKey
@@ -135,22 +137,24 @@ export const Knob = (props: KnobProps) => {
 };
 
 export const NumberInput = (
-  props: Omit<KnobProps, 'component' | 'onChange'> & {
+  allProps: {
     value?: number;
     onChange?: (value: number) => void;
     onInput?: (value: number) => void;
-    label?: string;
-  }
+  } & Omit<JSX.IntrinsicElements['input'], 'value' | 'onInput' | 'onChange'>
 ) => {
+  const [props, inputProps] = splitProps(allProps, [
+    'value',
+    'onChange',
+    'onInput',
+  ]);
   const theme = useAppTheme();
 
   return (
     <input
+      {...inputProps}
       type="number"
       value={props.value}
-      min={props.min ?? 0}
-      max={props.max ?? 10}
-      step={props.step}
       onInput={(event) => {
         props.onChange?.(+event.currentTarget.value);
       }}
@@ -168,32 +172,21 @@ export const NumberInput = (
 };
 
 export const NumberInputWithLabel = (
-  props: Omit<KnobProps, 'component'> & {
+  allProps: ComponentProps<typeof NumberInput> & {
     label?: JSXElement;
   }
 ) => {
+  const [props, inputProps] = splitProps(allProps, ['label']);
+
   return (
     <div
       class={css`
-        border: 1px solid red;
-        display: inline-flex;
+        display: flex;
+        align-items: center;
       `}
     >
-      <Label
-        label={props.label}
-        class={css`
-          margin-right: 4px;
-        `}
-      />
-      <NumberInput
-        value={props.value}
-        min={props.min ?? 0}
-        max={props.max ?? 10}
-        step={props.step}
-        onInput={(value) => {
-          props.onChange(value);
-        }}
-      />
+      <LCDLabel>{props.label}</LCDLabel>
+      <NumberInput {...inputProps} />
     </div>
   );
 };

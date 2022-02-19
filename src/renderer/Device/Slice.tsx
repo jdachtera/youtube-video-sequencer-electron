@@ -14,7 +14,7 @@ import {
 import { WavesurferSliceView } from './WavesurferSliceView';
 
 import type { Slice } from '../engine/device/Slice';
-import { MoogKnobWithLabel, NumberInput } from '../controls/Knob';
+import { MoogKnobWithLabel, NumberInputWithLabel } from '../controls/Knob';
 
 import { ShareSliceButton } from '../ShareSliceButton';
 import {
@@ -23,7 +23,7 @@ import {
 } from '../createSignalFromEventEmitter';
 import { SlicePattern } from '../PatternEditor';
 import { DeviceChainView } from './DeviceChainView';
-import { Row } from 'renderer/Grid';
+import { Column, Flex, Row } from 'renderer/Grid';
 import { exportBuffer } from 'renderer/engine/helpers';
 
 export const SampleSlice = (props: {
@@ -56,15 +56,11 @@ export const SampleSlice = (props: {
   );
 
   const handleUpdateSampleStart = (start: number) => {
-    props.slice.set({
-      start: Math.min(sliceState.end + 0.00001, start),
-    });
+    props.slice.set({ start });
   };
 
   const handleUpdateSampleEnd = (end: number) => {
-    props.slice.set({
-      end: Math.max(sliceState.start + 0.00001, end),
-    });
+    props.slice.set({ end });
   };
 
   const handleUpdatePatternLength = (patternLength: number) => {
@@ -204,16 +200,9 @@ export const SampleSlice = (props: {
                     padding: 2px;
                   `}
                 >
-                  <div
-                    class={css`
-                      display: flex;
-                      flex-direction: column;
-                    `}
-                  >
-                    <div
+                  <Column>
+                    <Column
                       class={css`
-                        display: flex;
-                        flex-direction: column;
                         background: radial-gradient(#cfcfcf, #b3b3b3);
                         color: rgb(63, 63, 63);
                         font-size: 20px;
@@ -233,9 +222,8 @@ export const SampleSlice = (props: {
                         currentTime={currentPlayPosition()}
                         onClickWaveform={() => props.onClickSlice(props.slice)}
                       />
-                      <div
+                      <Flex
                         class={css`
-                          display: flex;
                           align-items: center;
                         `}
                       >
@@ -254,159 +242,74 @@ export const SampleSlice = (props: {
                           `}
                           value={sliceState.name}
                         />
-                      </div>
-                      <div
-                        class={css`
-                          display: flex;
-                          align-items: center;
-                        `}
-                      >
-                        <LCDLabel>Steps</LCDLabel>
-                        <NumberInput
-                          label="steps"
-                          step={1}
-                          min={1}
-                          max={1024}
-                          speed={0.1}
-                          fineIsDefault
-                          value={currentPattern()?.steps?.length}
-                          onInput={handleUpdatePatternLength}
-                        />
-                      </div>
-                      <div
-                        class={css`
-                          display: flex;
-                          align-items: center;
-                        `}
-                      >
-                        <LCDLabel>Sample Duration</LCDLabel>
-                        <NumberInput
-                          label="duration"
-                          step={1}
-                          min={1}
-                          max={1024}
-                          speed={0.1}
-                          fineIsDefault
-                          value={currentPattern()?.steps?.length}
-                          onInput={handleUpdatePatternLength}
-                        />
-                      </div>
-                      <div
-                        class={css`
-                          display: flex;
-                          align-items: center;
-                        `}
-                      >
-                        <LCDLabel>Current Time</LCDLabel>
-                        <NumberInput
-                          label="duration"
-                          step={1}
-                          min={1}
-                          max={1024}
-                          speed={0.1}
-                          fineIsDefault
-                          value={currentPattern()?.steps?.length}
-                          onInput={handleUpdatePatternLength}
-                        />
-                      </div>
-                      <div
-                        class={css`
-                          display: flex;
-                          align-items: center;
-                        `}
-                      >
-                        <LCDLabel>Playback Speed</LCDLabel>
-                        <NumberInput
-                          label="volume"
-                          step={1}
-                          min={1}
-                          max={1024}
-                          speed={0.1}
-                          fineIsDefault
-                          value={currentPattern()?.steps?.length}
-                          onInput={handleUpdatePatternLength}
-                        />
-                      </div>
-                      <div
-                        class={css`
-                          display: flex;
-                          align-items: center;
-                        `}
-                      >
-                        <LCDLabel>Volume</LCDLabel>
-                        <NumberInput
-                          label="volume"
-                          step={1}
-                          min={1}
-                          max={1024}
-                          speed={0.1}
-                          fineIsDefault
-                          value={currentPattern()?.steps?.length}
-                          onInput={handleUpdatePatternLength}
-                        />
-                      </div>
+                      </Flex>
+
+                      <NumberInputWithLabel
+                        label="Current Time"
+                        disabled
+                        value={currentPlayPosition()}
+                      />
+
+                      <NumberInputWithLabel
+                        label="Playback Speed"
+                        step={1}
+                        min={1}
+                        max={1024}
+                        value={sliceState.playbackRate}
+                        onInput={(playbackRate) =>
+                          props.slice.set({ playbackRate })
+                        }
+                      />
+                      <NumberInputWithLabel
+                        label="Volume"
+                        step={1}
+                        min={1}
+                        max={1024}
+                        value={sliceState.volume}
+                        onInput={(volume) => props.slice.set({ volume })}
+                      />
                       <div
                         class={css`
                           display: flex;
                           justify-content: space-between;
                         `}
                       >
-                        <div
-                          class={css`
-                            display: flex;
-                            align-items: center;
-                          `}
-                        >
-                          <LCDLabel>Start</LCDLabel>
-                          <NumberInput
-                            label="steps"
-                            step={1}
-                            min={1}
-                            max={1024}
-                            speed={0.1}
-                            fineIsDefault
-                            value={sliceState.start}
-                            onChange={(start: number) => {
-                              props.slice.set({
-                                start: Math.min(
-                                  sliceState.end + 0.00001,
-                                  start
-                                ),
-                              });
-                            }}
-                          />
-                        </div>
-                        <div
-                          class={css`
-                            display: flex;
-                            align-items: center;
-                          `}
-                        >
-                          <LCDLabel minWidth="20px">End</LCDLabel>
-                          <NumberInput
-                            label="steps"
-                            step={1}
-                            min={1}
-                            max={1024}
-                            speed={0.1}
-                            fineIsDefault
-                            value={sliceState.end}
-                            onChange={handleUpdateSampleEnd}
-                          />
-                        </div>
+                        <NumberInputWithLabel
+                          label="Start"
+                          step={1}
+                          min={1}
+                          max={1024}
+                          value={sliceState.start}
+                          onChange={handleUpdateSampleStart}
+                        />
+
+                        <NumberInputWithLabel
+                          label={
+                            <span
+                              class={css`
+                                min-width: 20px;
+                              `}
+                            >
+                              End
+                            </span>
+                          }
+                          step={1}
+                          min={1}
+                          max={1024}
+                          value={sliceState.end}
+                          onChange={handleUpdatePatternLength}
+                        />
                       </div>
-                    </div>
-                    <div
+                    </Column>
+                    <Flex
                       class={css`
-                        display: flex;
                         justify-content: space-between;
                       `}
                     >
                       <MoogKnobWithLabel
                         min={0}
                         max={props.slice.sampler.buffer.duration}
-                        speed={0.1}
-                        step={0.01}
+                        step={1}
                         value={sliceState.start}
                         onChange={handleUpdateSampleStart}
                         label="Start"
@@ -415,35 +318,29 @@ export const SampleSlice = (props: {
                         min={0}
                         max={3}
                         value={sliceState.playbackRate}
-                        onChange={(playbackSpeed: number) => {
-                          props.slice.set({ playbackRate: playbackSpeed });
-                        }}
+                        onChange={(playbackSpeed: number) =>
+                          props.slice.set({ playbackRate: playbackSpeed })
+                        }
                         label="Pitch"
                       />
                       <MoogKnobWithLabel
                         min={0}
                         max={props.slice.sampler.buffer.duration}
-                        speed={0.1}
-                        step={0.01}
                         value={sliceState.end}
                         onChange={handleUpdateSampleEnd}
                         label="End"
                       />
-                    </div>
-                  </div>
+                    </Flex>
+                  </Column>
                 </div>
-                <div
+                <Column
                   class={css`
-                    display: flex;
-                    flex-direction: column;
                     padding-left: 10px;
                     align-items: flex-start;
                   `}
                 >
-                  <div
+                  <Column
                     class={css`
-                      display: flex;
-                      flex-direction: column;
                       align-items: flex-start;
                     `}
                   >
@@ -519,7 +416,7 @@ export const SampleSlice = (props: {
                         label="x2"
                       />
                     </div>
-                  </div>
+                  </Column>
                   <div>
                     <MoogKnobWithLabel
                       min={0}
@@ -531,7 +428,7 @@ export const SampleSlice = (props: {
                       label="Volume"
                     />
                   </div>
-                </div>
+                </Column>
               </div>
             </div>
           </div>
