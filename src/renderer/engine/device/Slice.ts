@@ -85,7 +85,7 @@ export class Slice extends EngineBase<SliceEvents> {
   static normalizeData = (
     slice: DeepPartial<SerializedSlice>
   ): SerializedSlice => ({
-    id: slice.id ?? createUniqueId(),
+    id: slice.id && slice.id !== '' ? slice.id : createUniqueId(),
     collapsed: slice.collapsed ?? false,
     mute: slice.mute ?? false,
     name: slice.name ?? '',
