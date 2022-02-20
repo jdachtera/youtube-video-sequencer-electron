@@ -270,7 +270,7 @@ export const SamplerSliceView = (props: {
                           <NumberInputWithLabel
                             label="Start"
                             size={12}
-                            min={0}
+                            min={sliceState.end - 10}
                             max={sliceState.end - 0.00001}
                             step={formattedTimeStep}
                             parse={parseFormattedTime}
@@ -293,7 +293,7 @@ export const SamplerSliceView = (props: {
                             }
                             size={12}
                             min={sliceState.start + 0.00001}
-                            max={props.slice.sampler.buffer.duration}
+                            max={sliceState.start + 10}
                             step={formattedTimeStep}
                             parse={parseFormattedTime}
                             format={formatTime}
