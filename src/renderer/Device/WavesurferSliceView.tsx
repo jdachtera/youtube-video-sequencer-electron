@@ -38,6 +38,9 @@ export const WavesurferSliceView = (
       cursorWidth: 1,
       height: props.height ?? 50,
       barGap: 0,
+      fillParent: true,
+      responsive: true,
+      minPxPerSec: 10,
     });
 
     waveformRef.addEventListener('click', handleClickWaveform);
@@ -45,6 +48,7 @@ export const WavesurferSliceView = (
 
   onCleanup(() => {
     if (!waveformRef) return;
+
     waveformRef.removeEventListener('click', handleClickWaveform);
   });
 
@@ -74,23 +78,18 @@ export const WavesurferSliceView = (
 
   return (
     <div
+      ref={waveformRef}
       class={css`
-        width: 300px;
-        overflow: hidden;
+        min-width: 300px;
+        width: 100%;
+        margin: 4px;
+        background-color: #464646;
+        text-shadow: 1px 1px red;
+        wave {
+          overflow: hidden !important;
+          cursor: pointer !important;
+        }
       `}
-    >
-      <div
-        ref={waveformRef}
-        class={css`
-          padding: 4px;
-          background-color: #464646;
-          text-shadow: 1px 1px red;
-          wave {
-            overflow: hidden !important;
-            cursor: pointer !important;
-          }
-        `}
-      />
-    </div>
+    />
   );
 };

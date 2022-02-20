@@ -16,7 +16,7 @@ import { css } from 'renderer/emotion-solid';
 import MoogKnobSvg from '../svg/moog_knob.svg';
 import { useAppTheme } from '../theme';
 import { Label } from './Label';
-import { LCDLabel } from 'renderer/UI';
+import { LCDLabel, NumberInputWithArrowButtons } from 'renderer/UI';
 
 type KnobProps = {
   value?: number;
@@ -136,43 +136,8 @@ export const Knob = (props: KnobProps) => {
   );
 };
 
-export const NumberInput = (
-  allProps: {
-    value?: number;
-    onChange?: (value: number) => void;
-    onInput?: (value: number) => void;
-  } & Omit<JSX.IntrinsicElements['input'], 'value' | 'onInput' | 'onChange'>
-) => {
-  const [props, inputProps] = splitProps(allProps, [
-    'value',
-    'onChange',
-    'onInput',
-  ]);
-  const theme = useAppTheme();
-
-  return (
-    <input
-      {...inputProps}
-      type="number"
-      value={props.value}
-      onInput={(event) => {
-        props.onChange?.(+event.currentTarget.value);
-      }}
-      class={css`
-        display: flex;
-        justify-content: center;
-        background: none;
-        color: ${theme.colors.lcdText};
-        border: none;
-        font-family: '7seg';
-        font-size: '20px';
-      `}
-    />
-  );
-};
-
 export const NumberInputWithLabel = (
-  allProps: ComponentProps<typeof NumberInput> & {
+  allProps: ComponentProps<typeof NumberInputWithArrowButtons> & {
     label?: JSXElement;
   }
 ) => {
@@ -186,7 +151,7 @@ export const NumberInputWithLabel = (
       `}
     >
       <LCDLabel>{props.label}</LCDLabel>
-      <NumberInput {...inputProps} />
+      <NumberInputWithArrowButtons {...inputProps} />
     </div>
   );
 };
@@ -328,6 +293,7 @@ export const MoogKnobWithLabel = (
       >
         <MoogKnob {...knobProps} size={size()} />
       </div>
+      {/*
       <input
         type="number"
         value={props.value}
@@ -349,6 +315,7 @@ export const MoogKnobWithLabel = (
           font-family: ${theme.fonts.lcdFont};
         `}
       />
+      */}
     </div>
   );
 };

@@ -9,7 +9,7 @@ import {
   ToneAudioBuffer,
   Transport,
 } from 'tone';
-import { TypedEmitter } from 'tiny-typed-emitter';
+
 import { debounce } from 'ts-debounce';
 
 import { entries, PropertyUpdateEvents } from '../helpers';
@@ -240,7 +240,7 @@ export class Slice extends EngineBase<SliceEvents> {
 
     this.player.buffer.set(slicedBuffer);
     this.emit('load');
-  }, 1);
+  }, 10);
 
   ensurePatternExists(patterns: Pattern[], index: number) {
     const missingNumberOfPatterns = Math.max(index + 1 - patterns.length, 0);
@@ -302,8 +302,8 @@ export class Slice extends EngineBase<SliceEvents> {
       id: this.id,
       start: this.start,
       end: this.end,
-      volume: this.gainNode.gain.value,
-      playbackRate: this.player.playbackRate,
+      volume: this.volume,
+      playbackRate: this.playbackRate,
       reverse: this.player.reverse,
       color: this.color,
       patterns: this.patterns,
@@ -321,12 +321,16 @@ export class Slice extends EngineBase<SliceEvents> {
 
   dispose() {
     this.sequence.stop();
-    this.player.dispose();
-    this.soloNode.dispose();
-    this.gainNode.dispose();
-    this.sequence.dispose();
+
+    this.player.stop();
+    this.player.disconnect();
     this.gainNode.disconnect();
     this.soloNode.disconnect();
+
+    this.soloNode.dispose();
+    this.player.dispose();
+    this.gainNode.dispose();
+    this.sequence.dispose();
     this.off('startUpdated', this.updateBuffer);
     this.off('endUpdated', this.updateBuffer);
   }

@@ -122,7 +122,7 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
           this.title = entry[1] ?? '';
           break;
         case 'slices':
-          this.slices.forEach((slice) => this.removeSlice(slice.id));
+          this.slices.forEach((slice) => this.removeSlice(slice));
           entry[1]?.forEach((serializedSlice) =>
             this.createSlice(serializedSlice)
           );
@@ -160,15 +160,11 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
     this.emit('sliceSelected', slice);
   }
 
-  removeSlice(id: string) {
-    const maybeExistingSlice = this.slices.get(id);
-
-    if (maybeExistingSlice) {
-      maybeExistingSlice.dispose();
-      maybeExistingSlice.removeAllListeners();
-      this.slices.delete(id);
-      this.emit('sliceRemoved', maybeExistingSlice);
-    }
+  removeSlice(slice: Slice) {
+    slice.dispose();
+    slice.removeAllListeners();
+    this.slices.delete(slice.id);
+    this.emit('sliceRemoved', slice);
   }
 
   setCurrentPatternIndex = (index: number) => {
@@ -181,7 +177,7 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
 
   dispose() {
     super.dispose();
-    this.slices.forEach((slice) => this.removeSlice(slice.id));
+    this.slices.forEach((slice) => this.removeSlice(slice));
     this.engine.on('currentPatternIndexUpdated', this.setCurrentPatternIndex);
     this.buffer.dispose();
   }

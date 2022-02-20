@@ -84,6 +84,7 @@ export const Sequencer = (
           onClick={() => setAutoPage(!autoPage())}
         />
         <NumberInputWithArrowButtons
+          label={'Page'}
           size={2}
           min={1}
           max={Math.ceil(props.steps.length / 16)}
@@ -97,7 +98,7 @@ export const Sequencer = (
           ...ulProps.classList,
           [css`
             border-radius: 4px;
-            padding: 3px;
+            padding: 10px;
             width: ${44 * 16}px;
             background: none;
           `]: true,

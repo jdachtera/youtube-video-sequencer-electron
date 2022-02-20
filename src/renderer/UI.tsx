@@ -6,6 +6,8 @@ import {
   mergeProps,
   ComponentProps,
   createMemo,
+  JSXElement,
+  createSignal,
 } from 'solid-js';
 
 import { css } from 'renderer/emotion-solid';
@@ -13,6 +15,7 @@ import { Label } from './controls/Label';
 import ScrewHead from './svg/screw_head.svg';
 import { BiCompass } from 'solid-icons/bi';
 import { Column, Row } from './Grid';
+import { isNumber } from 'tone';
 
 const akaiButtonStyles = css`
   border: 2px outset white;
@@ -81,18 +84,18 @@ export const RackEar = (
     >
       <RackMountHole
         class={css`
-          margin: 10px;
+          margin: 5px 2px;
         `}
       >
-        <Screw width="25px" />
+        <Screw width="15px" />
       </RackMountHole>
       <RackMountHole
         class={css`
-          margin: 10px;
+          margin: 5px 2px;
           display: ${props.collapsed ? 'none' : 'flex'};
         `}
       >
-        <Screw width="25px" />
+        <Screw width="15px" />
       </RackMountHole>
     </div>
   );
@@ -116,45 +119,76 @@ export const RackEar2 = () => {
 export const NumberInputWithArrowButtons = (
   allProps: {
     value: number;
-    onChange: (value: number) => void;
-    step?: number;
+    onChange?: (value: number) => void;
+    step?: number | ((cursorPosition: number | null) => number);
     min?: number;
     max?: number;
+    format?: (value: number) => string;
+    parse?: (value: string) => number;
   } & Omit<
     ComponentProps<typeof InputWithArrowButtons>,
     'value' | 'onChange' | 'onClickUp' | 'onClickDown' | 'step' | 'min' | 'max'
   >
 ) => {
-  const [props, inputProps] = splitProps(allProps, [
+  const [propsWithoutDefaults, inputProps] = splitProps(allProps, [
     'onChange',
     'value',
     'min',
     'max',
     'step',
+    'parse',
+    'format',
   ]);
 
-  const triggerChange = (value: number) =>
-    props.onChange(
-      Math.min(Math.max(props.min ?? -Infinity, value), props.max ?? Infinity)
-    );
+  const props = mergeProps(
+    {
+      step: 1 as number | ((cursorPosition: number | null) => number),
+      max: Infinity,
+      min: -Infinity,
+      parse: (value: string) => +value,
+      format: (value: number) => `${value}`,
+    },
+    propsWithoutDefaults
+  );
 
-  const handleUp = () => triggerChange(props.value + (props.step ?? 1));
-  const handleDown = () => triggerChange(props.value - (props.step ?? 1));
+  const [cursorPosition, setCursorPosition] = createSignal<number | null>(0);
+
+  const step = () =>
+    isNumber(props.step) ? props.step : props.step(cursorPosition());
+
+  const triggerChange = (value: number) =>
+    props.onChange?.(Math.min(Math.max(props.min, value), props.max));
+
+  const handleUp = () => triggerChange(props.value + step());
+  const handleDown = () => triggerChange(props.value - step());
 
   return (
     <InputWithArrowButtons
       {...inputProps}
-      value={props.value}
+      value={props.format(props.value)}
       onKeyDown={(event) => {
+        setCursorPosition(event.currentTarget.selectionStart);
         switch (event.key) {
           case 'ArrowUp':
-            return handleUp();
+            event.preventDefault();
+            handleUp();
+            event.currentTarget.selectionStart = cursorPosition();
+            event.currentTarget.selectionEnd = cursorPosition();
+            break;
           case 'ArrowDown':
-            return handleDown();
+            event.preventDefault();
+            handleDown();
+            event.currentTarget.selectionStart = cursorPosition();
+            event.currentTarget.selectionEnd = cursorPosition();
+            break;
         }
       }}
       onClickUp={handleUp}
       onClickDown={handleDown}
+      onchange={(event) => {
+        const parsedValue = props.parse(event.currentTarget.value);
+        triggerChange(isNaN(parsedValue) ? props.value : parsedValue);
+      }}
     />
   );
 };
@@ -164,7 +198,7 @@ export const SelectWithArrowButtons = <Option extends unknown>(
   allProps: {
     selectedOption: Option;
     options: Option[];
-    label?: (option: Option) => string;
+    optionLabel?: (option: Option) => string;
     onChange: (value: Option) => void;
   } & Omit<
     ComponentProps<typeof InputWithArrowButtons>,
@@ -175,7 +209,7 @@ export const SelectWithArrowButtons = <Option extends unknown>(
     'onChange',
     'selectedOption',
     'options',
-    'label',
+    'optionLabel',
   ]);
 
   const currentIndex = createMemo(() =>
@@ -195,8 +229,8 @@ export const SelectWithArrowButtons = <Option extends unknown>(
       {...inputProps}
       readonly
       value={
-        props.label
-          ? props.label(props.selectedOption)
+        props.optionLabel
+          ? props.optionLabel(props.selectedOption)
           : `${props.selectedOption as string}`
       }
       onKeyDown={(event) => {
@@ -215,11 +249,13 @@ export const SelectWithArrowButtons = <Option extends unknown>(
 
 export const InputWithArrowButtons = (
   allProps: {
+    label?: JSXElement;
     onClickUp: (event: MouseEvent) => void;
     onClickDown: (event: MouseEvent) => void;
   } & ComponentProps<typeof InputLCD>
 ) => {
   const [props, inputProps] = splitProps(allProps, [
+    'label',
     'onClickUp',
     'onClickDown',
   ]);
@@ -238,42 +274,69 @@ export const InputWithArrowButtons = (
     <Row
       classList={{
         [css`
+          margin: 0 5px;
           align-items: center;
           justify-content: center;
         `]: true,
       }}
     >
-      <div>
-        <InputLCD
-          {...inputProps}
-          classList={{
-            [css``]: true,
-          }}
-        />
-      </div>
       <Column
-        classList={{
-          [css`
-            padding: 2px;
-          `]: true,
-        }}
+        class={css`
+          align-items: center;
+          justify-items: center;
+        `}
       >
-        <ButtonWithLabel
-          label="▲"
-          classList={{
-            [buttonStyles]: true,
-          }}
-          labelOnButton={true}
-          onClick={(event) => props.onClickUp(event)}
-        ></ButtonWithLabel>
-        <ButtonWithLabel
-          label="▼"
-          classList={{
-            [buttonStyles]: true,
-          }}
-          labelOnButton={true}
-          onClick={(event) => props.onClickDown(event)}
-        ></ButtonWithLabel>
+        <Show when={props.label}>
+          <label
+            class={css`
+              font-size: 14px;
+              color: black;
+              font-family: 'Oswald';
+              text-transform: uppercase;
+              margin-top: -20px;
+              display: block;
+              padding-left: 2px;
+            `}
+          >
+            {props.label}
+          </label>
+        </Show>
+        <Row>
+          <div>
+            <InputLCD
+              {...inputProps}
+              classList={{
+                [css`
+                  text-align: right;
+                `]: true,
+              }}
+            />
+          </div>
+          <Column
+            classList={{
+              [css`
+                padding: 2px;
+              `]: true,
+            }}
+          >
+            <ButtonWithLabel
+              label="▲"
+              classList={{
+                [buttonStyles]: true,
+              }}
+              labelOnButton={true}
+              onClick={(event) => props.onClickUp(event)}
+            ></ButtonWithLabel>
+            <ButtonWithLabel
+              label="▼"
+              classList={{
+                [buttonStyles]: true,
+              }}
+              labelOnButton={true}
+              onClick={(event) => props.onClickDown(event)}
+            ></ButtonWithLabel>
+          </Column>
+        </Row>
       </Column>
     </Row>
   );
@@ -641,8 +704,8 @@ export const RackMountHole = (
     <div
       class={[
         css`
-          width: ${props.width ?? '30px'};
-          height: ${props.height ?? '15px'};
+          width: ${props.width ?? '16px'};
+          height: ${props.height ?? '5px'};
           background-color: black;
           border-radius: 14px;
           border: 2px inset white;
@@ -657,6 +720,76 @@ export const RackMountHole = (
       {props.children}
     </div>
   );
+};
+
+export const formatPercentage =
+  (fractionDigits = 2, padStart = 3) =>
+  (value: number) => {
+    const fractionDivisor = Math.pow(10, fractionDigits);
+    const percentValue = value * 100;
+    const fraction = percentValue % 1;
+
+    const digits = Math.round(fraction * fractionDivisor) / fractionDivisor;
+
+    return [
+      `${Math.round(percentValue)}`.padStart(padStart, '0'),
+      ...(fractionDigits > 0
+        ? [`${digits}`.padStart(fractionDigits, '0')]
+        : []),
+    ].join('.');
+  };
+
+export const formattedTimeStep = (cursorPosition: number | null) => {
+  if (cursorPosition === null) return 1;
+
+  return (
+    [
+      3600 * 100,
+      3600 * 100,
+      3600 * 10,
+      3600,
+      60 * 10,
+      60 * 10,
+      60,
+      10,
+      10,
+      1,
+      1 / 10,
+      1 / 10,
+      1 / 100,
+      1 / 1000,
+      1 / 10000,
+    ][cursorPosition] ?? 1
+  );
+};
+
+export const parseFormattedTime = (formattedTime: string) => {
+  const segments = formattedTime.split(':');
+  if (segments.length === 4) {
+    return (
+      +segments[0] * 3600 +
+      +segments[1] * 60 +
+      +segments[2] +
+      +segments[3].padEnd(4) / 10000
+    );
+  }
+  return NaN;
+};
+
+export const formatTime = (time: number) => {
+  const hours = Math.floor(time / 3600);
+  const minutes = Math.floor((time - hours * 3600) / 60);
+  const seconds = Math.floor(time - hours * 3600 - minutes * 60);
+  const fraction = Math.floor(
+    (time - hours * 3600 - minutes * 60 - seconds) * 10000
+  );
+
+  return [
+    `${hours}`.padStart(3, '0'),
+    `${minutes}`.padStart(2, '0'),
+    `${seconds}`.padStart(2, '0'),
+    `${fraction}`.padStart(4, '0'),
+  ].join(':');
 };
 
 export const Engraving = (props: PropsWithChildren<{ class?: string }>) => {

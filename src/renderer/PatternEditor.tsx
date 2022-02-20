@@ -70,6 +70,7 @@ export const SlicePattern = (
   return (
     <Row {...divProps}>
       <NumberInputWithArrowButtons
+        label={'Steps'}
         size={4}
         step={1}
         min={1}
@@ -80,6 +81,7 @@ export const SlicePattern = (
         }}
       />
       <SelectWithArrowButtons
+        label={'Div'}
         size={2}
         options={subdivisions}
         selectedOption={currentPattern()?.subdivision ?? 16}
@@ -91,6 +93,7 @@ export const SlicePattern = (
       />
       <SelectWithArrowButtons
         size={2}
+        label={'Type'}
         options={[...subdivisionTypes]}
         selectedOption={currentPattern()?.subdivisionType ?? 'n' ?? 16}
         onChange={(subdivisionType) => {

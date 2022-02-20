@@ -98,7 +98,8 @@ export const WavesurferView = (props: WavesurferViewProps) => {
   };
 
   const handleRegionRemoved = (region: Region) => {
-    props.sampler.removeSlice(region.id);
+    const slice = props.sampler.slices.get(region.id);
+    if (slice) props.sampler.removeSlice(slice);
   };
 
   onMount(() => {
