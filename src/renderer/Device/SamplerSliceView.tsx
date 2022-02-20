@@ -271,7 +271,7 @@ export const SamplerSliceView = (props: {
                             label="Start"
                             size={12}
                             min={0}
-                            max={props.slice.sampler.buffer.duration}
+                            max={sliceState.end - 0.00001}
                             step={formattedTimeStep}
                             parse={parseFormattedTime}
                             format={formatTime}
@@ -292,7 +292,7 @@ export const SamplerSliceView = (props: {
                               </span>
                             }
                             size={12}
-                            min={0}
+                            min={sliceState.start + 0.00001}
                             max={props.slice.sampler.buffer.duration}
                             step={formattedTimeStep}
                             parse={parseFormattedTime}
