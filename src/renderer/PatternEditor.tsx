@@ -102,7 +102,7 @@ export const SlicePattern = (
           });
         }}
       />
-      <ScreenPrintBackground background={sliceState.color}>
+      <ScreenPrintBackground background={'rgba(255,255,255,0.2)'}>
         <Sequencer
           steps={currentPattern().steps}
           onChange={(steps) => {
