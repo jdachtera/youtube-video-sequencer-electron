@@ -28,7 +28,7 @@ type SamplerDeviceEvents = {
 export class SamplerDevice extends Device<SamplerDeviceEvents> {
   name = 'Sampler';
   buffer = new ToneAudioBuffer();
-  slices = new Map<string, Slice>();
+  slices: Slice[] = [];
   url = '';
   zoom = 1;
   title = '';
@@ -136,23 +136,23 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
     super.set(samplerPartial);
   }
 
-  createSlice(serializedSlice: SerializedSlice) {
+  createSlice(serializedSlice: SerializedSlice, atIndex = this.slices.length) {
     const slice = new Slice(this, serializedSlice);
 
     slice.soloNode.connect(this.output);
     slice.on('change', this.emitChange);
 
-    this.slices.set(serializedSlice.id, slice);
+    this.slices = [
+      ...this.slices.slice(0, atIndex),
+      slice,
+      ...this.slices.slice(atIndex),
+    ];
     this.emit('sliceAdded', slice);
     return serializedSlice;
   }
 
-  getSlices() {
-    return [...this.slices.values()];
-  }
-
-  getSlice(id: string) {
-    return this.slices.get(id);
+  findSlice(id: string) {
+    return this.slices.find((slice) => slice.id === id);
   }
 
   selectSlice(slice: Slice) {
@@ -163,7 +163,12 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
   removeSlice(slice: Slice) {
     slice.dispose();
     slice.removeAllListeners();
-    this.slices.delete(slice.id);
+    const index = this.slices.indexOf(slice);
+
+    this.slices = [
+      ...this.slices.slice(0, index),
+      ...this.slices.slice(index + 1),
+    ];
     this.emit('sliceRemoved', slice);
   }
 

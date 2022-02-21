@@ -20,7 +20,7 @@ export const PatternEditor = (
 ) => {
   const [props, divProps] = splitProps(allProps, ['sampler']);
   const slices = props.sampler.createSignal(
-    (sampler) => sampler.getSlices(),
+    (sampler) => sampler.slices,
     ['sliceAdded', 'sliceRemoved']
   );
 

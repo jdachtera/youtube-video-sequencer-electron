@@ -13,8 +13,8 @@ export const PingPongDelayView = (props: {
     <Row>
       <MoogKnobWithLabel
         onChange={(delayTime) => props.pingPongDelay.set({ delayTime })}
-        min={1}
-        max={5000}
+        min={0.001}
+        max={5}
         value={+pingPongDelayState.delayTime}
         label={'Delay Time'}
       />
@@ -22,9 +22,15 @@ export const PingPongDelayView = (props: {
         onChange={(feedback) => props.pingPongDelay.set({ feedback })}
         min={0}
         max={1}
-        step={0.05}
         value={pingPongDelayState.feedback}
         label={'Feedback'}
+      />
+      <MoogKnobWithLabel
+        onChange={(wet) => props.pingPongDelay.set({ wet })}
+        min={0}
+        max={1}
+        value={pingPongDelayState.wet}
+        label={'Dry/Wet'}
       />
     </Row>
   );

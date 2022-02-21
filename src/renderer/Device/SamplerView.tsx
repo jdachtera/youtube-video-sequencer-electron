@@ -60,7 +60,7 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
   });
 
   const handleClickRegion = (region: Region) => {
-    const slice = props.sampler.slices.get(region.id);
+    const slice = props.sampler.findSlice(region.id);
 
     if (!slice) return;
 

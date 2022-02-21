@@ -61,7 +61,7 @@ export const WavesurferView = (props: WavesurferViewProps) => {
   };
 
   const handleRegionCreated = async (region: Region) => {
-    const existingSlice = props.sampler.getSlice(region.id);
+    const existingSlice = props.sampler.findSlice(region.id);
     if (existingSlice) {
       region.update({ id: region.id, color: existingSlice.color });
     } else {
@@ -74,7 +74,7 @@ export const WavesurferView = (props: WavesurferViewProps) => {
   };
 
   const handleRegionUpdated = (region: Region) => {
-    const slice = props.sampler.getSlice(region.id);
+    const slice = props.sampler.findSlice(region.id);
 
     if (!slice) {
       const { id, start, end, color } = region;
@@ -98,7 +98,7 @@ export const WavesurferView = (props: WavesurferViewProps) => {
   };
 
   const handleRegionRemoved = (region: Region) => {
-    const slice = props.sampler.slices.get(region.id);
+    const slice = props.sampler.findSlice(region.id);
     if (slice) props.sampler.removeSlice(slice);
   };
 

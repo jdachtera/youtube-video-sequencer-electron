@@ -94,7 +94,11 @@ export const DeviceChainView = (
             `]: !viewMode.device,
           }}
         >
-          <SameHeightContainer>
+          <SameHeightContainer
+            class={css`
+              display: flex;
+            `}
+          >
             <For each={devices()}>
               {(device) => (
                 <DeviceView

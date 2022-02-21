@@ -9,7 +9,7 @@ export const SamplerSlicesView = (props: {
   onClickSlice?: (slice: Slice) => void;
 }) => {
   const slices = props.sampler.createSignal(
-    (sampler) => sampler.getSlices(),
+    (sampler) => sampler.slices,
     ['sliceAdded', 'sliceRemoved', 'sliceUpdated']
   );
 

@@ -104,6 +104,7 @@ export class Slice extends EngineBase<SliceEvents> {
 
   constructor(public sampler: SamplerDevice, serializedSlice: SerializedSlice) {
     super();
+    console.log('Create Slice');
 
     this.setMaxListeners(1000);
 
@@ -306,7 +307,14 @@ export class Slice extends EngineBase<SliceEvents> {
       playbackRate: this.playbackRate,
       reverse: this.player.reverse,
       color: this.color,
-      patterns: this.patterns,
+      patterns: this.patterns.map((pattern) => {
+        return {
+          ...pattern,
+          steps: pattern.steps.map((step) => ({
+            ...step,
+          })),
+        };
+      }),
       name: this.name,
       solo: this.soloNode.solo,
       mute: this.player.mute,
@@ -338,7 +346,7 @@ export class Slice extends EngineBase<SliceEvents> {
   updatePlayPosition(startTime: number = this.player.immediate()) {
     if (this.player.state === 'started') {
       this.currentPosition = this.player.immediate() - startTime;
-      window.requestAnimationFrame(() => this.updatePlayPosition(startTime));
+      window.setTimeout(() => this.updatePlayPosition(startTime), 100);
     } else {
       this.currentPosition = 0;
     }

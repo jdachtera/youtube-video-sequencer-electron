@@ -198,13 +198,11 @@ export class Engine extends EngineBase<EngineEvents> {
                 device instanceof SamplerDevice
             )
             .flatMap((sampler) =>
-              sampler
-                .getSlices()
-                .map(
-                  (slice) =>
-                    slice.serialize().patterns[this.currentPatternIndex].steps
-                      .length
-                )
+              sampler.slices.map(
+                (slice) =>
+                  slice.serialize().patterns[this.currentPatternIndex].steps
+                    .length
+              )
             )
         )
         .sort()

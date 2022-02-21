@@ -9,6 +9,7 @@ import { DeepPartial } from '../types';
 export type SerializedPingPongDelayDevice = SerializedDeviceBase & {
   name: 'PingPongDelay';
   delayTime: Time;
+  wet: NormalRange;
   feedback: NormalRange;
 };
 
@@ -26,8 +27,9 @@ export class PingPongDelayDevice extends Device<PingPongDelayEvents> {
     collapsed: false,
     inputGain: pingPongDelay.inputGain ?? 1,
     volume: pingPongDelay.volume ?? 1,
-    delayTime: pingPongDelay.delayTime ?? 10,
+    delayTime: pingPongDelay.delayTime ?? 1,
     feedback: pingPongDelay.feedback ?? 0.2,
+    wet: pingPongDelay.wet ?? 0.2,
     color: 'violet',
   });
 
@@ -58,6 +60,11 @@ export class PingPongDelayDevice extends Device<PingPongDelayEvents> {
             feedback: entry[1] ?? 100,
           });
           break;
+        case 'wet':
+          this.pingPongDelayNode.set({
+            wet: entry[1] ?? 100,
+          });
+          break;
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.emit(`${entry[0]}Updated` as any, entry[1]);
@@ -80,6 +87,7 @@ export class PingPongDelayDevice extends Device<PingPongDelayEvents> {
       inputGain: this.input.gain.value,
       delayTime: this.pingPongDelayNode.delayTime.value,
       feedback: this.pingPongDelayNode.feedback.value,
+      wet: this.pingPongDelayNode.wet.value,
     };
   }
 }
