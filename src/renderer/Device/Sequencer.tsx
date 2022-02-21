@@ -8,6 +8,8 @@ import {
   splitProps,
   Show,
   createEffect,
+  For,
+  createMemo,
 } from 'solid-js';
 
 import { Slice, Step } from '../engine/device/Slice';
@@ -117,23 +119,38 @@ export const Sequencer = (
                     (index < page() * 16 && index >= page() * 16 - 16)
                   )
                 }
-                classList={{
-                  [css`
-                    > div {
-                      background: ${colors808Knobs[
-                        Math.floor((index % 16) / 4)
-                      ]};
-                    }
-                  `]: true,
-                }}
-                step={step()}
-                onClick={handleToggleStep}
+                color={colors808Knobs[Math.floor((index % 16) / 4)]}
+                onClick={() => handleToggleStep(step())}
                 isSelected={step() === selectedStep()}
                 isCurrent={step() === currentStep()}
+                isActive={step().play}
               />
             );
           }}
         </Index>
+        <Show
+          when={
+            props.steps.length % 16 !== 0 &&
+            (!collapsed() || page() === Math.ceil(props.steps.length / 16))
+          }
+        >
+          <Index each={Array.from({ length: 16 - (props.steps.length % 16) })}>
+            {(step, index) => {
+              return (
+                <SequencerStep
+                  class={css`
+                    opacity: 0.4;
+                  `}
+                  color={
+                    colors808Knobs[
+                      Math.floor((((props.steps.length % 16) + index) % 16) / 4)
+                    ]
+                  }
+                />
+              );
+            }}
+          </Index>
+        </Show>
       </ul>
     </Row>
   );

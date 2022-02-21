@@ -1,16 +1,14 @@
-import { JSX, splitProps } from 'solid-js';
-import { Step } from 'renderer/engine/device/Slice';
+import { JSX, mergeProps, splitProps } from 'solid-js';
 import { css } from 'renderer/emotion-solid';
 
 import { useAppTheme } from '../theme';
 
 type SequencerStepProps = {
-  step: Step;
-  isSelected: boolean;
-  isCurrent: boolean;
-  onClick?: (step: Step) => void;
-  onDblClick?: (step: Step) => void;
-} & Omit<JSX.IntrinsicElements['li'], 'onClick' | 'onDblClick'>;
+  color?: string;
+  isSelected?: boolean;
+  isCurrent?: boolean;
+  isActive?: boolean;
+} & JSX.IntrinsicElements['li'];
 
 const sequencerStepStyles = () => {
   const theme = useAppTheme();
@@ -87,13 +85,18 @@ const sequencerStepStyles = () => {
 };
 
 export const SequencerStep = (allProps: SequencerStepProps) => {
-  const [props, liProps] = splitProps(allProps, [
-    'step',
+  const [ownProps, liProps] = splitProps(allProps, [
     'isSelected',
     'isCurrent',
-    'onClick',
-    'onDblClick',
+    'isActive',
+    'color',
   ]);
+
+  const props = mergeProps(
+    { isSelected: false, isCurrent: false, isActive: false },
+    ownProps
+  );
+
   return (
     <li
       {...liProps}
@@ -103,6 +106,7 @@ export const SequencerStep = (allProps: SequencerStepProps) => {
           user-select: none;
           display: inline-flex;
           padding: 3px;
+          cursor: pointer;
         `]: true,
         ...liProps.classList,
       }}
@@ -115,17 +119,16 @@ export const SequencerStep = (allProps: SequencerStepProps) => {
           background: #555;
           box-shadow: inset 0 0 2px 2px #222;
           display: inline-flex;
+          background: ${props.color};
         `}
       >
         <div
           classList={{
             [sequencerStepStyles()]: true,
-            sequencerStepIsActive: props.step.play,
+            sequencerStepIsActive: props.isActive,
             sequencerStepIsCurrent: props.isCurrent,
             sequencerStepIsSelected: props.isSelected,
           }}
-          onClick={() => props?.onClick?.(props.step)}
-          onDblClick={() => props?.onDblClick?.(props.step)}
         >
           &nbsp;
         </div>
