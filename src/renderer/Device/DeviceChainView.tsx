@@ -1,12 +1,10 @@
 import {
-  children,
-  createEffect,
   createSignal,
   For,
   JSX,
-  onCleanup,
-  onMount,
+  mergeProps,
   Show as div,
+  Show,
   splitProps,
 } from 'solid-js';
 
@@ -17,7 +15,12 @@ import { DeviceChain } from '../engine/device/DeviceChain';
 
 import { SerializedDevice } from '../engine/types';
 
-import { ButtonWithLabel, DeviceWrapper, SelectWithArrowButtons } from '../UI';
+import {
+  ButtonWithLabel,
+  DeviceWrapper,
+  DummyDevice,
+  SelectWithArrowButtons,
+} from '../UI';
 import { normalizeDeviceData } from 'renderer/engine/device/normalizeDeviceData';
 import { css } from 'renderer/emotion-solid';
 import { SamplerDevice } from 'renderer/engine/device/Sampler';
@@ -36,9 +39,16 @@ const deviceNames: SerializedDevice['name'][] = [
 ];
 
 export const DeviceChainView = (
-  allProps: { deviceChain: DeviceChain } & JSX.IntrinsicElements['div']
+  propsWithoutDefaults: {
+    deviceChain: DeviceChain;
+    renderDummy?: boolean;
+  } & JSX.IntrinsicElements['div']
 ) => {
-  const [props, divProps] = splitProps(allProps, ['deviceChain']);
+  const allProps = mergeProps({ renderDummy: true }, propsWithoutDefaults);
+  const [props, divProps] = splitProps(allProps, [
+    'deviceChain',
+    'renderDummy',
+  ]);
   const [selectedDeviceName, setSelectedDeviceName] =
     createSignal<SerializedDevice['name']>('Filter');
 
@@ -63,7 +73,6 @@ export const DeviceChainView = (
       classList={{
         [css`
           display: flex;
-          flex: 1;
         `]: true,
         [css`
           display: none;
@@ -120,14 +129,7 @@ export const DeviceChainView = (
               }}
             />
           </DeviceWrapper>
-          <DeviceWrapper
-            classList={{
-              device: true,
-              [css`
-                flex: 1;
-              `]: true,
-            }}
-          ></DeviceWrapper>
+          <DummyDevice />
         </Row>
 
         <Row>
@@ -139,14 +141,9 @@ export const DeviceChainView = (
             }
           </For>
         </Row>
-        <DeviceWrapper
-          classList={{
-            device: true,
-            [css`
-              flex: 1;
-            `]: true,
-          }}
-        ></DeviceWrapper>
+        <Show when={props.renderDummy}>
+          <DummyDevice />
+        </Show>
       </Column>
     </div>
   );

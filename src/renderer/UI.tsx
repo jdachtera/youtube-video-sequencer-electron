@@ -10,7 +10,7 @@ import {
   createSignal,
 } from 'solid-js';
 
-import { css } from 'renderer/emotion-solid';
+import { css, styled } from 'renderer/emotion-solid';
 import { Label } from './controls/Label';
 import ScrewHead from './svg/screw_head.svg';
 import { BiCompass } from 'solid-icons/bi';
@@ -660,6 +660,10 @@ export const DeviceWrapper = (
     </div>
   );
 };
+
+export const DummyDevice = styled(DeviceWrapper)`
+  flex: 1;
+`;
 
 const lcdStyles = css`
   display: flex;

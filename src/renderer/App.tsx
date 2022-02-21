@@ -10,7 +10,7 @@ import { apolloClient } from './apolloClient';
 
 import { Toolbar } from './Toolbar';
 import { GlobalStyles } from './GlobalStyles';
-import { DeviceView } from './Device/DeviceView';
+import { DeviceChainView } from './Device/DeviceChainView';
 
 const engine = new Engine(Transport);
 
@@ -59,17 +59,14 @@ export function App() {
                 <div
                   classList={{
                     [css`
-                      flex: 1;
                       flex-direction: column;
                       display: flex;
                     `]: true,
                   }}
                 >
-                  <DeviceView
-                    device={track.chain}
-                    onRequestRemoveDevice={() => {
-                      engine.removeTrack(track);
-                    }}
+                  <DeviceChainView
+                    deviceChain={track.chain}
+                    renderDummy={false}
                   />
                 </div>
               )}

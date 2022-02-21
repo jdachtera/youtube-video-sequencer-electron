@@ -338,7 +338,7 @@ export class Slice extends EngineBase<SliceEvents> {
   updatePlayPosition(startTime: number = this.player.immediate()) {
     if (this.player.state === 'started') {
       this.currentPosition = this.player.immediate() - startTime;
-      window.setTimeout(() => this.updatePlayPosition(startTime), 20);
+      window.requestAnimationFrame(() => this.updatePlayPosition(startTime));
     } else {
       this.currentPosition = 0;
     }
