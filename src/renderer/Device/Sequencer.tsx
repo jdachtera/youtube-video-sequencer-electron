@@ -103,9 +103,6 @@ export const Sequencer = (
             padding: 10px;
             width: ${44 * 16}px;
             background: none;
-            li[hidden] {
-              display: none;
-            }
           `]: true,
         }}
       >

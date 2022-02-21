@@ -1,4 +1,4 @@
-import { createEffect, JSX, onCleanup, onMount } from 'solid-js';
+import { createEffect, JSX, onCleanup } from 'solid-js';
 
 export const SameHeightContainer = (props: JSX.IntrinsicElements['div']) => {
   let parent: HTMLDivElement | undefined;
@@ -8,6 +8,10 @@ export const SameHeightContainer = (props: JSX.IntrinsicElements['div']) => {
     parent?.childNodes.forEach((node) => {
       if (!(node instanceof HTMLElement)) return;
       node.style.minHeight = '';
+    });
+
+    parent?.childNodes.forEach((node) => {
+      if (!(node instanceof HTMLElement)) return;
       maxHeight = node.clientHeight > maxHeight ? node.clientHeight : maxHeight;
     });
 
@@ -17,7 +21,7 @@ export const SameHeightContainer = (props: JSX.IntrinsicElements['div']) => {
     });
   };
 
-  const resizeObserver = new ResizeObserver(handleResize);
+  const resizeObserver = new ResizeObserver(() => handleResize());
 
   createEffect((children) => {
     if (props.children !== children) {

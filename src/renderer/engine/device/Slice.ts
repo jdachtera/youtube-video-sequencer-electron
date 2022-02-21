@@ -118,15 +118,15 @@ export class Slice extends EngineBase<SliceEvents> {
   emitChange = () => this.emit('change', this);
 
   protected onSequenceEvent = (time: number, step: Step) => {
-    getDraw().schedule(() => {
-      this.emit('sequenceEvent', step);
-      this.player.playbackRate = this.playbackRate * step.playbackRate;
-      this.gainNode.gain.value = this.volume * step.volume;
-    }, time);
-
     if (step.play) {
       this.play(time);
     }
+    this.player.playbackRate = this.playbackRate * step.playbackRate;
+    this.gainNode.gain.setValueAtTime(this.volume * step.volume, time);
+
+    getDraw().schedule(() => {
+      this.emit('sequenceEvent', step);
+    }, time);
   };
 
   protected getCurrentPattern(patterns: Pattern[]) {
@@ -294,7 +294,10 @@ export class Slice extends EngineBase<SliceEvents> {
   };
 
   duplicate() {
-    this.sampler.createSlice({ ...this.serialize(), id: `${this.id}_clone` });
+    this.sampler.createSlice(
+      { ...this.serialize(), id: `${this.id}_clone` },
+      this.sampler.slices.indexOf(this) + 1
+    );
   }
 
   serialize() {
@@ -354,8 +357,12 @@ export class Slice extends EngineBase<SliceEvents> {
 
   play(time?: number) {
     if (!this.player.buffer.loaded) return;
-    this.player.stop(time);
-    this.player.start(time);
+
+    try {
+      this.player.start(time);
+    } catch (e) {
+      console.log({ e, time, p: this.player });
+    }
     this.updatePlayPosition();
     this.emit('playerStarted');
   }

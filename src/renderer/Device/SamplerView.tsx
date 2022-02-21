@@ -14,11 +14,6 @@ import { LCD, LCDFrame, LCDLine, AkaiButton } from '../UI';
 import { Slice } from '../engine/device/Slice';
 
 export const SamplerView = (props: { sampler: SamplerDevice }) => {
-  const collapsed = props.sampler.createSignal(
-    (sampler) => sampler.collapsed,
-    'collapsedUpdated'
-  );
-
   const [waveformCenter, setWaveformCenter] = createSignal(0);
   const [length, setLength] = createSignal(0);
 

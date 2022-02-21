@@ -76,6 +76,10 @@ const Styles = css`
     height: 100%;
     display: flex;
   }
+
+  *[hidden] {
+    display: none !important;
+  }
 `;
 
 export const GlobalStyles = () => {

@@ -47,7 +47,7 @@ export const createSignalFromEventEmitter = <T, E extends TypedEmitter<any>>(
   const events = Array.isArray(eventOrEvents) ? eventOrEvents : [eventOrEvents];
 
   const cleanup = (emitter?: E) =>
-    events.forEach((event) => emitter?.on(event, updateValue));
+    events.forEach((event) => emitter?.off(event, updateValue));
 
   createEffect<E>((previousEmitter) => {
     cleanup(previousEmitter);
@@ -75,7 +75,7 @@ export const createStoreFromEventEmitter = <T, E extends TypedEmitter<any>>(
   const events = Array.isArray(eventOrEvents) ? eventOrEvents : [eventOrEvents];
 
   const cleanup = (emitter?: E) =>
-    events.forEach((event) => emitter?.on(event, updateValue));
+    events.forEach((event) => emitter?.off(event, updateValue));
 
   createEffect<E>((previousEmitter) => {
     cleanup(previousEmitter);

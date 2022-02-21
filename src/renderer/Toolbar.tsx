@@ -18,6 +18,7 @@ import {
 import { Row } from './Grid';
 import { exportBuffer } from './engine/helpers';
 import { SamplerDevice } from './engine/device/Sampler';
+import { DeviceChain } from './engine/device/DeviceChain';
 
 const camelCaseToSpaced = (str: string) => {
   let newString = '';
@@ -248,6 +249,11 @@ export const Toolbar = (props: { engine: Engine }) => {
                   if (device instanceof SamplerDevice) {
                     device.slices.forEach((slice) => {
                       slice.set({ collapsed });
+                    });
+                  }
+                  if (device instanceof DeviceChain) {
+                    device.devices.forEach((device) => {
+                      device.set({ collapsed });
                     });
                   }
                 });

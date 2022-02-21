@@ -35,6 +35,7 @@ export const WavesurferView = (props: WavesurferViewProps) => {
   }, 100);
 
   const handleSliceAdded = (slice: Slice) => {
+    console.log('handleSliceAdded');
     const region = wavesurfer.regions.list[slice.id];
 
     if (!region) {
@@ -52,6 +53,7 @@ export const WavesurferView = (props: WavesurferViewProps) => {
   };
 
   const handleSliceUpdated = (slice: Slice) => {
+    console.log('handleSliceUpdated');
     const region = wavesurfer.regions.list[slice.id];
 
     if (region) {
@@ -61,7 +63,9 @@ export const WavesurferView = (props: WavesurferViewProps) => {
   };
 
   const handleRegionCreated = async (region: Region) => {
+    console.log('handleRegionCreated');
     const existingSlice = props.sampler.findSlice(region.id);
+
     if (existingSlice) {
       region.update({ id: region.id, color: existingSlice.color });
     } else {
@@ -74,6 +78,7 @@ export const WavesurferView = (props: WavesurferViewProps) => {
   };
 
   const handleRegionUpdated = (region: Region) => {
+    console.log('handleRegionUpdated');
     const slice = props.sampler.findSlice(region.id);
 
     if (!slice) {
@@ -142,6 +147,10 @@ export const WavesurferView = (props: WavesurferViewProps) => {
     wavesurfer.on('region-removed', handleRegionRemoved);
     wavesurfer.on('region-click', props.onRegionClick);
     wavesurfer.on('region-update-end', props.onRegionClick);
+
+    props.sampler.slices.forEach((slice) => {
+      handleSliceAdded(slice);
+    });
   });
 
   onCleanup(() => {

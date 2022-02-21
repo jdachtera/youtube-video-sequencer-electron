@@ -12,16 +12,15 @@ export const ReverbView = (props: { reverb: ReverbDevice }) => {
     <Row>
       <MoogKnobWithLabel
         onChange={(decay) => props.reverb.set({ decay })}
-        min={1}
-        max={5000}
+        min={0}
+        max={5}
         value={+reverbState.decay}
         label={'Decay'}
       />
       <MoogKnobWithLabel
         onChange={(preDelay) => props.reverb.set({ preDelay })}
         min={0}
-        max={800}
-        step={0.1}
+        max={1}
         value={reverbState.preDelay}
         label={'Pre Delay'}
       />
