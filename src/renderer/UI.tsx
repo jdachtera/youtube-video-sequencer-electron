@@ -17,6 +17,8 @@ import { BiCompass } from 'solid-icons/bi';
 import { Column, Row } from './Grid';
 import { isNumber } from 'tone';
 
+import megarack from './svg/megarack.png';
+
 const akaiButtonStyles = css`
   border: 2px outset white;
   border-radius: 3px;
@@ -87,7 +89,7 @@ export const RackEar = (
           margin: 5px 2px;
         `}
       >
-        <Screw width="15px" />
+        <Screw width="13px" />
       </RackMountHole>
       <RackMountHole
         class={css`
@@ -95,7 +97,7 @@ export const RackEar = (
           display: ${props.collapsed ? 'none' : 'flex'};
         `}
       >
-        <Screw width="15px" />
+        <Screw width="13px" />
       </RackMountHole>
     </div>
   );
@@ -570,9 +572,8 @@ export const LCDFrame = (allProps: JSX.IntrinsicElements['div']) => {
       classList={{
         [css`
           position: relative;
-          padding: 60px;
+          padding: 20px;
           border-radius: 8px;
-          padding-right: 160px;
           background-color: black;
         `]: true,
 
@@ -590,7 +591,6 @@ export const LCDFrame = (allProps: JSX.IntrinsicElements['div']) => {
           bottom: 0;
           right: 0;
           border-radius: 8px;
-          padding-right: 160px;
           background: radial-gradient(
             ellipse at -66% 90%,
             rgba(0, 0, 0, 0) 71%,
@@ -629,9 +629,13 @@ export const DeviceWrapper = (
         ...divProps.classList,
         [css`
           display: flex;
+
+          border: 1px #222 solid;
           background: ${props.background ?? '#969696'};
-          box-shadow: 0 0 2px 2px inset #222;
-          padding: 10px;
+          box-shadow: 0px 0px 2px inset #222;
+          border-radius: 4px;
+          background-image: url(${megarack});
+          background-size: 200px;
         `]: true,
       }}
     >
@@ -647,6 +651,7 @@ export const DeviceWrapper = (
       <div
         class={css`
           width: 100%;
+          margin: 10px 5px;
         `}
       >
         {props.children}
@@ -704,8 +709,8 @@ export const RackMountHole = (
     <div
       class={[
         css`
-          width: ${props.width ?? '16px'};
-          height: ${props.height ?? '5px'};
+          width: ${props.width ?? '14px'};
+          height: ${props.height ?? '4px'};
           background-color: black;
           border-radius: 14px;
           border: 2px inset white;

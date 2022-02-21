@@ -1,4 +1,14 @@
-import { createSignal, For, JSX, Show as div, splitProps } from 'solid-js';
+import {
+  children,
+  createEffect,
+  createSignal,
+  For,
+  JSX,
+  onCleanup,
+  onMount,
+  Show as div,
+  splitProps,
+} from 'solid-js';
 
 import { DeviceView } from './DeviceView';
 import { createDevice } from '../engine/device/createDevice';
@@ -13,6 +23,7 @@ import { css } from 'renderer/emotion-solid';
 import { SamplerDevice } from 'renderer/engine/device/Sampler';
 import { SamplerSlicesView } from './SamplerSlicesView';
 import { Column, Row } from 'renderer/Grid';
+import { SameHeightContainer } from 'renderer/SameHeightContainer';
 
 const deviceNames: SerializedDevice['name'][] = [
   // 'DeviceChain',
@@ -52,6 +63,7 @@ export const DeviceChainView = (
       classList={{
         [css`
           display: flex;
+          flex: 1;
         `]: true,
         [css`
           display: none;
@@ -59,7 +71,13 @@ export const DeviceChainView = (
         ...divProps.classList,
       }}
     >
-      <Column>
+      <Column
+        classList={{
+          [css`
+            flex: 1;
+          `]: true,
+        }}
+      >
         <Row
           classList={{
             [css`
@@ -67,16 +85,18 @@ export const DeviceChainView = (
             `]: !viewMode.device,
           }}
         >
-          <For each={devices()}>
-            {(device) => (
-              <DeviceView
-                device={device}
-                onRequestRemoveDevice={() =>
-                  props.deviceChain.removeDevice(device)
-                }
-              />
-            )}
-          </For>
+          <SameHeightContainer>
+            <For each={devices()}>
+              {(device) => (
+                <DeviceView
+                  device={device}
+                  onRequestRemoveDevice={() =>
+                    props.deviceChain.removeDevice(device)
+                  }
+                />
+              )}
+            </For>
+          </SameHeightContainer>
 
           <DeviceWrapper background="#969696" classList={{ device: true }}>
             <SelectWithArrowButtons
@@ -100,6 +120,14 @@ export const DeviceChainView = (
               }}
             />
           </DeviceWrapper>
+          <DeviceWrapper
+            classList={{
+              device: true,
+              [css`
+                flex: 1;
+              `]: true,
+            }}
+          ></DeviceWrapper>
         </Row>
 
         <Row>
@@ -111,6 +139,14 @@ export const DeviceChainView = (
             }
           </For>
         </Row>
+        <DeviceWrapper
+          classList={{
+            device: true,
+            [css`
+              flex: 1;
+            `]: true,
+          }}
+        ></DeviceWrapper>
       </Column>
     </div>
   );

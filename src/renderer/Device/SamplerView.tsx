@@ -71,63 +71,49 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
   };
 
   return (
-    <>
-      <div
-        class={css`
-          background-color: #b9b9b9;
-          padding: 5px;
+    <div
+      classList={{
+        [css`
+          border: 2px oustet white;
+          border-radius: 8px;
+          background: radial-gradient(#bdbdbd 0%, #f3f3f3c4 100%);
           display: flex;
-        `}
-      >
-        <div
-          classList={{
-            [css`
-              padding: 20px;
-              padding-right: 50px;
-              border: 2px oustet white;
-              border-radius: 3px;
-              background: radial-gradient(#bdbdbd 0%, #f3f3f3c4 100%);
+          margin: 0px 10px;
+        `]: true,
+      }}
+    >
+      <LCDFrame>
+        <LCD>
+          <LCDLine
+            class={css`
               display: flex;
-            `]: true,
-
-            [css`
-              display: none;
-            `]: !collapsed(),
-          }}
+              justify-content: space-between;
+            `}
+          >
+            <div>{props.sampler.url}</div>
+            <div>{length()}s</div>
+          </LCDLine>
+          <WavesurferView
+            sampler={props.sampler}
+            center={waveformCenter()}
+            onRegionClick={handleClickRegion}
+          />
+        </LCD>
+        <div
+          class={css`
+            display: flex;
+            justify-content: space-evenly;
+            margin-top: 20px;
+            padding: 0 5px;
+          `}
         >
-          <LCDFrame>
-            <LCD>
-              <LCDLine
-                class={css`
-                  display: flex;
-                  justify-content: space-between;
-                `}
-              >
-                <div>{props.sampler.url}</div>
-                <div>{length()}s</div>
-              </LCDLine>
-              <WavesurferView
-                sampler={props.sampler}
-                center={waveformCenter()}
-                onRegionClick={handleClickRegion}
-              />
-            </LCD>
-            <div
-              class={css`
-                display: flex;
-                justify-content: space-evenly;
-                padding: 5px;
-              `}
-            >
-              <AkaiButton onClick={() => setZoom(100)} />
-              <AkaiButton onClick={() => setZoom(200)} />
-              <AkaiButton onClick={() => setZoom(300)} />
-              <AkaiButton onClick={() => setZoom(400)} />
-              <AkaiButton onClick={() => setZoom(500)} />
-            </div>
-          </LCDFrame>
+          <AkaiButton onClick={() => setZoom(100)} />
+          <AkaiButton onClick={() => setZoom(200)} />
+          <AkaiButton onClick={() => setZoom(300)} />
+          <AkaiButton onClick={() => setZoom(400)} />
+          <AkaiButton onClick={() => setZoom(500)} />
         </div>
-      </div>
-    </>
+      </LCDFrame>
+    </div>
   );
 };

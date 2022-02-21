@@ -48,6 +48,8 @@ export function App() {
                 flex: 1;
                 overflow-y: auto;
                 width: 100%;
+                display: flex;
+                flex-direction: column;
                 zoom: ${zoom()};
               `]: true,
             }}
@@ -57,7 +59,8 @@ export function App() {
                 <div
                   classList={{
                     [css`
-                      max-width: 100vw;
+                      flex: 1;
+                      flex-direction: column;
                       display: flex;
                     `]: true,
                   }}

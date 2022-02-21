@@ -28,6 +28,7 @@ export const SamplerSlicesView = (props: {
       style={{
         borderBottom: '1px solid #222',
         boxShadow: '0px 0px 3px #222',
+        flex: 1,
       }}
     >
       <ol

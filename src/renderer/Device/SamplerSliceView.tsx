@@ -4,7 +4,6 @@ import {
   LCDLabel,
   LCD,
   ButtonWithLabel,
-  RackEar,
   DeviceWrapper,
   InputLCD,
   parseFormattedTime,
@@ -24,6 +23,7 @@ import { DeviceChainView } from './DeviceChainView';
 import { Column, Flex, Row } from 'renderer/Grid';
 import { exportBuffer } from 'renderer/engine/helpers';
 import { Show } from 'solid-js';
+import { SameHeightContainer } from 'renderer/SameHeightContainer';
 
 export const SamplerSliceView = (props: {
   slice: Slice;
@@ -56,387 +56,364 @@ export const SamplerSliceView = (props: {
       classList={{
         'slice-active': props.isSelected,
       }}
-      class={css`
-        display: flex;
-        align-items: center;
-        padding: 0;
-        margin: 0;
-        overflow-x: auto;
-      `}
     >
-      <Show when={viewMode.channel}>
-        <Column>
-          <DeviceWrapper
-            onClickLeftRackEar={toggleCollapse}
-            background={sliceState.color}
-          >
-            <Row
-              classList={{
-                [css`
-                  flex: 1;
-                `]: true,
-                [css`
-                  height: 430px;
-                `]: !sliceState.collapsed,
-              }}
+      <SameHeightContainer
+        class={css`
+          display: flex;
+          align-items: center;
+          padding: 0;
+          margin: 0;
+          overflow-x: auto;
+        `}
+      >
+        <Show when={viewMode.channel}>
+          <Column>
+            <DeviceWrapper
+              onClickLeftRackEar={toggleCollapse}
+              background={sliceState.color}
             >
-              <InputLCD
+              <Row
                 classList={{
                   [css`
-                    width: 150px;
-                    white-space: nowrap;
-                    text-overflow: ellipsis;
+                    flex: 1;
+                    margin: 20px 0;
                   `]: true,
+                  [css`
+                    height: 430px;
+                  `]: !sliceState.collapsed,
                 }}
-                value={sliceState.name}
-                onInput={(event) => {
-                  props.slice.set({ name: event.currentTarget.value });
-                }}
-              />
-              <ButtonWithLabel
-                label="Solo"
-                activated={sliceState.solo}
-                labelOnButton={true}
-                onClick={(event) => {
-                  props.slice.setSolo(!sliceState.solo, event.altKey);
-                }}
-              />
-              <ButtonWithLabel
-                label="Mute"
-                activated={sliceState.mute}
-                labelOnButton={true}
-                onClick={() => {
-                  props.slice.set({ mute: !sliceState.mute });
-                }}
-              />
-            </Row>
-          </DeviceWrapper>
-        </Column>
-      </Show>
-      <Show when={viewMode.slice}>
-        <div
-          classList={{
-            [css`
-              box-shadow: 0px 0px 2px inset #222;
-              border-radius: 4px;
-              margin-bottom: 2px;
-              background-color: ${sliceState.color};
-              transition: all 2s ease;
-            `]: true,
-          }}
-        >
-          <div
-            class={css`
-              display: flex;
-              width: 100%;
-            `}
-          >
-            <RackEar
-              collapsed={sliceState.collapsed}
-              onClick={toggleCollapse}
-            />
+              >
+                <InputLCD
+                  classList={{
+                    [css`
+                      width: 150px;
+                      white-space: nowrap;
+                      text-overflow: ellipsis;
+                    `]: true,
+                  }}
+                  value={sliceState.name}
+                  onInput={(event) => {
+                    props.slice.set({ name: event.currentTarget.value });
+                  }}
+                />
+                <ButtonWithLabel
+                  label="Solo"
+                  activated={sliceState.solo}
+                  labelOnButton={true}
+                  onClick={(event) => {
+                    props.slice.setSolo(!sliceState.solo, event.altKey);
+                  }}
+                />
+                <ButtonWithLabel
+                  label="Mute"
+                  activated={sliceState.mute}
+                  labelOnButton={true}
+                  onClick={() => {
+                    props.slice.set({ mute: !sliceState.mute });
+                  }}
+                />
+              </Row>
+            </DeviceWrapper>
+          </Column>
+        </Show>
+        <Show when={viewMode.slice}>
+          <DeviceWrapper background={sliceState.color}>
+            <div
+              class={css`
+                display: flex;
+                margin: 15px 0;
+                align-items: center;
+                display: ${sliceState.collapsed ? 'flex' : 'none'};
+              `}
+            >
+              <LCD>
+                <WavesurferSliceView
+                  slice={props.slice}
+                  center={1}
+                  height={30}
+                  currentTime={currentPlayPosition()}
+                  onClickWaveform={() => props.onClickSlice(props.slice)}
+                />
+              </LCD>
+            </div>
 
             <div
               class={css`
                 display: flex;
-                flex-direction: column;
-                width: 100%;
-                padding: 20px 0;
+                align-items: center;
+                display: ${sliceState.collapsed ? 'none' : 'flex'};
               `}
             >
               <div
                 class={css`
+                  width: 100%;
                   display: flex;
-                  align-items: center;
-                  display: ${sliceState.collapsed ? 'flex' : 'none'};
-                `}
-              >
-                <LCD>
-                  <WavesurferSliceView
-                    slice={props.slice}
-                    center={1}
-                    height={30}
-                    currentTime={currentPlayPosition()}
-                    onClickWaveform={() => props.onClickSlice(props.slice)}
-                  />
-                </LCD>
-              </div>
-
-              <div
-                class={css`
-                  display: flex;
-                  align-items: center;
-                  display: ${sliceState.collapsed ? 'none' : 'flex'};
+                  padding: 8px;
                 `}
               >
                 <div
                   class={css`
-                    width: 100%;
                     display: flex;
-                    padding: 8px;
+                    flex-direction: column;
+                    padding: 2px;
                   `}
                 >
-                  <div
-                    class={css`
-                      display: flex;
-                      flex-direction: column;
-                      padding: 2px;
-                    `}
-                  >
-                    <Column>
-                      <Column
-                        class={css`
-                          background: radial-gradient(#cfcfcf, #b3b3b3);
-                          color: rgb(63, 63, 63);
-                          font-size: 20px;
-                          border: 3px inset #ffffffac;
-                          box-shadow: inset 2px 2px 5px 1px #000000c1;
-                          border-radius: 4px;
-                          text-shadow: 1px 1px 1px rgba(119, 119, 119, 0.849);
-                          padding: 8px;
-                          margin-right: 20px;
-                          margin-left: 20px;
-                        `}
-                      >
-                        <LCDLabel>Sample</LCDLabel>
-                        <WavesurferSliceView
-                          slice={props.slice}
-                          center={1}
-                          currentTime={currentPlayPosition()}
-                          onClickWaveform={() =>
-                            props.onClickSlice(props.slice)
-                          }
-                        />
-                        <Flex
-                          class={css`
-                            align-items: center;
-                          `}
-                        >
-                          <LCDLabel>Name</LCDLabel>
-                          <input
-                            onChange={(event) => {
-                              props.slice.set({
-                                name: event.currentTarget.value,
-                              });
-                            }}
-                            class={css`
-                              background: none;
-                              border: none;
-                              font-family: '7seg';
-                              color: #444;
-                            `}
-                            value={sliceState.name}
-                          />
-                        </Flex>
-
-                        <NumberInputWithLabel
-                          label="Current Time"
-                          disabled
-                          size={12}
-                          value={currentPlayPosition()}
-                          parse={parseFormattedTime}
-                          format={formatTime}
-                        />
-                        <NumberInputWithLabel
-                          label="Playback Speed"
-                          size={12}
-                          step={0.01}
-                          min={0}
-                          max={3}
-                          format={formatPercentage(0)}
-                          parse={parseFloat}
-                          value={sliceState.playbackRate}
-                          onChange={(playbackRate) => {
-                            props.slice.set({ playbackRate });
-                          }}
-                        />
-                        <NumberInputWithLabel
-                          label="Volume"
-                          size={12}
-                          step={0.01}
-                          min={0}
-                          max={3}
-                          format={formatPercentage()}
-                          parse={parseFloat}
-                          value={sliceState.volume}
-                          onChange={(volume) => props.slice.set({ volume })}
-                        />
-                        <div
-                          class={css`
-                            display: flex;
-                            justify-content: space-between;
-                          `}
-                        >
-                          <NumberInputWithLabel
-                            label="Start"
-                            size={12}
-                            min={sliceState.end - 10}
-                            max={sliceState.end - 0.00001}
-                            step={formattedTimeStep}
-                            parse={parseFormattedTime}
-                            format={formatTime}
-                            value={sliceState.start}
-                            onChange={(start: number) =>
-                              props.slice.set({ start })
-                            }
-                          />
-
-                          <NumberInputWithLabel
-                            label={
-                              <span
-                                class={css`
-                                  min-width: 20px;
-                                `}
-                              >
-                                End
-                              </span>
-                            }
-                            size={12}
-                            min={sliceState.start + 0.00001}
-                            max={sliceState.start + 10}
-                            step={formattedTimeStep}
-                            parse={parseFormattedTime}
-                            format={formatTime}
-                            value={sliceState.end}
-                            onChange={(end) => props.slice.set({ end })}
-                          />
-                        </div>
-                      </Column>
-                    </Column>
-                  </div>
-                  <Column
-                    class={css`
-                      padding-left: 10px;
-                      align-items: flex-start;
-                    `}
-                  >
+                  <Column>
                     <Column
                       class={css`
-                        align-items: flex-start;
+                        background: radial-gradient(#cfcfcf, #b3b3b3);
+                        color: rgb(63, 63, 63);
+                        font-size: 20px;
+                        border: 3px inset #ffffffac;
+                        box-shadow: inset 2px 2px 5px 1px #000000c1;
+                        border-radius: 4px;
+                        text-shadow: 1px 1px 1px rgba(119, 119, 119, 0.849);
+                        padding: 8px;
+                        margin-right: 20px;
+                        margin-left: 20px;
                       `}
                     >
-                      <ButtonWithLabel
-                        label="Export"
-                        onClick={() => {
-                          exportBuffer(
-                            props.slice.player.buffer,
-                            `${encodeURI(
-                              `${props.slice.sampler.title} (${props.slice.start}-${props.slice.end})`
-                            )}.wav`
-                          );
-                        }}
+                      <LCDLabel>Sample</LCDLabel>
+                      <WavesurferSliceView
+                        slice={props.slice}
+                        center={1}
+                        currentTime={currentPlayPosition()}
+                        onClickWaveform={() => props.onClickSlice(props.slice)}
                       />
-                      <ButtonWithLabel
-                        activated={sliceState.reverse}
-                        onClick={() => {
-                          props.slice.set({ reverse: !sliceState.reverse });
-                        }}
-                        label="Reverse"
-                      />
-                      <ButtonWithLabel
-                        onClick={() => props.onRemoveSlice(props.slice)}
-                        label="Delete"
-                      />
-                      <ButtonWithLabel
-                        onClick={() => props.slice.duplicate()}
-                        label="Clone"
-                      />
-                      <ShareSliceButton slice={props.slice} />
-
-                      <div
+                      <Flex
                         class={css`
-                          margin-top: 18px;
-                          margin-bottom: 18px;
-                          display: flex;
+                          align-items: center;
                         `}
                       >
-                        <ButtonWithLabel
-                          onClick={() => {
+                        <LCDLabel>Name</LCDLabel>
+                        <input
+                          onChange={(event) => {
                             props.slice.set({
-                              playbackRate: sliceState.playbackRate / 2,
+                              name: event.currentTarget.value,
                             });
                           }}
-                          labelOnButton={true}
-                          label="/2"
+                          class={css`
+                            background: none;
+                            border: none;
+                            font-family: '7seg';
+                            color: #444;
+                          `}
+                          value={sliceState.name}
                         />
-                        <ButtonWithLabel
-                          onClick={() => {
-                            const bpm =
-                              props.slice.sampler.engine.transport.bpm.value;
-                            const barDuration = (60 / bpm) * 4;
-                            const sliceDuration =
-                              sliceState.end - sliceState.start;
-                            const targetDuration =
-                              Math.round(sliceDuration / barDuration) *
-                              barDuration;
+                      </Flex>
 
-                            const playbackSpeed =
-                              sliceDuration / targetDuration;
-
-                            props.slice.set({ playbackRate: playbackSpeed });
-                          }}
-                          labelOnButton={true}
-                          label="Align"
+                      <NumberInputWithLabel
+                        label="Current Time"
+                        disabled
+                        size={12}
+                        value={currentPlayPosition()}
+                        parse={parseFormattedTime}
+                        format={formatTime}
+                      />
+                      <NumberInputWithLabel
+                        label="Playback Speed"
+                        size={12}
+                        step={0.01}
+                        min={0}
+                        max={3}
+                        format={formatPercentage(0)}
+                        parse={parseFloat}
+                        value={sliceState.playbackRate}
+                        onChange={(playbackRate) => {
+                          props.slice.set({ playbackRate });
+                        }}
+                      />
+                      <NumberInputWithLabel
+                        label="Volume"
+                        size={12}
+                        step={0.01}
+                        min={0}
+                        max={3}
+                        format={formatPercentage()}
+                        parse={parseFloat}
+                        value={sliceState.volume}
+                        onChange={(volume) => props.slice.set({ volume })}
+                      />
+                      <div
+                        class={css`
+                          display: flex;
+                          justify-content: space-between;
+                        `}
+                      >
+                        <NumberInputWithLabel
+                          label="Start"
+                          size={12}
+                          min={sliceState.end - 10}
+                          max={sliceState.end - 0.00001}
+                          step={formattedTimeStep}
+                          parse={parseFormattedTime}
+                          format={formatTime}
+                          value={sliceState.start}
+                          onChange={(start: number) =>
+                            props.slice.set({ start })
+                          }
                         />
-                        <ButtonWithLabel
-                          onClick={() => {
-                            props.slice.set({
-                              playbackRate: sliceState.playbackRate * 2,
-                            });
-                          }}
-                          labelOnButton={true}
-                          label="x2"
+
+                        <NumberInputWithLabel
+                          label={
+                            <span
+                              class={css`
+                                min-width: 20px;
+                              `}
+                            >
+                              End
+                            </span>
+                          }
+                          size={12}
+                          min={sliceState.start + 0.00001}
+                          max={sliceState.start + 10}
+                          step={formattedTimeStep}
+                          parse={parseFormattedTime}
+                          format={formatTime}
+                          value={sliceState.end}
+                          onChange={(end) => props.slice.set({ end })}
                         />
                       </div>
                     </Column>
-                    <div>
-                      <MoogKnobWithLabel
-                        min={0}
-                        max={3}
-                        value={sliceState.playbackRate}
-                        onChange={(playbackRate: number) =>
-                          props.slice.set({ playbackRate })
-                        }
-                        label="Pitch"
+                  </Column>
+                </div>
+                <Column
+                  class={css`
+                    padding-left: 10px;
+                    align-items: flex-start;
+                  `}
+                >
+                  <Column
+                    class={css`
+                      align-items: flex-start;
+                    `}
+                  >
+                    <ButtonWithLabel
+                      label="Export"
+                      onClick={() => {
+                        exportBuffer(
+                          props.slice.player.buffer,
+                          `${encodeURI(
+                            `${props.slice.sampler.title} (${props.slice.start}-${props.slice.end})`
+                          )}.wav`
+                        );
+                      }}
+                    />
+                    <ButtonWithLabel
+                      activated={sliceState.reverse}
+                      onClick={() => {
+                        props.slice.set({ reverse: !sliceState.reverse });
+                      }}
+                      label="Reverse"
+                    />
+                    <ButtonWithLabel
+                      onClick={() => props.onRemoveSlice(props.slice)}
+                      label="Delete"
+                    />
+                    <ButtonWithLabel
+                      onClick={() => props.slice.duplicate()}
+                      label="Clone"
+                    />
+                    <ShareSliceButton slice={props.slice} />
+
+                    <div
+                      class={css`
+                        margin-top: 18px;
+                        margin-bottom: 18px;
+                        display: flex;
+                      `}
+                    >
+                      <ButtonWithLabel
+                        onClick={() => {
+                          props.slice.set({
+                            playbackRate: sliceState.playbackRate / 2,
+                          });
+                        }}
+                        labelOnButton={true}
+                        label="/2"
+                      />
+                      <ButtonWithLabel
+                        onClick={() => {
+                          const bpm =
+                            props.slice.sampler.engine.transport.bpm.value;
+                          const barDuration = (60 / bpm) * 4;
+                          const sliceDuration =
+                            sliceState.end - sliceState.start;
+                          const targetDuration =
+                            Math.round(sliceDuration / barDuration) *
+                            barDuration;
+
+                          const playbackSpeed = sliceDuration / targetDuration;
+
+                          props.slice.set({ playbackRate: playbackSpeed });
+                        }}
+                        labelOnButton={true}
+                        label="Align"
+                      />
+                      <ButtonWithLabel
+                        onClick={() => {
+                          props.slice.set({
+                            playbackRate: sliceState.playbackRate * 2,
+                          });
+                        }}
+                        labelOnButton={true}
+                        label="x2"
                       />
                     </div>
                   </Column>
-                </div>
+                  <div>
+                    <MoogKnobWithLabel
+                      min={0}
+                      max={3}
+                      value={sliceState.playbackRate}
+                      onChange={(playbackRate: number) =>
+                        props.slice.set({ playbackRate })
+                      }
+                      label="Pitch"
+                    />
+                  </div>
+                </Column>
               </div>
             </div>
-
-            <RackEar collapsed={sliceState.collapsed} />
-          </div>
-        </div>
-      </Show>
-      <Show when={viewMode.sequencer}>
-        <DeviceWrapper
-          background={sliceState.color}
-          classList={{
-            [css`
-              height: 430px;
-            `]: !sliceState.collapsed,
-          }}
-        >
-          <SlicePattern
-            slice={props.slice}
-            currentPatternIndex={props.currentPatternIndex}
-          />
-        </DeviceWrapper>
-      </Show>
-
-      <Show when={!sliceState.collapsed}>
-        <DeviceChainView
-          deviceChain={props.slice.chain}
-          classList={{
-            [css`
-              .device {
+          </DeviceWrapper>
+        </Show>
+        <Show when={viewMode.sequencer}>
+          <DeviceWrapper
+            background={sliceState.color}
+            classList={{
+              [css`
                 height: 430px;
-              }
+              `]: !sliceState.collapsed,
+            }}
+          >
+            <SlicePattern
+              slice={props.slice}
+              currentPatternIndex={props.currentPatternIndex}
+            />
+          </DeviceWrapper>
+        </Show>
+
+        <Show when={!sliceState.collapsed}>
+          <DeviceChainView
+            deviceChain={props.slice.chain}
+            classList={{
+              [css`
+                .device {
+                  height: 430px;
+                }
+              `]: true,
+            }}
+          ></DeviceChainView>
+        </Show>
+        <DeviceWrapper
+          classList={{
+            device: true,
+            [css`
+              flex: 1;
             `]: true,
           }}
-        ></DeviceChainView>
-      </Show>
+        ></DeviceWrapper>
+      </SameHeightContainer>
     </li>
   );
 };
