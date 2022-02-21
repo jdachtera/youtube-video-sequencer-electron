@@ -101,34 +101,36 @@ export const Sequencer = (
             padding: 10px;
             width: ${44 * 16}px;
             background: none;
+            li[hidden] {
+              display: none;
+            }
           `]: true,
         }}
       >
         <Index each={props.steps}>
           {(step, index) => {
             return (
-              <Show
-                when={
-                  !collapsed() ||
-                  (index < page() * 16 && index >= page() * 16 - 16)
+              <SequencerStep
+                hidden={
+                  !(
+                    !collapsed() ||
+                    (index < page() * 16 && index >= page() * 16 - 16)
+                  )
                 }
-              >
-                <SequencerStep
-                  classList={{
-                    [css`
-                      > div {
-                        background: ${colors808Knobs[
-                          Math.floor((index % 16) / 4)
-                        ]};
-                      }
-                    `]: true,
-                  }}
-                  step={step()}
-                  onClick={handleToggleStep}
-                  isSelected={step() === selectedStep()}
-                  isCurrent={step() === currentStep()}
-                />
-              </Show>
+                classList={{
+                  [css`
+                    > div {
+                      background: ${colors808Knobs[
+                        Math.floor((index % 16) / 4)
+                      ]};
+                    }
+                  `]: true,
+                }}
+                step={step()}
+                onClick={handleToggleStep}
+                isSelected={step() === selectedStep()}
+                isCurrent={step() === currentStep()}
+              />
             );
           }}
         </Index>
