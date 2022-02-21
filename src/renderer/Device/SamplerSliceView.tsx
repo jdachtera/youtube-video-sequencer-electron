@@ -67,54 +67,52 @@ export const SamplerSliceView = (props: {
         `}
       >
         <Show when={viewMode.channel}>
-          <Column>
-            <DeviceWrapper
-              onClickLeftRackEar={toggleCollapse}
-              background={sliceState.color}
+          <DeviceWrapper
+            onClickLeftRackEar={toggleCollapse}
+            background={sliceState.color}
+          >
+            <Row
+              classList={{
+                [css`
+                  flex: 1;
+                  margin: 20px 0;
+                `]: true,
+                [css`
+                  height: 430px;
+                `]: !sliceState.collapsed,
+              }}
             >
-              <Row
+              <InputLCD
                 classList={{
                   [css`
-                    flex: 1;
-                    margin: 20px 0;
+                    width: 150px;
+                    white-space: nowrap;
+                    text-overflow: ellipsis;
                   `]: true,
-                  [css`
-                    height: 430px;
-                  `]: !sliceState.collapsed,
                 }}
-              >
-                <InputLCD
-                  classList={{
-                    [css`
-                      width: 150px;
-                      white-space: nowrap;
-                      text-overflow: ellipsis;
-                    `]: true,
-                  }}
-                  value={sliceState.name}
-                  onInput={(event) => {
-                    props.slice.set({ name: event.currentTarget.value });
-                  }}
-                />
-                <ButtonWithLabel
-                  label="Solo"
-                  activated={sliceState.solo}
-                  labelOnButton={true}
-                  onClick={(event) => {
-                    props.slice.setSolo(!sliceState.solo, event.altKey);
-                  }}
-                />
-                <ButtonWithLabel
-                  label="Mute"
-                  activated={sliceState.mute}
-                  labelOnButton={true}
-                  onClick={() => {
-                    props.slice.set({ mute: !sliceState.mute });
-                  }}
-                />
-              </Row>
-            </DeviceWrapper>
-          </Column>
+                value={sliceState.name}
+                onInput={(event) => {
+                  props.slice.set({ name: event.currentTarget.value });
+                }}
+              />
+              <ButtonWithLabel
+                label="Solo"
+                activated={sliceState.solo}
+                labelOnButton={true}
+                onClick={(event) => {
+                  props.slice.setSolo(!sliceState.solo, event.altKey);
+                }}
+              />
+              <ButtonWithLabel
+                label="Mute"
+                activated={sliceState.mute}
+                labelOnButton={true}
+                onClick={() => {
+                  props.slice.set({ mute: !sliceState.mute });
+                }}
+              />
+            </Row>
+          </DeviceWrapper>
         </Show>
         <Show when={viewMode.slice}>
           <DeviceWrapper background={sliceState.color}>
