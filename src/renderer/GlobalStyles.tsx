@@ -1,6 +1,6 @@
 import ChessTypeFont from './fonts/ChessType.ttf';
 import OswaldFont from './fonts/Oswald.ttf';
-import DSEG14Classic from './fonts/DSEG14Classic-Bold.ttf';
+import DSEG14Classic from './fonts/DSEG14Classic-Regular.ttf';
 
 import { createGlobalStyles as css } from 'renderer/emotion-solid';
 
@@ -23,7 +23,7 @@ const Oswald = css`
 const SevenSeg = css`
   @font-face {
     font-family: '7seg';
-    font-weight: 400;
+    font-weight: 300;
     src: url('${DSEG14Classic}') format('truetype');
   }
 `;

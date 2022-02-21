@@ -672,7 +672,7 @@ const lcdStyles = css`
   border-radius: 3px;
   text-shadow: 1px 1px 1px rgba(119, 119, 119, 0.849);
   padding: 8px;
-  font-family: 'chesstype';
+  font-family: '7seg';
 `;
 export const LCD = (props: JSX.IntrinsicElements['div']) => {
   return (
