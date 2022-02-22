@@ -13,8 +13,9 @@ import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { ButtonGroup } from '../UI/ButtonGroup';
 import { YoutubeSearchPanel } from './YoutubeSearchPanel';
 import { css } from '@emotion/css';
+import { SoundsDotComPanel } from './SoundDotComPanel';
 
-const tabs = ['YouTube', 'SliceDB'] as const;
+const tabs = ['YouTube', 'SliceDB', 'Sounds.com'] as const;
 export type SidePanelTab = typeof tabs[number];
 
 export const SidePanel = (props: { engine: Engine }) => {
@@ -70,6 +71,10 @@ export const SidePanel = (props: { engine: Engine }) => {
 
   return (
     <Row
+      class={css`
+        background-color: #4b4b4b;
+        font-family: 'oswald';
+      `}
       style={{
         width: `${
           sidePanelState.open ? sidePanelState.width : dragHandleWidth
@@ -100,6 +105,9 @@ export const SidePanel = (props: { engine: Engine }) => {
           </Match>
           <Match when={sidePanelState.activeTab === 'SliceDB'}>
             <FindSlicesPanel engine={props.engine} />
+          </Match>
+          <Match when={sidePanelState.activeTab === 'Sounds.com'}>
+            <SoundsDotComPanel engine={props.engine} />
           </Match>
         </Switch>
       </Column>{' '}

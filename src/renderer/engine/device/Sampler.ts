@@ -76,22 +76,10 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
     if (cachedBlob) {
       this.buffer.fromArray(cachedBlob);
     } else {
-      const result = await window.yt.getInfo(this.url);
+      const base64StringOrBuffer = this.url.includes('youtube.com')
+        ? await this.loadAudioTrackByYoutubeUrl()
+        : await fetch(this.url).then((response) => response.arrayBuffer());
 
-      const audioTracks = result.formats.filter(
-        (entry) => !entry.hasVideo && entry.hasAudio
-      );
-
-      const sourceFormat = audioTracks
-        .sort((a, b) => (a.audioBitrate! > b.audioBitrate! ? 1 : -1))
-        .shift();
-
-      const title = result.videoDetails.title;
-      const sourceUrl = sourceFormat!.url;
-
-      this.set({ title });
-
-      const base64StringOrBuffer = await window.yt.fetchVideo(sourceUrl);
       const arrayBuffer =
         typeof base64StringOrBuffer === 'string'
           ? base64ToArrayBuffer(base64StringOrBuffer)
@@ -116,6 +104,26 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
       })
     );
   };
+
+  private async loadAudioTrackByYoutubeUrl() {
+    const result = await window.yt.getInfo(this.url);
+
+    const audioTracks = result.formats.filter(
+      (entry) => !entry.hasVideo && entry.hasAudio
+    );
+
+    const sourceFormat = audioTracks
+      .sort((a, b) => (a.audioBitrate! > b.audioBitrate! ? 1 : -1))
+      .shift();
+
+    const title = result.videoDetails.title;
+    const sourceUrl = sourceFormat!.url;
+
+    this.set({ title });
+
+    const base64StringOrBuffer = await window.yt.fetchVideo(sourceUrl);
+    return base64StringOrBuffer;
+  }
 
   set(samplerPartial: Partial<SerializedSamplerDevice>) {
     entries(samplerPartial).forEach((entry) => {

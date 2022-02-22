@@ -85,12 +85,7 @@ export const FindSlicesPanel = (props: { engine: Engine }) => {
   }));
 
   return (
-    <Column
-      class={css`
-        flex: 1;
-        background-color: gray;
-      `}
-    >
+    <Column>
       Tags:{' '}
       <ul>
         <For each={tagsData()?.tags.items}>
