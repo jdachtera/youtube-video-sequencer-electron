@@ -1,5 +1,8 @@
-import audioBufferToWav from 'audiobuffer-to-wav';
 import { ToneAudioBuffer } from 'tone';
+import { encodeWav } from './encodeWav';
+
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-var-requires
+const fileSaver = require('file-saver');
 
 type Entry<T> = {
   [K in keyof T]: [K, T[K]];
@@ -16,17 +19,11 @@ export type PropertyUpdateEvents<T extends { [key: string]: unknown }> = {
   ) => void;
 };
 
-export const exportBuffer = (buffer: ToneAudioBuffer, fileName: string) => {
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const wav = audioBufferToWav(buffer.get()!);
-  const blob = new window.Blob([new DataView(wav)], {
-    type: 'audio/wav',
-  });
-
-  const url = window.URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = fileName;
-  anchor.click();
-  window.URL.revokeObjectURL(url);
+export const exportBuffer = async (
+  audioBuffer: ToneAudioBuffer,
+  fileName: string,
+  setEncodeProgress?: (progress: number) => void
+) => {
+  const encodedWave = await encodeWav(audioBuffer.get()!, setEncodeProgress);
+  fileSaver.saveAs(encodedWave, fileName);
 };

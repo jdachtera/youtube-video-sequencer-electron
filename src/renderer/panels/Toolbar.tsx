@@ -12,9 +12,9 @@ import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { LoadFileButton } from '../UI/LoadFileButton';
 import { ButtonGroup } from '../UI/ButtonGroup';
 import { Row } from '../UI/Grid';
-import { exportBuffer } from '../engine/helpers';
 import { SamplerDevice } from '../engine/device/Sampler';
 import { DeviceChain } from '../engine/device/DeviceChain';
+import { MixdownButton } from './MixdownButton';
 
 const camelCaseToSpaced = (str: string) => {
   let newString = '';
@@ -125,13 +125,6 @@ export const Toolbar = (props: { engine: Engine }) => {
     }
   };
 
-  const renderToWavefile = async () => {
-    const timeToRender = (props.engine.getMaxSequenceLength() * 4) / 8;
-    const buffer = await props.engine.renderToBuffer(timeToRender);
-
-    exportBuffer(buffer, 'audio.wav');
-  };
-
   onMount(() => props.engine.on('change', saveToLocalStorage));
   onCleanup(() => props.engine.off('change', saveToLocalStorage));
 
@@ -220,11 +213,7 @@ export const Toolbar = (props: { engine: Engine }) => {
               labelOnButton={true}
               label={'Save'}
             />
-            <ButtonWithLabel
-              onClick={renderToWavefile}
-              labelOnButton={true}
-              label={'Mixdown'}
-            />{' '}
+            <MixdownButton engine={props.engine} />
             <ButtonWithLabel
               onClick={clear}
               labelOnButton={true}

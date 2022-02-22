@@ -6,10 +6,12 @@ import { DeepPartial } from './types';
 import { entries, PropertyUpdateEvents } from './helpers';
 
 import { SamplerDevice, SerializedSamplerDevice } from './device/Sampler';
-import { Offline } from 'tone';
+import { getContext, getDraw, Offline, OfflineContext, setContext } from 'tone';
 import { EngineBase } from './EngineBase';
 
 import type { SidePanelTab } from 'renderer/panels/SidePanel';
+import { Sequence } from '../../../__mocks__/tone';
+import { buffer } from 'stream/consumers';
 
 export type SerializedEngine = {
   currentPatternIndex: number;
@@ -36,6 +38,7 @@ type EngineEvents = {
   change: (engine: Engine) => void;
   start: (time?: Time | undefined, offset?: number | undefined) => void;
   stop: (time?: Time | undefined) => void;
+  mixdownProgress: (progress: number) => void;
 } & PropertyUpdateEvents<SerializedEngine>;
 
 export class Engine extends EngineBase<EngineEvents> {
@@ -242,19 +245,40 @@ export class Engine extends EngineBase<EngineEvents> {
   }
 
   async renderToBuffer(timeToRender: number) {
-    let offlineEngine: Engine | null = null;
+    const originalContext = getContext();
+    const channels = 2;
+    const sampleRate = getContext().sampleRate;
 
-    const buffer = await Offline(async (offlineContext) => {
-      offlineEngine = new Engine(offlineContext.transport);
-      offlineEngine.set(this.serialize());
+    const offlineContext = new OfflineContext(
+      channels,
+      timeToRender,
+      sampleRate
+    );
 
-      await offlineEngine.hasLoaded();
+    setContext(offlineContext);
 
-      offlineContext.transport.start();
-    }, timeToRender);
+    const offlineEngine = new Engine(offlineContext.transport);
+    offlineEngine.set(this.serialize());
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    offlineEngine!.dispose();
+    offlineContext.transport.scheduleRepeat(
+      (time) => {
+        this.emit('mixdownProgress', time / timeToRender);
+      },
+      1,
+      0,
+      timeToRender
+    );
+
+    await offlineEngine.hasLoaded();
+
+    offlineContext.transport.start();
+    const buffer = await offlineContext.render(true);
+
+    this.emit('mixdownProgress', 1);
+
+    offlineEngine.dispose();
+
+    setContext(originalContext);
     return buffer;
   }
 }

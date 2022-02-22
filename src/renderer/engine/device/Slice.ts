@@ -327,8 +327,8 @@ export class Slice extends EngineBase<SliceEvents> {
     };
   }
 
-  stop() {
-    this.player.stop();
+  stop(time?: number) {
+    this.player.stop(time);
   }
 
   dispose() {
@@ -361,6 +361,7 @@ export class Slice extends EngineBase<SliceEvents> {
     if (!this.player.buffer.loaded) return;
 
     try {
+      this.stop(time);
       this.player.start(time);
     } catch (e) {
       console.log({ e, time, p: this.player });
