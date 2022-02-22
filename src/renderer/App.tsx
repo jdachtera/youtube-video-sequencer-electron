@@ -44,7 +44,7 @@ export function App() {
           <Row overflow={'hidden'} flex={1}>
             <SidePanel engine={engine} />
             <Column
-              overflow={'hidden'}
+              overflow={'auto'}
               flex={1}
               class={css`
                 zoom: ${zoom()};

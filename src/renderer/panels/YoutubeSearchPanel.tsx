@@ -89,15 +89,15 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
                     <ButtonWithLabel
                       label="+"
                       labelOnButton
-                      onClick={() =>
+                      onClick={() => {
                         props.engine.createTrack(
                           Track.normalizeData({
                             chain: {
                               devices: [{ name: 'Sampler', url: item.url }],
                             },
                           })
-                        )
-                      }
+                        );
+                      }}
                     />
                   </div>
                 </li>

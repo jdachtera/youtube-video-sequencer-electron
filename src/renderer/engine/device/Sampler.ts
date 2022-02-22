@@ -76,9 +76,7 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
     if (cachedBlob) {
       this.buffer.fromArray(cachedBlob);
     } else {
-      const base64StringOrBuffer = this.url.includes('youtube.com')
-        ? await this.loadAudioTrackByYoutubeUrl()
-        : await fetch(this.url).then((response) => response.arrayBuffer());
+      const base64StringOrBuffer = await this.loadArrayBuffer();
 
       const arrayBuffer =
         typeof base64StringOrBuffer === 'string'
@@ -105,7 +103,12 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
     );
   };
 
-  private async loadAudioTrackByYoutubeUrl() {
+  private async loadArrayBuffer() {
+    if (!this.url.includes('youtube.com')) {
+      const response = await fetch(this.url);
+      return await response.arrayBuffer();
+    }
+
     const result = await window.yt.getInfo(this.url);
 
     const audioTracks = result.formats.filter(
@@ -119,6 +122,7 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
     const title = result.videoDetails.title;
     const sourceUrl = sourceFormat!.url;
 
+    console.log(sourceFormat);
     this.set({ title });
 
     const base64StringOrBuffer = await window.yt.fetchVideo(sourceUrl);
