@@ -56,6 +56,43 @@ export const FilterView = (props: { filter: FilterDevice }) => {
         />
       </Row>
       <Row>
+        <MoogKnobWithLabel
+          onChange={(envAmount) => props.filter.set({ envAmount })}
+          min={0}
+          max={6000}
+          value={filterState.envAmount}
+          label={'Env'}
+        />
+        <MoogKnobWithLabel
+          onChange={(attack) => props.filter.set({ attack })}
+          min={0}
+          max={3}
+          value={filterState.attack}
+          label={'Attack'}
+        />
+        <MoogKnobWithLabel
+          onChange={(decay) => props.filter.set({ decay })}
+          min={0}
+          max={8}
+          value={filterState.decay}
+          label={'Decay'}
+        />
+        <MoogKnobWithLabel
+          onChange={(sustain) => props.filter.set({ sustain })}
+          min={0}
+          max={1}
+          value={filterState.sustain}
+          label={'Sustain'}
+        />
+        <MoogKnobWithLabel
+          onChange={(release) => props.filter.set({ release })}
+          min={0}
+          max={500}
+          value={filterState.release}
+          label={'Release'}
+        />
+      </Row>
+      <Row>
         <FrequencyResponseDisplay filter={props.filter} />
       </Row>
     </Column>

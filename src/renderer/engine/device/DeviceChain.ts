@@ -4,6 +4,7 @@ import { Engine } from '../Engine';
 import { DeepPartial, SerializedDevice } from '../types';
 import { createDevice } from './createDevice';
 import { normalizeDeviceData } from './normalizeDeviceData';
+import { Step } from './Slice';
 
 export type SerializedDeviceChain = SerializedDeviceBase & {
   name: 'DeviceChain';
@@ -42,6 +43,13 @@ export class DeviceChain extends Device<DeviceChainEvents> {
   }
 
   emitChange = () => this.emit('change', this);
+
+  handleSequenceEvent = (time: number, step: Step) => {
+    const firstDevice = this.devices.at(0);
+    if (firstDevice) {
+      firstDevice.handleSequenceEvent(time, step);
+    }
+  };
 
   set(partialSerializedDevice: Partial<SerializedDeviceChain>) {
     entries(partialSerializedDevice).forEach((entry) => {
@@ -105,6 +113,7 @@ export class DeviceChain extends Device<DeviceChainEvents> {
 
   removeDevice(device: Device) {
     device.off('change', this.emitChange);
+    device.removeAllListeners('sequenceEvent');
     device.setInputDevice(undefined);
 
     const index = this.devices.indexOf(device);
@@ -116,6 +125,10 @@ export class DeviceChain extends Device<DeviceChainEvents> {
     this.emit('deviceRemoved', device);
     this.emit('change', this);
   }
+
+  emitSequenceEmvent = (time: number, step: Step) => {
+    this.emit('sequenceEvent', time, step);
+  };
 
   moveDevice(device: Device, index: number) {
     this.removeDevice(device);
@@ -133,6 +146,7 @@ export class DeviceChain extends Device<DeviceChainEvents> {
     this.devices.reduce((prevDevice: Device | undefined, currentDevice) => {
       if (prevDevice) {
         currentDevice.setInputDevice(prevDevice);
+        prevDevice.on('sequenceEvent', currentDevice.handleSequenceEvent);
       }
 
       return currentDevice;
@@ -143,6 +157,7 @@ export class DeviceChain extends Device<DeviceChainEvents> {
 
     if (lastDevice) {
       lastDevice.output.connect(this.output);
+      lastDevice.on('sequenceEvent', this.emitSequenceEmvent);
     }
 
     this.input.connect(firstDevice ? firstDevice.input : this.output);

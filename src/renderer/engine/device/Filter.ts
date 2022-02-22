@@ -2,9 +2,18 @@
 import { Device, SerializedDeviceBase } from './Device';
 import { entries, PropertyUpdateEvents } from '../helpers';
 
-import { Frequency, Filter as FilterNode } from 'tone';
+import {
+  Frequency,
+  Filter as FilterNode,
+  Envelope,
+  Signal,
+  Scale,
+  Time,
+  Add,
+} from 'tone';
 import { Engine } from '../Engine';
 import { DeepPartial } from '../types';
+import { Step } from './Slice';
 
 export type SerializedFilterDevice = SerializedDeviceBase & {
   name: 'Filter';
@@ -12,6 +21,11 @@ export type SerializedFilterDevice = SerializedDeviceBase & {
   resonance: number;
   rolloff: FilterNode['rolloff'];
   type: FilterNode['type'];
+  envAmount: number;
+  attack: number;
+  decay: number;
+  release: number;
+  sustain: number;
 };
 
 type FilterDeviceEvents = {
@@ -22,6 +36,11 @@ type FilterDeviceEvents = {
 
 export class FilterDevice extends Device<FilterDeviceEvents> {
   filterNode = new FilterNode();
+  envelope = new Envelope(0.1, 0.3, 0, 0.1);
+
+  frequencyAccumulator = new Add(4000);
+
+  envelopeScale = new Scale(0, 500);
 
   static normalizeData = (
     filter: DeepPartial<SerializedFilterDevice>
@@ -34,6 +53,11 @@ export class FilterDevice extends Device<FilterDeviceEvents> {
     type: filter.type ?? 'lowpass',
     resonance: filter.resonance ?? 0.1,
     rolloff: filter.rolloff ?? -12,
+    envAmount: filter.envAmount ?? 0,
+    attack: filter.attack ?? 0.1,
+    decay: filter.decay ?? 0.3,
+    release: filter.release ?? 0.1,
+    sustain: filter.sustain ?? 0,
     color: 'cyan',
   });
 
@@ -44,8 +68,19 @@ export class FilterDevice extends Device<FilterDeviceEvents> {
     super(engine);
     this.input.connect(this.filterNode);
     this.filterNode.connect(this.output);
+    this.frequencyAccumulator.connect(this.filterNode.frequency);
+    this.envelopeScale.connect(this.frequencyAccumulator);
+
+    this.envelope.connect(this.envelopeScale);
     this.set(serializedFilter);
   }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  handleSequenceEvent = (time: number, step: Step) => {
+    if (step.play) {
+      this.envelope.triggerAttack(time);
+    }
+  };
 
   emitChange = () => this.emit('change', this);
 
@@ -55,9 +90,9 @@ export class FilterDevice extends Device<FilterDeviceEvents> {
 
       switch (entry[0]) {
         case 'frequency':
-          this.filterNode.set({
+          this.frequencyAccumulator.addend.set({
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            frequency: Frequency(Math.round(entry[1]!)).toFrequency(),
+            value: Frequency(Math.round(entry[1]!)).toFrequency(),
           });
           break;
         case 'resonance':
@@ -71,6 +106,15 @@ export class FilterDevice extends Device<FilterDeviceEvents> {
           break;
         case 'type':
           this.filterNode.type = entry[1]!;
+          break;
+        case 'envAmount':
+          this.envelopeScale.max = entry[1]!;
+          break;
+        case 'attack':
+        case 'decay':
+        case 'sustain':
+        case 'release':
+          this.envelope.set({ [entry[0]]: entry[1]! });
           break;
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -93,9 +137,14 @@ export class FilterDevice extends Device<FilterDeviceEvents> {
       volume: this.output.gain.value,
       inputGain: this.input.gain.value,
       type: this.filterNode.type,
-      frequency: Frequency(this.filterNode.frequency.value).toFrequency(),
+      frequency: this.frequencyAccumulator.addend.value,
       resonance: this.filterNode.Q.value,
       rolloff: this.filterNode.rolloff,
+      envAmount: this.envelopeScale.max,
+      attack: Time(this.envelope.attack).toSeconds(),
+      decay: Time(this.envelope.decay).toSeconds(),
+      sustain: this.envelope.sustain,
+      release: Time(this.envelope.release).toSeconds(),
     };
   }
 }

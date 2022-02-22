@@ -124,6 +124,8 @@ export class Slice extends EngineBase<SliceEvents> {
     this.player.playbackRate = this.playbackRate * step.playbackRate;
     this.gainNode.gain.setValueAtTime(this.volume * step.volume, time);
 
+    this.chain.handleSequenceEvent(time, step);
+
     getDraw().schedule(() => {
       this.emit('sequenceEvent', step);
     }, time);
