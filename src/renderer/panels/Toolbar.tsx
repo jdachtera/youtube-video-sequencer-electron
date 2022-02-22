@@ -206,17 +206,6 @@ export const Toolbar = (props: { engine: Engine }) => {
         `}
       >
         <Row>
-          <LoadFileButton label={'Load'} onChange={loadJSON} accept=".json" />
-          <ButtonWithLabel
-            onClick={exportJSON}
-            labelOnButton={true}
-            label={'Save'}
-          />
-          <ButtonWithLabel
-            onClick={renderToWavefile}
-            labelOnButton={true}
-            label={'Mixdown'}
-          />
           <ButtonWithLabel
             type="button"
             activated={isPlaying()}
@@ -224,31 +213,25 @@ export const Toolbar = (props: { engine: Engine }) => {
             labelOnButton={true}
             label={'▶'}
           />
-          <ButtonWithLabel
-            onClick={() => {
-              const collapsed = !minimized();
+          <ButtonGroup>
+            <LoadFileButton label={'Load'} onChange={loadJSON} accept=".json" />
+            <ButtonWithLabel
+              onClick={exportJSON}
+              labelOnButton={true}
+              label={'Save'}
+            />
+            <ButtonWithLabel
+              onClick={renderToWavefile}
+              labelOnButton={true}
+              label={'Mixdown'}
+            />{' '}
+            <ButtonWithLabel
+              onClick={clear}
+              labelOnButton={true}
+              label={'Clear all'}
+            />
+          </ButtonGroup>
 
-              props.engine.tracks.forEach((track) => {
-                track.chain.devices.forEach((device) => {
-                  device.set({ collapsed });
-                  if (device instanceof SamplerDevice) {
-                    device.slices.forEach((slice) => {
-                      slice.set({ collapsed });
-                    });
-                  }
-                  if (device instanceof DeviceChain) {
-                    device.devices.forEach((device) => {
-                      device.set({ collapsed });
-                    });
-                  }
-                });
-              });
-
-              setMinimized(collapsed);
-            }}
-            labelOnButton={true}
-            label={minimized() ? 'Maximize' : 'Minimize'}
-          />
           <Row
             classList={{
               [css`
@@ -286,15 +269,20 @@ export const Toolbar = (props: { engine: Engine }) => {
                 props.engine.set({ currentPatternIndex })
               }
             />
+            <NumberInputWithArrowButtons
+              label={'Zoom'}
+              min={0.25}
+              max={2}
+              step={0.05}
+              size={3}
+              value={engineState.zoom}
+              onChange={(zoom) => {
+                props.engine.set({ zoom });
+              }}
+            />
           </Row>
           <ButtonGroup>
-            <For
-              each={
-                Object.keys(
-                  props.engine.viewMode
-                ) as (keyof typeof props.engine.viewMode)[]
-              }
-            >
+            <For each={props.engine.viewModes}>
               {(viewMode) => (
                 <ButtonWithLabel
                   activated={engineState.viewMode[viewMode]}
@@ -313,20 +301,29 @@ export const Toolbar = (props: { engine: Engine }) => {
             </For>
           </ButtonGroup>
           <ButtonWithLabel
-            onClick={clear}
-            labelOnButton={true}
-            label={'Clear all'}
-          />
-          Zoom:
-          <input
-            type="range"
-            min="0.25"
-            max={2}
-            step="0.05"
-            value={engineState.zoom}
-            onInput={(event) => {
-              props.engine.set({ zoom: event.currentTarget.valueAsNumber });
+            onClick={() => {
+              const collapsed = !minimized();
+
+              props.engine.tracks.forEach((track) => {
+                track.chain.devices.forEach((device) => {
+                  device.set({ collapsed });
+                  if (device instanceof SamplerDevice) {
+                    device.slices.forEach((slice) => {
+                      slice.set({ collapsed });
+                    });
+                  }
+                  if (device instanceof DeviceChain) {
+                    device.devices.forEach((device) => {
+                      device.set({ collapsed });
+                    });
+                  }
+                });
+              });
+
+              setMinimized(collapsed);
             }}
+            labelOnButton={true}
+            label={minimized() ? 'Maximize' : 'Minimize'}
           />
         </Row>
       </div>

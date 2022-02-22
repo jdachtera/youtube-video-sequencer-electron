@@ -1,18 +1,82 @@
-import { createSignal, For, Match, Switch } from 'solid-js';
+import {
+  createEffect,
+  createSignal,
+  For,
+  Match,
+  Switch,
+  untrack,
+} from 'solid-js';
 import { Engine } from '../engine/Engine';
 import { FindSlicesPanel } from './FindSlicesPanel';
 import { Column, Row } from '../UI/Grid';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { ButtonGroup } from '../UI/ButtonGroup';
 import { YoutubeSearchPanel } from './YoutubeSearchPanel';
+import { css } from '@emotion/css';
+
+const tabs = ['YouTube', 'SliceDB'] as const;
+export type SidePanelTab = typeof tabs[number];
 
 export const SidePanel = (props: { engine: Engine }) => {
-  const tabs = ['YouTube', 'SliceDB'] as const;
+  const sidePanelState = props.engine.createStore(
+    (engine) => engine.viewMode.sidePanel,
+    ['viewModeUpdated']
+  );
 
-  const [activeTab, setActiveTab] = createSignal<typeof tabs[number]>(tabs[0]);
+  const dragHandleWidth = 5;
+  const maxWidth = 600;
+  const [widthBeforeDragging, setWidthBeforeDragging] = createSignal(
+    untrack(() => sidePanelState.width)
+  );
+
+  const [isDragging, setIsDragging] = createSignal(false);
+
+  const handleMouseMove = (event: MouseEvent) => {
+    props.engine.set({
+      viewMode: {
+        sidePanel: {
+          width: Math.max(
+            Math.min(sidePanelState.width + event.movementX, maxWidth),
+            dragHandleWidth
+          ),
+        },
+      },
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    if (sidePanelState.width === dragHandleWidth) {
+      props.engine.set({
+        viewMode: {
+          sidePanel: {
+            width: widthBeforeDragging(),
+            open: false,
+          },
+        },
+      });
+    }
+  };
+
+  createEffect(() => {
+    if (isDragging()) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    } else {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    }
+  });
 
   return (
-    <Row width={'300px'} overflow={'hidden'}>
+    <Row
+      style={{
+        width: `${
+          sidePanelState.open ? sidePanelState.width : dragHandleWidth
+        }px`,
+      }}
+      overflow={'hidden'}
+    >
       <Column flex={1} overflow={'hidden'}>
         <ButtonGroup>
           <For each={tabs}>
@@ -20,22 +84,43 @@ export const SidePanel = (props: { engine: Engine }) => {
               <ButtonWithLabel
                 label={tab}
                 labelOnButton
-                activated={tab === activeTab()}
-                onClick={() => setActiveTab(tab)}
+                activated={tab === sidePanelState.activeTab}
+                onClick={() =>
+                  props.engine.set({
+                    viewMode: { sidePanel: { activeTab: tab } },
+                  })
+                }
               />
             )}
           </For>
         </ButtonGroup>
         <Switch>
-          <Match when={activeTab() === 'YouTube'}>
+          <Match when={sidePanelState.activeTab === 'YouTube'}>
             <YoutubeSearchPanel engine={props.engine} />
           </Match>
-          <Match when={activeTab() === 'SliceDB'}>
+          <Match when={sidePanelState.activeTab === 'SliceDB'}>
             <FindSlicesPanel engine={props.engine} />
           </Match>
         </Switch>
       </Column>{' '}
-      <Column width={'5px'}></Column>
+      <Column
+        class={css`
+          cursor: col-resize;
+        `}
+        onMouseDown={() => {
+          if (!sidePanelState.open) return;
+          event?.preventDefault();
+          setWidthBeforeDragging(sidePanelState.width);
+          setIsDragging(true);
+        }}
+        onClick={() => {
+          if (isDragging()) return;
+          props.engine.set({
+            viewMode: { sidePanel: { open: !sidePanelState.open } },
+          });
+        }}
+        width={`${dragHandleWidth}px`}
+      ></Column>
     </Row>
   );
 };

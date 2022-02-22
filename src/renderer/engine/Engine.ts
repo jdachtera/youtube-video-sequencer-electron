@@ -9,6 +9,8 @@ import { SamplerDevice, SerializedSamplerDevice } from './device/Sampler';
 import { Offline } from 'tone';
 import { EngineBase } from './EngineBase';
 
+import type { SidePanelTab } from 'renderer/panels/SidePanel';
+
 export type SerializedEngine = {
   currentPatternIndex: number;
   zoom: number;
@@ -20,6 +22,11 @@ export type SerializedEngine = {
     slice: boolean;
     sequencer: boolean;
     device: boolean;
+    sidePanel: {
+      activeTab: SidePanelTab;
+      width: number;
+      open: boolean;
+    };
   };
 };
 
@@ -38,12 +45,19 @@ export class Engine extends EngineBase<EngineEvents> {
 
   zoom = 1;
 
-  viewMode = {
+  viewMode: SerializedEngine['viewMode'] = {
     channel: true,
     slice: true,
     sequencer: true,
     device: true,
+    sidePanel: {
+      activeTab: 'YouTube',
+      width: 300,
+      open: true,
+    },
   };
+
+  viewModes = ['channel', 'slice', 'sequencer', 'device'] as const;
 
   static normalizeData = (
     parsedData: DeepPartial<
@@ -60,26 +74,39 @@ export class Engine extends EngineBase<EngineEvents> {
         sequencer: parsedData?.viewMode?.sequencer ?? true,
         slice: parsedData?.viewMode?.slice ?? true,
         device: parsedData?.viewMode?.device ?? true,
+        sidePanel: {
+          activeTab: parsedData?.viewMode?.sidePanel?.activeTab ?? 'YouTube',
+          open: parsedData?.viewMode?.sidePanel?.open ?? true,
+          width: parsedData?.viewMode?.sidePanel?.width ?? 300,
+        },
       },
-      tracks: [
-        ...(Array.isArray(parsedData.tracks) ? parsedData.tracks : [])
-          .filter(
-            (maybeTrack): maybeTrack is DeepPartial<SerializedTrack> =>
-              !!maybeTrack
-          )
-          .map((track) => Track.normalizeData({ ...track })),
-
-        ...(Array.isArray(parsedData.samplers) ? parsedData.samplers : []).map(
-          (sampler): SerializedTrack =>
-            Track.normalizeData({
-              chain: {
-                devices: [SamplerDevice.normalizeData({ ...sampler })],
-              },
-            })
-        ),
-      ],
+      tracks: Engine.normalizeTracks(parsedData),
     };
   };
+
+  static normalizeTracks(
+    parsedData: DeepPartial<
+      SerializedEngine & { samplers: SerializedSamplerDevice[] }
+    >
+  ) {
+    return [
+      ...(Array.isArray(parsedData.tracks) ? parsedData.tracks : [])
+        .filter(
+          (maybeTrack): maybeTrack is DeepPartial<SerializedTrack> =>
+            !!maybeTrack
+        )
+        .map((track) => Track.normalizeData({ ...track })),
+
+      ...(Array.isArray(parsedData.samplers) ? parsedData.samplers : []).map(
+        (sampler): SerializedTrack =>
+          Track.normalizeData({
+            chain: {
+              devices: [SamplerDevice.normalizeData({ ...sampler })],
+            },
+          })
+      ),
+    ];
+  }
 
   constructor(public transport: Transport) {
     super();
@@ -130,7 +157,7 @@ export class Engine extends EngineBase<EngineEvents> {
     this.tracks.forEach((track) => this.removeTrack(track));
   }
 
-  set(serializedEngine: Partial<SerializedEngine>) {
+  set(serializedEngine: DeepPartial<SerializedEngine>) {
     entries(serializedEngine).forEach((entry) => {
       if (!entry) return;
 
@@ -151,8 +178,8 @@ export class Engine extends EngineBase<EngineEvents> {
           break;
         case 'tracks':
           this.tracks.forEach((track) => this.removeTrack(track));
-          entry[1]?.forEach((serializedTrack) =>
-            this.createTrack(serializedTrack)
+          Engine.normalizeTracks({ tracks: entry[1] ?? [] }).forEach(
+            (serializedTrack) => this.createTrack(serializedTrack)
           );
           break;
         case 'viewMode':
@@ -160,6 +187,10 @@ export class Engine extends EngineBase<EngineEvents> {
             ...this.viewMode,
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             ...entry[1]!,
+            sidePanel: {
+              ...this.viewMode.sidePanel,
+              ...entry[1]?.sidePanel,
+            },
           };
           break;
       }

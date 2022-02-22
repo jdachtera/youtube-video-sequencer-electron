@@ -53,6 +53,8 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
                       display: flex;
                       cursor: pointer;
                       border-bottom: 1px black solid;
+                      overflow: hidden;
+                      height: 80px;
                     `]: true,
                     [css`
                       background: #363434;
@@ -61,6 +63,7 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
                 >
                   <div
                     class={css`
+                      display: flex;
                       width: 80px;
                       height: 80px;
                       background-size: cover;
@@ -76,6 +79,8 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
                     class={css`
                       flex: 1;
                       padding: 5px;
+                      text-overflow: ellipsis;
+                      overflow: hidden;
                     `}
                   >
                     {item.title}
@@ -105,7 +110,7 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
         {(item) => (
           <video
             muted={false}
-            width={300}
+            width={'100%'}
             height={(360 / 640) * 300}
             src={item}
             autoplay
