@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ipcRenderer } from 'electron';
 import ytdl from 'ytdl-core';
+import { search } from 'youtube-search-without-api-key';
 
 export type ExposedVars = typeof exposedVars;
 
@@ -31,26 +32,13 @@ const exposedVars = {
     },
   },
   yt: {
-    getYouTubeVideoMeta: async (url: string) => {
-      try {
-        const result = await ytdl.getInfo(url);
+    async search(term: string) {
+      return await search(term);
+    },
+    getInfo: async (url: string) => {
+      const result = await ytdl.getInfo(url);
 
-        const audioTracks = result.formats.filter(
-          (entry) => !entry.hasVideo && entry.hasAudio
-        );
-
-        const sourceFormat = audioTracks
-          .sort((a, b) => (a.audioBitrate! > b.audioBitrate! ? 1 : -1))
-          .shift();
-
-        return {
-          title: result.videoDetails.title,
-          sourceUrl: sourceFormat!.url,
-        };
-      } catch (e) {
-        console.dir(e);
-        throw e;
-      }
+      return result;
     },
 
     fetchVideo: async (url: string): Promise<ArrayBuffer | string> => {

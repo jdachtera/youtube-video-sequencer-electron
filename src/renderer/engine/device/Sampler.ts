@@ -76,9 +76,19 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
     if (cachedBlob) {
       this.buffer.fromArray(cachedBlob);
     } else {
-      const { sourceUrl, title } = await window.yt.getYouTubeVideoMeta(
-        this.url
+      const result = await window.yt.getInfo(this.url);
+
+      const audioTracks = result.formats.filter(
+        (entry) => !entry.hasVideo && entry.hasAudio
       );
+
+      const sourceFormat = audioTracks
+        .sort((a, b) => (a.audioBitrate! > b.audioBitrate! ? 1 : -1))
+        .shift();
+
+      const title = result.videoDetails.title;
+      const sourceUrl = sourceFormat!.url;
+
       this.set({ title });
 
       const base64StringOrBuffer = await window.yt.fetchVideo(sourceUrl);

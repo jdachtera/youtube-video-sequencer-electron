@@ -11,6 +11,8 @@ import { apolloClient } from './apolloClient';
 import { Toolbar } from './Toolbar';
 import { GlobalStyles } from './GlobalStyles';
 import { DeviceChainView } from './Device/DeviceChainView';
+import { Column, Row } from './Grid';
+import { SidePanel } from './SidePanel';
 
 const engine = new Engine(Transport);
 
@@ -27,52 +29,58 @@ export function App() {
       <ApolloProvider client={apolloClient}>
         <GlobalStyles />
 
-        <div
-          class={css`
-            padding: 3px;
-            background-color: #555;
-            box-shadow: inset 0 0 2px 1px #222;
-            border-radius: 5px;
-            display: flex;
-            flex: 1;
-            flex-direction: column;
-            width: 100vw;
-            height: 100vh;
-          `}
+        <Column
+          classList={{
+            [css`
+              background-color: #555;
+              box-shadow: inset 0 0 2px 1px #222;
+              border-radius: 5px;
+              width: 100vw;
+              height: 100vh;
+              position: relative;
+            `]: true,
+          }}
         >
           <Toolbar engine={engine} />
 
-          <div
+          <Row
             classList={{
               [css`
                 flex: 1;
-                overflow-y: auto;
-                width: 100%;
-                display: flex;
-                flex-direction: column;
-                zoom: ${zoom()};
+                overflow: hidden;
               `]: true,
             }}
           >
-            <For each={tracks()}>
-              {(track) => (
-                <div
-                  classList={{
-                    [css`
-                      flex-direction: column;
-                      display: flex;
-                    `]: true,
-                  }}
-                >
-                  <DeviceChainView
-                    deviceChain={track.chain}
-                    renderDummy={false}
-                  />
-                </div>
-              )}
-            </For>
-          </div>
-        </div>
+            <SidePanel engine={engine} />
+            <Column
+              classList={{
+                [css`
+                  flex: 1;
+                  overflow: auto;
+                  zoom: ${zoom()};
+                `]: true,
+              }}
+            >
+              <For each={tracks()}>
+                {(track) => (
+                  <div
+                    classList={{
+                      [css`
+                        flex-direction: column;
+                        display: flex;
+                      `]: true,
+                    }}
+                  >
+                    <DeviceChainView
+                      deviceChain={track.chain}
+                      renderDummy={false}
+                    />
+                  </div>
+                )}
+              </For>
+            </Column>
+          </Row>
+        </Column>
       </ApolloProvider>
     </ThemeProvider>
   );

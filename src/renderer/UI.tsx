@@ -191,6 +191,17 @@ export const NumberInputWithArrowButtons = (
         const parsedValue = props.parse(event.currentTarget.value);
         triggerChange(isNaN(parsedValue) ? props.value : parsedValue);
       }}
+      onWheel={(event) => {
+        event.preventDefault();
+        setCursorPosition(event.currentTarget.selectionStart);
+        if (event.deltaY > 0) {
+          handleUp();
+        } else if (event.deltaY < 0) {
+          handleDown();
+        }
+        event.currentTarget.selectionStart = cursorPosition();
+        event.currentTarget.selectionEnd = cursorPosition();
+      }}
     />
   );
 };
@@ -245,6 +256,15 @@ export const SelectWithArrowButtons = <Option extends unknown>(
       }}
       onClickUp={handleUp}
       onClickDown={handleDown}
+      onWheel={(event) => {
+        if (event.deltaY > 0) {
+          event.preventDefault();
+          handleUp();
+        } else if (event.deltaY < 0) {
+          event.preventDefault();
+          handleDown();
+        }
+      }}
     />
   );
 };

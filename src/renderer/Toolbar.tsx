@@ -4,14 +4,12 @@ import { Transport, start } from 'tone';
 import { debounce } from 'ts-debounce';
 
 import { Engine } from './engine/Engine';
-import { FindSlicesButton } from './FindSlicesButton';
 import { LoginModal } from './LoginModal';
 import { DeepPartial } from './engine/types';
 import { Track } from './engine/Track';
 import {
   ButtonGroup,
   ButtonWithLabel,
-  InputLCD,
   LoadFileButton,
   NumberInputWithArrowButtons,
 } from './UI';
@@ -82,17 +80,6 @@ export const Toolbar = (props: { engine: Engine }) => {
 
   const handleSwingChange = (swing: number) => {
     props.engine.set({ swing });
-  };
-
-  const addSampler = (event: { currentTarget: HTMLInputElement }) => {
-    props.engine.createTrack(
-      Track.normalizeData({
-        chain: {
-          name: 'DeviceChain',
-          devices: [{ name: 'Sampler', url: event.currentTarget.value }],
-        },
-      })
-    );
   };
 
   const clear = () => {
@@ -264,15 +251,44 @@ export const Toolbar = (props: { engine: Engine }) => {
             labelOnButton={true}
             label={minimized() ? 'Maximize' : 'Minimize'}
           />
-          :
-          <NumberInputWithArrowButtons
-            min={20}
-            max={280}
-            step={1}
-            size={4}
-            value={engineState.bpm}
-            onChange={handleTempoChange}
-          />
+          <Row
+            classList={{
+              [css`
+                zoom: 0.6;
+                label {
+                  color: white;
+                }
+              `]: true,
+            }}
+          >
+            <NumberInputWithArrowButtons
+              label={'Tempo'}
+              min={20}
+              max={280}
+              step={1}
+              size={4}
+              value={engineState.bpm}
+              onChange={handleTempoChange}
+            />
+            <NumberInputWithArrowButtons
+              label={'Swing'}
+              min={0}
+              max={1}
+              step={0.1}
+              size={4}
+              value={engineState.swing}
+              onChange={handleSwingChange}
+            />
+            <NumberInputWithArrowButtons
+              label={'Pattern'}
+              min={0}
+              size={3}
+              value={engineState.currentPatternIndex}
+              onChange={(currentPatternIndex) =>
+                props.engine.set({ currentPatternIndex })
+              }
+            />
+          </Row>
           <ButtonGroup>
             <For
               each={
@@ -298,29 +314,10 @@ export const Toolbar = (props: { engine: Engine }) => {
               )}
             </For>
           </ButtonGroup>
-          <NumberInputWithArrowButtons
-            min={0}
-            max={1}
-            step={0.1}
-            size={4}
-            value={engineState.swing}
-            onChange={handleSwingChange}
-          />
           <ButtonWithLabel
             onClick={clear}
             labelOnButton={true}
             label={'Clear all'}
-          />
-          <FindSlicesButton engine={props.engine} />
-          Add video: <InputLCD onInput={addSampler} />
-          Pattern:
-          <NumberInputWithArrowButtons
-            min={0}
-            size={3}
-            value={engineState.currentPatternIndex}
-            onChange={(currentPatternIndex) =>
-              props.engine.set({ currentPatternIndex })
-            }
           />
           Zoom:
           <input
