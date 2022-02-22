@@ -1,3 +1,4 @@
+import { Property } from 'csstype';
 import { css, CSSInterpolation, injectGlobal } from '@emotion/css';
 import {
   createContext,
@@ -6,6 +7,7 @@ import {
   JSX,
   mergeProps,
   splitProps,
+  ComponentProps,
 } from 'solid-js';
 import { createComponent, spread } from 'solid-js/web';
 
@@ -40,9 +42,15 @@ export const styled =
   <T extends keyof JSX.IntrinsicElements, P extends JSX.IntrinsicElements[T]>(
     ComponentOrTag: T | ((props: P) => JSX.Element)
   ) =>
-  (template: TemplateStringsArray | ((props: P) => string)) =>
-  (props: P) => {
-    const [ownProps, componentProps] = splitProps(props, ['classList']);
+  <OwnProps extends Record<string, unknown>>(
+    template: TemplateStringsArray | ((props: P & OwnProps) => string)
+  ) =>
+  (props: P & OwnProps) => {
+    const [ownProps, componentProps] = splitProps(props, [
+      'classList',
+      'class',
+      'className',
+    ]);
 
     const newProps = mergeProps(
       {
@@ -50,10 +58,20 @@ export const styled =
           const className =
             typeof template === 'function' ? template(props) : css(template);
 
-          return {
+          const classNames = [
+            ...((props.class as string)?.split(' ') ?? []),
+            ...((props.className as string)?.split(' ') ?? []),
+          ];
+
+          const classList = {
             [className]: true,
             ...ownProps.classList,
+            ...Object.fromEntries(
+              classNames.map((className) => [className, true])
+            ),
           };
+
+          return classList;
         },
       },
       componentProps

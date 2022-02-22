@@ -4,7 +4,7 @@ import SwitchOnSvg from '../svg/switch--on.svg';
 import SwitchOffSvg from '../svg/switch--off.svg';
 import { css } from 'renderer/emotion-solid';
 import { Label } from './Label';
-import { useAppTheme } from '../theme';
+import { useAppTheme } from './theme';
 
 export const Toggle = (
   props: {

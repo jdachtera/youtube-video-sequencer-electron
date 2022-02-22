@@ -19,7 +19,7 @@ import { DistortionView } from './DistortionView';
 import { CompressorView } from './CompressorView';
 import { ReverbDevice } from 'renderer/engine/device/Reverb';
 import { ReverbView } from './ReverbView';
-import { DeviceWrapper } from 'renderer/UI';
+import { DeviceWrapper } from 'renderer/UI/DeviceWrapper';
 
 export const DeviceView = (props: {
   device: Device;

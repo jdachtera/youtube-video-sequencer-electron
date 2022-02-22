@@ -14,9 +14,10 @@ import { Dynamic } from 'solid-js/web';
 import { css } from 'renderer/emotion-solid';
 
 import MoogKnobSvg from '../svg/moog_knob.svg';
-import { useAppTheme } from '../theme';
+import { useAppTheme } from './theme';
 import { Label } from './Label';
-import { LCDLabel, NumberInputWithArrowButtons } from 'renderer/UI';
+import { NumberInputWithArrowButtons } from 'renderer/UI/NumberInputWithArrowButtons';
+import { LCDLabel } from 'renderer/UI/LCD';
 
 type KnobProps = {
   value?: number;

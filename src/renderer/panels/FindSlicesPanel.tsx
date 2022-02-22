@@ -2,13 +2,13 @@ import { createQuery } from '@merged/solid-apollo';
 import { createMemo, createSignal, For, JSX, splitProps } from 'solid-js';
 import { css } from 'renderer/emotion-solid';
 
-import { SamplerDevice } from './engine/device/Sampler';
-import { Slice } from './engine/device/Slice';
-import { Engine } from './engine/Engine';
-import { Track } from './engine/Track';
+import { SamplerDevice } from '../engine/device/Sampler';
+import { Slice } from '../engine/device/Slice';
+import { Engine } from '../engine/Engine';
+import { Track } from '../engine/Track';
 import { SlicesDocument, TagsDocument } from './Slice.generated';
-import { ButtonWithLabel } from './UI';
-import { Column } from './Grid';
+import { ButtonWithLabel } from '../UI/ButtonWithLabel';
+import { Column } from '../UI/Grid';
 
 export const Pagination = (
   allProps: {

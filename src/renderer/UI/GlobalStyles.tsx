@@ -1,6 +1,6 @@
-import ChessTypeFont from './fonts/ChessType.ttf';
-import OswaldFont from './fonts/Oswald.ttf';
-import DSEG14Classic from './fonts/DSEG14Classic-Regular.ttf';
+import ChessTypeFont from '../fonts/ChessType.ttf';
+import OswaldFont from '../fonts/Oswald.ttf';
+import DSEG14Classic from '../fonts/DSEG14Classic-Regular.ttf';
 
 import { createGlobalStyles as css } from 'renderer/emotion-solid';
 

@@ -1,17 +1,15 @@
 import { createMemo, For, JSX, splitProps } from 'solid-js';
 
-import { SamplerDevice } from './engine/device/Sampler';
-import { Slice } from './engine/device/Slice';
-import { subdivisions, subdivisionTypes } from './engine/types';
-import { Sequencer } from './Device/Sequencer';
+import { SamplerDevice } from '../engine/device/Sampler';
+import { Slice } from '../engine/device/Slice';
+import { subdivisions, subdivisionTypes } from '../engine/types';
+import { Sequencer } from './Sequencer';
 
-import {
-  ButtonWithLabel,
-  NumberInputWithArrowButtons,
-  ScreenPrintBackground,
-  SelectWithArrowButtons,
-} from './UI';
-import { Flex, Row } from './Grid';
+import { SelectWithArrowButtons } from '../UI/SelectWithArrowButtons';
+import { NumberInputWithArrowButtons } from '../UI/NumberInputWithArrowButtons';
+import { ScreenPrintBackground } from '../UI/ScreenPrintBackground';
+import { ButtonWithLabel } from '../UI/ButtonWithLabel';
+import { Flex, Row } from '../UI/Grid';
 import { css } from '@emotion/css';
 
 export const PatternEditor = (

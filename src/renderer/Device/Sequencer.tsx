@@ -15,8 +15,9 @@ import {
 import { Slice, Step } from '../engine/device/Slice';
 import { css } from 'renderer/emotion-solid';
 import { SequencerStep } from './SequencerStep';
-import { Row } from 'renderer/Grid';
-import { ButtonWithLabel, NumberInputWithArrowButtons } from 'renderer/UI';
+import { Row } from 'renderer/UI/Grid';
+import { NumberInputWithArrowButtons } from 'renderer/UI/NumberInputWithArrowButtons';
+import { ButtonWithLabel } from 'renderer/UI/ButtonWithLabel';
 
 const colors808Knobs = ['#ffffff', '#f1f827', '#f8a125', '#e72e2e'];
 

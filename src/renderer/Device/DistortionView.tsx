@@ -1,4 +1,4 @@
-import { MoogKnobWithLabel } from '../controls/Knob';
+import { MoogKnobWithLabel } from '../UI/Knob';
 import { DistortionDevice } from 'renderer/engine/device/Distortion';
 
 export const DistortionView = (props: { distortion: DistortionDevice }) => {

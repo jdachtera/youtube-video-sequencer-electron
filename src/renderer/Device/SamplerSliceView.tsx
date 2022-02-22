@@ -1,29 +1,28 @@
 import { css } from 'renderer/emotion-solid';
 
 import {
-  LCDLabel,
-  LCD,
-  ButtonWithLabel,
-  DeviceWrapper,
-  InputLCD,
   parseFormattedTime,
   formatTime,
   formatPercentage,
   formattedTimeStep,
-} from '../UI';
+} from '../UI/format';
+import { LCD, InputLCD } from '../UI/lcdStyles';
+import { DeviceWrapper } from '../UI/DeviceWrapper';
+import { ButtonWithLabel } from '../UI/ButtonWithLabel';
+import { LCDLabel } from '../UI/LCD';
 
 import { WavesurferSliceView } from './WavesurferSliceView';
 
 import type { Slice } from '../engine/device/Slice';
-import { MoogKnobWithLabel, NumberInputWithLabel } from '../controls/Knob';
+import { MoogKnobWithLabel, NumberInputWithLabel } from '../UI/Knob';
 
-import { ShareSliceButton } from '../ShareSliceButton';
-import { SlicePattern } from '../PatternEditor';
+import { ShareSliceButton } from '../UI/ShareSliceButton';
+import { SlicePattern } from './PatternEditor';
 import { DeviceChainView } from './DeviceChainView';
-import { Column, Flex, Row } from 'renderer/Grid';
+import { Column, Flex, Row } from 'renderer/UI/Grid';
 import { exportBuffer } from 'renderer/engine/helpers';
 import { Show } from 'solid-js';
-import { SameHeightContainer } from 'renderer/SameHeightContainer';
+import { SameHeightContainer } from 'renderer/UI/SameHeightContainer';
 
 export const SamplerSliceView = (props: {
   slice: Slice;

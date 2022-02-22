@@ -9,9 +9,10 @@ import { css } from 'renderer/emotion-solid';
 import { SamplerDevice } from '../engine/device/Sampler';
 import { WavesurferView } from './WavesurferView';
 
-import { LCD, LCDFrame, LCDLine, AkaiButton } from '../UI';
-
 import { Slice } from '../engine/device/Slice';
+import { LCDFrame, LCDLine } from 'renderer/UI/LCD';
+import { LCD } from 'renderer/UI/lcdStyles';
+import { AkaiButton } from 'renderer/UI/AkaiButton';
 
 export const SamplerView = (props: { sampler: SamplerDevice }) => {
   const [waveformCenter, setWaveformCenter] = createSignal(0);

@@ -3,11 +3,11 @@ import Dismiss from 'solid-dismiss';
 import { createSignal, Show } from 'solid-js';
 import { css } from 'renderer/emotion-solid';
 
-import { useIsLoggedIn } from './auth';
+import { useIsLoggedIn } from '../auth';
 
-import { Slice } from './engine/device/Slice';
-import { AddSliceDocument } from './Slice.generated';
-import { ButtonWithLabel } from './UI';
+import { Slice } from '../engine/device/Slice';
+import { AddSliceDocument } from '../panels/Slice.generated';
+import { ButtonWithLabel } from './ButtonWithLabel';
 
 export const ShareSliceButton = (props: { slice: Slice }) => {
   const slice = props.slice.createStore((slice) => slice.serialize(), 'change');

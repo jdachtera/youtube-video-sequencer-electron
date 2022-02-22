@@ -1,7 +1,7 @@
 import { JSX, mergeProps, splitProps } from 'solid-js';
 import { css } from 'renderer/emotion-solid';
 
-import { useAppTheme } from '../theme';
+import { useAppTheme } from '../UI/theme';
 
 type SequencerStepProps = {
   color?: string;

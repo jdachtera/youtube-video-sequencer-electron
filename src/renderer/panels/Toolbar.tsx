@@ -3,20 +3,18 @@ import { css } from 'renderer/emotion-solid';
 import { Transport, start } from 'tone';
 import { debounce } from 'ts-debounce';
 
-import { Engine } from './engine/Engine';
+import { Engine } from '../engine/Engine';
 import { LoginModal } from './LoginModal';
-import { DeepPartial } from './engine/types';
-import { Track } from './engine/Track';
-import {
-  ButtonGroup,
-  ButtonWithLabel,
-  LoadFileButton,
-  NumberInputWithArrowButtons,
-} from './UI';
-import { Row } from './Grid';
-import { exportBuffer } from './engine/helpers';
-import { SamplerDevice } from './engine/device/Sampler';
-import { DeviceChain } from './engine/device/DeviceChain';
+import { DeepPartial } from '../engine/types';
+
+import { NumberInputWithArrowButtons } from '../UI/NumberInputWithArrowButtons';
+import { ButtonWithLabel } from '../UI/ButtonWithLabel';
+import { LoadFileButton } from '../UI/LoadFileButton';
+import { ButtonGroup } from '../UI/ButtonGroup';
+import { Row } from '../UI/Grid';
+import { exportBuffer } from '../engine/helpers';
+import { SamplerDevice } from '../engine/device/Sampler';
+import { DeviceChain } from '../engine/device/DeviceChain';
 
 const camelCaseToSpaced = (str: string) => {
   let newString = '';
