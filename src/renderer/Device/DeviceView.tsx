@@ -50,7 +50,7 @@ export const DeviceView = (props: {
               classList={{
                 [css`
                   display: none;
-                `]: collapsed(),
+                `]: !collapsed(),
                 [css`
                   cursor: pointer;
                 `]: true,
@@ -67,7 +67,7 @@ export const DeviceView = (props: {
                 device: true,
                 [css`
                   display: none;
-                `]: !collapsed(),
+                `]: collapsed(),
               }}
             >
               <Switch>

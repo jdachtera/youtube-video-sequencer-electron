@@ -62,7 +62,6 @@ export const WavesurferSliceView = (
   );
 
   createEffect(() => {
-    console.log(props.collapsed, buffer());
     const currentBuffer = buffer();
     if (!props.collapsed && wavesurfer && currentBuffer) {
       setTimeout(() => {

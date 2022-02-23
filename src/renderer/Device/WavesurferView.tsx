@@ -23,6 +23,16 @@ export const WavesurferView = (props: WavesurferViewProps) => {
   let waveformRef: HTMLDivElement | undefined;
   let timelineRef: HTMLDivElement | undefined;
 
+  const collapsed = props.sampler.createSignal(
+    (sampler) => sampler.collapsed,
+    'collapsedUpdated'
+  );
+
+  const showDevices = props.sampler.engine.createSignal(
+    (engine) => engine.viewMode.device,
+    ['viewModeUpdated']
+  );
+
   let wavesurfer: Wavesurfer;
 
   const scrollZoom = debounce((event: WheelEvent) => {
@@ -170,7 +180,7 @@ export const WavesurferView = (props: WavesurferViewProps) => {
   );
 
   createEffect(() => {
-    if (wavesurfer && buffer()) {
+    if (!collapsed() && showDevices() && wavesurfer && buffer()) {
       wavesurfer.loadDecodedBuffer(buffer());
     }
   });
