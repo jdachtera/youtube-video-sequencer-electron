@@ -110,8 +110,6 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
       return await window.yt.fetchVideo(this.url);
     }
 
-    return new ArrayBuffer(1);
-
     const result = await window.yt.getInfo(this.url);
 
     const audioTracks = result.formats.filter(

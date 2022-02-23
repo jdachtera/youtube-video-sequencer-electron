@@ -71,6 +71,8 @@ export abstract class Device<
           this.collapsed = entry[1] ?? false;
           break;
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (this as any).emit(`${entry[0]}Updated`, entry[1]);
     });
     this.emitChange();
   }
