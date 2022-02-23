@@ -25,8 +25,8 @@ export const DeviceWrapper = (
       classList={{
         ...divProps.classList,
         [css`
+          label: DeviceWrapper;
           display: flex;
-
           border: 1px #222 solid;
           background: ${props.background ?? '#969696'};
           box-shadow: 0px 0px 2px inset #222;

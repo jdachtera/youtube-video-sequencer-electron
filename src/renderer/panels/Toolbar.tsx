@@ -15,17 +15,8 @@ import { Row } from '../UI/Grid';
 import { SamplerDevice } from '../engine/device/Sampler';
 import { DeviceChain } from '../engine/device/DeviceChain';
 import { MixdownButton } from './MixdownButton';
+import { camelCaseToSpaced } from 'renderer/UI/format';
 
-const camelCaseToSpaced = (str: string) => {
-  let newString = '';
-  for (let i = 0; i < str.length; i++) {
-    if (str[i] === str[i].toUpperCase()) {
-      newString += ' ';
-    }
-    newString += str[i].toLowerCase();
-  }
-  return newString;
-};
 export const Toolbar = (props: { engine: Engine }) => {
   const [isPlaying, setIsPlaying] = createSignal(false);
 

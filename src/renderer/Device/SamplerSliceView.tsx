@@ -62,7 +62,6 @@ export const SamplerSliceView = (props: {
           align-items: center;
           padding: 0;
           margin: 0;
-          overflow-x: auto;
         `}
       >
         <DeviceWrapper

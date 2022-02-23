@@ -48,6 +48,7 @@ export type Step = {
   volume: number;
   playbackRate: number;
   pitch: number;
+  reverse: boolean;
 };
 
 export type SliceEvents = {
@@ -122,10 +123,11 @@ export class Slice extends EngineBase<SliceEvents> {
 
   protected onSequenceEvent = (time: number, step: Step) => {
     if (step.play) {
+      this.player.set({ reverse: step.reverse ? !this.reverse : this.reverse });
       this.play(time);
     }
     this.player.playbackRate = this.playbackRate * step.playbackRate;
-    this.player.detune = this.pitch * step.pitch * 100;
+    this.player.detune = this.pitch * step.pitch;
 
     this.gainNode.gain.setValueAtTime(this.volume * step.volume, time);
 
@@ -178,7 +180,7 @@ export class Slice extends EngineBase<SliceEvents> {
           this.playbackRate = entry[1] ?? 1;
           break;
         case 'reverse':
-          this.player.reverse = entry[1] ?? false;
+          this.reverse = entry[1] ?? false;
           break;
         case 'solo':
           this.soloNode.solo = entry[1] ?? false;
@@ -314,7 +316,7 @@ export class Slice extends EngineBase<SliceEvents> {
       end: this.end,
       volume: this.volume,
       playbackRate: this.playbackRate,
-      reverse: this.player.reverse,
+      reverse: this.reverse,
       color: this.color,
       patterns: this.patterns.map((pattern) => {
         return {
@@ -390,6 +392,7 @@ export const normalizeStepData = (
   volume: step.volume ?? 1,
   ...(step.actions?.length && { play: true }),
   pitch: step.pitch ?? 1,
+  reverse: step.reverse ?? false,
 });
 
 export const normalizePatternData = (

@@ -67,3 +67,14 @@ export const formatTime = (time: number) => {
     `${fraction}`.padStart(4, '0'),
   ].join(':');
 };
+
+export const camelCaseToSpaced = (str: string) => {
+  let newString = '';
+  for (let i = 0; i < str.length; i++) {
+    if (str[i] === str[i].toUpperCase()) {
+      newString += ' ';
+    }
+    newString += str[i].toLowerCase();
+  }
+  return newString;
+};

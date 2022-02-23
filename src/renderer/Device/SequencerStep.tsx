@@ -1,6 +1,16 @@
 import { Step } from 'renderer/engine/device/Slice';
-import { NumberInputWithArrowButtons } from 'renderer/UI/NumberInputWithArrowButtons';
-import { JSX, Match, mergeProps, splitProps, Switch } from 'solid-js';
+import { camelCaseToSpaced } from 'renderer/UI/format';
+
+import { RangeInput } from 'renderer/UI/RangeInput';
+import {
+  createSignal,
+  JSX,
+  Match,
+  mergeProps,
+  Show,
+  splitProps,
+  Switch,
+} from 'solid-js';
 import { css } from '../emotion-solid';
 
 import { useAppTheme } from '../UI/theme';
@@ -10,7 +20,32 @@ export const sequencerModes: (keyof Step)[] = [
   'playbackRate',
   'volume',
   'pitch',
+  'reverse',
 ];
+
+const controlRangeProps = {
+  playbackRate: {
+    min: 0.01,
+    max: 2,
+    step: 0.01,
+    fineStep: 0.001,
+    formatValue: (value: number) => `${Math.round(value * 1000) / 10}%`,
+  },
+  volume: {
+    min: 0,
+    max: 2,
+    step: 0.01,
+    fineStep: 0.001,
+    formatValue: (value: number) => `${Math.round(value * 1000) / 10}%`,
+  },
+  pitch: {
+    min: -2400,
+    max: 2400,
+    step: 100,
+    fineStep: 1,
+    formatValue: (value: number) => `${Math.round(value) / 100}`,
+  },
+} as const;
 
 export type SequencerMode = typeof sequencerModes[number];
 
@@ -109,11 +144,15 @@ export const SequencerStep = (allProps: SequencerStepProps) => {
 
   const props = mergeProps({ isSelected: false, isCurrent: false }, ownProps);
 
+  const [isHovering, setIsHovering] = createSignal(false);
+
   return (
     <li
       {...liProps}
+      onMouseLeave={() => setIsHovering(false)}
       classList={{
         [css`
+          position: relative;
           list-style: none;
           user-select: none;
           display: inline-flex;
@@ -122,6 +161,7 @@ export const SequencerStep = (allProps: SequencerStepProps) => {
         `]: true,
         ...liProps.classList,
       }}
+      onMouseEnter={() => setIsHovering(true)}
     >
       <div
         class={css`
@@ -135,30 +175,36 @@ export const SequencerStep = (allProps: SequencerStepProps) => {
         `}
       >
         <Switch>
-          <Match when={props.mode === 'play'}>
-            <div
-              onClick={() => {
-                if (props.step) {
-                  props.onChange?.(props.step, {
-                    ...props.step,
-                    play: !props.step.play,
-                  });
-                }
-              }}
-              classList={{
-                [sequencerStepStyles()]: true,
-                sequencerStepIsActive: props.step?.play,
-                sequencerStepIsCurrent: props.isCurrent,
-                sequencerStepIsSelected: props.isSelected,
-                [css`
-                  &:active {
-                    border: none;
+          <Match
+            when={
+              (props.mode === 'play' || props.mode === 'reverse') && props.mode
+            }
+          >
+            {(mode) => (
+              <div
+                onClick={() => {
+                  if (props.step) {
+                    props.onChange?.(props.step, {
+                      ...props.step,
+                      [mode]: !props.step?.[mode],
+                    });
                   }
-                `]: true,
-              }}
-            >
-              &nbsp;
-            </div>
+                }}
+                classList={{
+                  [sequencerStepStyles()]: true,
+                  sequencerStepIsActive: props.step?.[mode],
+                  sequencerStepIsCurrent: props.isCurrent,
+                  sequencerStepIsSelected: props.isSelected,
+                  [css`
+                    &:active {
+                      border: none;
+                    }
+                  `]: true,
+                }}
+              >
+                &nbsp;
+              </div>
+            )}
           </Match>
           <Match
             when={
@@ -177,31 +223,36 @@ export const SequencerStep = (allProps: SequencerStepProps) => {
                   sequencerStepIsSelected: props.isSelected,
                 }}
               >
-                <div
-                  class={css`
-                    zoom: 0.6;
-                    input {
-                      background: none;
-                      border: none;
-                      box-shadow: none;
+                <Show when={isHovering()}>
+                  <RangeInput
+                    {...controlRangeProps[mode]}
+                    class={css`
+                      position: absolute;
+                      background: rgba(255, 255, 255, 0.9);
+                      border-radius: 3px;
+                      bottom: -50%;
+                      left: -25%;
                       text-align: center;
-                      outline: none;
-                      &:active {
-                        outline: none;
-                        border: none;
-                        box-shadow: none;
-                        border-radius: 0;
+                      label {
                       }
-                    }
-                    .buttons {
-                      display: none;
-                    }
-                  `}
-                >
-                  <NumberInputWithArrowButtons
+
+                      font-size: 16px;
+                      color: black;
+                      font-family: 'Oswald';
+                      text-transform: 'uppercase';
+                      padding: 8px;
+                      z-index: 10;
+                      input {
+                        writing-mode: bt-lr; /* IE */
+                        -webkit-appearance: slider-vertical; /* Chromium */
+                        width: 8px;
+                        height: 170px;
+                        padding: 0 5px;
+                      }
+                    `}
+                    onMouseLeave={() => setIsHovering(false)}
                     value={props.step?.[mode] ?? 1}
-                    step={0.1}
-                    size={2}
+                    label={camelCaseToSpaced(mode)}
                     onChange={(value) => {
                       if (props.step) {
                         props.onChange?.(props.step, {
@@ -210,8 +261,8 @@ export const SequencerStep = (allProps: SequencerStepProps) => {
                         });
                       }
                     }}
-                  ></NumberInputWithArrowButtons>
-                </div>
+                  />
+                </Show>
               </div>
             )}
           </Match>

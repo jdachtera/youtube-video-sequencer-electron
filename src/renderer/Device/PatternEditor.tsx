@@ -49,6 +49,7 @@ const sequencerModeLabels = {
   pitch: '♪',
   playbackRate: '↠',
   volume: '📢',
+  reverse: '↶',
 };
 
 export const SlicePattern = (
