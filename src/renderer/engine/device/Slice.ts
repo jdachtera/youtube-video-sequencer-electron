@@ -134,7 +134,7 @@ export class Slice extends EngineBase<SliceEvents> {
       this.play(time);
     }
     this.player.playbackRate = this.playbackRate * step.playbackRate;
-    this.player.detune = this.pitch * step.pitch;
+    this.player.detune = this.pitch + step.pitch;
 
     this.gainNode.gain.setValueAtTime(this.volume * step.volume, time);
 
