@@ -74,6 +74,7 @@ export const InputWithArrowButtons = (
               [css`
                 padding: 2px;
               `]: true,
+              buttons: true,
             }}
           >
             <ButtonWithLabel

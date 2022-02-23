@@ -1,4 +1,4 @@
-import { createMemo, For, JSX, splitProps } from 'solid-js';
+import { createMemo, createSignal, For, JSX, splitProps } from 'solid-js';
 
 import { SamplerDevice } from '../engine/device/Sampler';
 import { Slice } from '../engine/device/Slice';
@@ -11,6 +11,7 @@ import { ScreenPrintBackground } from '../UI/ScreenPrintBackground';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { Flex, Row } from '../UI/Grid';
 import { css } from '@emotion/css';
+import { SequencerMode, sequencerModes } from './SequencerStep';
 
 export const PatternEditor = (
   allProps: {
@@ -43,6 +44,13 @@ export const PatternEditor = (
   );
 };
 
+const sequencerModeLabels = {
+  play: '▶',
+  pitch: '♪',
+  playbackRate: '↠',
+  volume: '📢',
+};
+
 export const SlicePattern = (
   allProps: {
     slice: Slice;
@@ -66,6 +74,8 @@ export const SlicePattern = (
   const currentPattern = createMemo(
     () => patterns()[props.currentPatternIndex]
   );
+
+  const [selectedMode, setSelectedMode] = createSignal<SequencerMode>('play');
 
   return (
     <Flex
@@ -128,9 +138,17 @@ export const SlicePattern = (
             });
           }}
         />
+        <SelectWithArrowButtons
+          size={1}
+          options={sequencerModes}
+          selectedOption={selectedMode()}
+          optionLabel={(mode) => sequencerModeLabels[mode]}
+          onChange={setSelectedMode}
+        />
       </Row>
       <ScreenPrintBackground background={'rgba(255,255,255,0.2)'}>
         <Sequencer
+          mode={selectedMode()}
           steps={currentPattern().steps}
           onChange={(steps) => {
             props.slice.updatePattern(props.currentPatternIndex, {

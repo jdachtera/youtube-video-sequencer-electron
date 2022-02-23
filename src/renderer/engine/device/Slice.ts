@@ -2,6 +2,7 @@
 import {
   Gain,
   getDraw,
+  GrainPlayer,
   Player,
   Sequence,
   Solo,
@@ -46,6 +47,7 @@ export type Step = {
   play: boolean;
   volume: number;
   playbackRate: number;
+  pitch: number;
 };
 
 export type SliceEvents = {
@@ -58,7 +60,7 @@ export type SliceEvents = {
 } & PropertyUpdateEvents<SerializedSlice>;
 
 export class Slice extends EngineBase<SliceEvents> {
-  player = new Player();
+  player = new GrainPlayer();
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   sequence: Sequence<Step> = null!;
 
@@ -72,6 +74,7 @@ export class Slice extends EngineBase<SliceEvents> {
   collapsed = false;
 
   playbackRate = 1;
+  pitch = 1;
   volume = 1;
 
   currentPosition = 0;
@@ -122,6 +125,8 @@ export class Slice extends EngineBase<SliceEvents> {
       this.play(time);
     }
     this.player.playbackRate = this.playbackRate * step.playbackRate;
+    this.player.detune = this.pitch * step.pitch * 100;
+
     this.gainNode.gain.setValueAtTime(this.volume * step.volume, time);
 
     this.chain.handleSequenceEvent(time, step);
@@ -384,6 +389,7 @@ export const normalizeStepData = (
   playbackRate: step.playbackRate ?? 1,
   volume: step.volume ?? 1,
   ...(step.actions?.length && { play: true }),
+  pitch: step.pitch ?? 1,
 });
 
 export const normalizePatternData = (

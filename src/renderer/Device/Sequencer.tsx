@@ -8,23 +8,25 @@ import {
   splitProps,
   Show,
   createEffect,
-  For,
-  createMemo,
 } from 'solid-js';
 
 import { Slice, Step } from '../engine/device/Slice';
 import { css } from '../emotion-solid';
-import { SequencerStep } from './SequencerStep';
+import { SequencerMode, SequencerStep } from './SequencerStep';
 import { Row } from '../UI/Grid';
 import { NumberInputWithArrowButtons } from '../UI/NumberInputWithArrowButtons';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 
 const colors808Knobs = ['#ffffff', '#f1f827', '#f8a125', '#e72e2e'];
 
+const getColor = (index: number) =>
+  colors808Knobs[Math.floor((index % 16) / 4)];
+
 export const Sequencer = (
   propsWithoutDefaults: Omit<JSX.IntrinsicElements['ul'], 'onChange'> & {
     steps: Step[];
     slice: Slice;
+    mode: SequencerMode;
     onChange: (steps: Step[]) => void;
   }
 ) => {
@@ -32,6 +34,7 @@ export const Sequencer = (
     'steps',
     'slice',
     'onChange',
+    'mode',
   ]);
   const props = mergeProps(
     { onToggleStep: (step: Step): boolean => !step.play },
@@ -60,12 +63,7 @@ export const Sequencer = (
 
   const [selectedStep, setSelectedStep] = createSignal<Step>();
 
-  const handleToggleStep = (step: Step) => {
-    const newStep = {
-      ...step,
-      play: !step.play,
-    };
-
+  const handleStepChanged = (step: Step, newStep: Step) => {
     const stepIndex = props.steps.indexOf(step);
 
     const newSteps = [
@@ -95,6 +93,7 @@ export const Sequencer = (
           onChange={(page) => setPage(page)}
         />
       </Show>
+
       <ul
         {...ulProps}
         classList={{
@@ -111,17 +110,18 @@ export const Sequencer = (
           {(step, index) => {
             return (
               <SequencerStep
+                mode={props.mode}
                 hidden={
                   !(
                     !collapsed() ||
                     (index < page() * 16 && index >= page() * 16 - 16)
                   )
                 }
-                color={colors808Knobs[Math.floor((index % 16) / 4)]}
-                onClick={() => handleToggleStep(step())}
+                color={getColor(index)}
+                onChange={handleStepChanged}
+                step={step()}
                 isSelected={step() === selectedStep()}
                 isCurrent={step() === currentStep()}
-                isActive={step().play}
               />
             );
           }}
@@ -133,17 +133,14 @@ export const Sequencer = (
           }
         >
           <Index each={Array.from({ length: 16 - (props.steps.length % 16) })}>
-            {(step, index) => {
+            {(_, index) => {
               return (
                 <SequencerStep
+                  mode={props.mode}
                   class={css`
                     opacity: 0.4;
                   `}
-                  color={
-                    colors808Knobs[
-                      Math.floor((((props.steps.length % 16) + index) % 16) / 4)
-                    ]
-                  }
+                  color={getColor((props.steps.length % 16) + index)}
                 />
               );
             }}

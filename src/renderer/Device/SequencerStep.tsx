@@ -1,14 +1,27 @@
-import { JSX, mergeProps, splitProps } from 'solid-js';
+import { Step } from 'renderer/engine/device/Slice';
+import { NumberInputWithArrowButtons } from 'renderer/UI/NumberInputWithArrowButtons';
+import { JSX, Match, mergeProps, splitProps, Switch } from 'solid-js';
 import { css } from '../emotion-solid';
 
 import { useAppTheme } from '../UI/theme';
 
+export const sequencerModes: (keyof Step)[] = [
+  'play',
+  'playbackRate',
+  'volume',
+  'pitch',
+];
+
+export type SequencerMode = typeof sequencerModes[number];
+
 type SequencerStepProps = {
+  mode: SequencerMode;
   color?: string;
   isSelected?: boolean;
   isCurrent?: boolean;
-  isActive?: boolean;
-} & JSX.IntrinsicElements['li'];
+  step?: Step;
+  onChange?: (oldStep: Step, newStep: Step) => void;
+} & Omit<JSX.IntrinsicElements['li'], 'onChange'>;
 
 const sequencerStepStyles = () => {
   const theme = useAppTheme();
@@ -88,14 +101,13 @@ export const SequencerStep = (allProps: SequencerStepProps) => {
   const [ownProps, liProps] = splitProps(allProps, [
     'isSelected',
     'isCurrent',
-    'isActive',
+    'step',
     'color',
+    'onChange',
+    'mode',
   ]);
 
-  const props = mergeProps(
-    { isSelected: false, isCurrent: false, isActive: false },
-    ownProps
-  );
+  const props = mergeProps({ isSelected: false, isCurrent: false }, ownProps);
 
   return (
     <li
@@ -122,16 +134,88 @@ export const SequencerStep = (allProps: SequencerStepProps) => {
           background: ${props.color};
         `}
       >
-        <div
-          classList={{
-            [sequencerStepStyles()]: true,
-            sequencerStepIsActive: props.isActive,
-            sequencerStepIsCurrent: props.isCurrent,
-            sequencerStepIsSelected: props.isSelected,
-          }}
-        >
-          &nbsp;
-        </div>
+        <Switch>
+          <Match when={props.mode === 'play'}>
+            <div
+              onClick={() => {
+                if (props.step) {
+                  props.onChange?.(props.step, {
+                    ...props.step,
+                    play: !props.step.play,
+                  });
+                }
+              }}
+              classList={{
+                [sequencerStepStyles()]: true,
+                sequencerStepIsActive: props.step?.play,
+                sequencerStepIsCurrent: props.isCurrent,
+                sequencerStepIsSelected: props.isSelected,
+                [css`
+                  &:active {
+                    border: none;
+                  }
+                `]: true,
+              }}
+            >
+              &nbsp;
+            </div>
+          </Match>
+          <Match
+            when={
+              (props.mode === 'playbackRate' ||
+                props.mode === 'pitch' ||
+                props.mode === 'volume') &&
+              props.mode
+            }
+          >
+            {(mode) => (
+              <div
+                classList={{
+                  [sequencerStepStyles()]: true,
+                  sequencerStepIsActive: props.step?.play,
+                  sequencerStepIsCurrent: props.isCurrent,
+                  sequencerStepIsSelected: props.isSelected,
+                }}
+              >
+                <div
+                  class={css`
+                    zoom: 0.6;
+                    input {
+                      background: none;
+                      border: none;
+                      box-shadow: none;
+                      text-align: center;
+                      outline: none;
+                      &:active {
+                        outline: none;
+                        border: none;
+                        box-shadow: none;
+                        border-radius: 0;
+                      }
+                    }
+                    .buttons {
+                      display: none;
+                    }
+                  `}
+                >
+                  <NumberInputWithArrowButtons
+                    value={props.step?.[mode] ?? 1}
+                    step={0.1}
+                    size={2}
+                    onChange={(value) => {
+                      if (props.step) {
+                        props.onChange?.(props.step, {
+                          ...props.step,
+                          [mode]: value,
+                        });
+                      }
+                    }}
+                  ></NumberInputWithArrowButtons>
+                </div>
+              </div>
+            )}
+          </Match>
+        </Switch>
       </div>
     </li>
   );
