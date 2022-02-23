@@ -13,37 +13,6 @@ import { Flex, Row } from '../UI/Grid';
 import { css } from '@emotion/css';
 import { SequencerMode, sequencerModes } from './SequencerStep';
 
-export const PatternEditor = (
-  allProps: {
-    sampler: SamplerDevice;
-    collapsed: boolean;
-  } & JSX.IntrinsicElements['div']
-) => {
-  const [props, divProps] = splitProps(allProps, ['sampler']);
-  const slices = props.sampler.createSignal(
-    (sampler) => sampler.slices,
-    ['sliceAdded', 'sliceRemoved']
-  );
-
-  const currentPatternIndex = props.sampler.engine.createSignal(
-    (engine) => engine.currentPatternIndex,
-    ['currentPatternIndexUpdated']
-  );
-
-  return (
-    <div {...divProps}>
-      <For each={slices()} fallback={<div>loading slices..</div>}>
-        {(slice) => (
-          <SlicePattern
-            slice={slice}
-            currentPatternIndex={currentPatternIndex()}
-          />
-        )}
-      </For>
-    </div>
-  );
-};
-
 const sequencerModeLabels = {
   play: '▶',
   pitch: '♪',
@@ -52,7 +21,7 @@ const sequencerModeLabels = {
   reverse: '↶',
 };
 
-export const SlicePattern = (
+export const PatternEditor = (
   allProps: {
     slice: Slice;
     currentPatternIndex: number;
@@ -95,6 +64,39 @@ export const SlicePattern = (
         }}
       >
         <ButtonWithLabel
+          label={'Clone'}
+          labelOnButton={true}
+          onClick={() =>
+            props.slice.set({
+              patterns: [
+                ...patterns().slice(0, props.currentPatternIndex + 1),
+                {
+                  ...currentPattern(),
+                  steps: currentPattern().steps.map((step) => ({ ...step })),
+                },
+                ...patterns().slice(props.currentPatternIndex + 2),
+              ],
+              currentPatternIndex: sliceState.currentPatternIndex + 1,
+            })
+          }
+        />
+        <ButtonWithLabel
+          label={'Delete'}
+          labelOnButton={true}
+          onClick={() =>
+            props.slice.set({
+              currentPatternIndex: Math.max(
+                sliceState.currentPatternIndex - 1,
+                0
+              ),
+              patterns: [
+                ...patterns().slice(0, props.currentPatternIndex),
+                ...patterns().slice(props.currentPatternIndex + 1),
+              ],
+            })
+          }
+        />
+        <ButtonWithLabel
           label={'Duplicate'}
           labelOnButton={true}
           onClick={() =>
@@ -105,6 +107,17 @@ export const SlicePattern = (
               ],
             })
           }
+        />
+        <NumberInputWithArrowButtons
+          label={'Pattern'}
+          size={2}
+          step={1}
+          min={0}
+          max={patterns().length + 1}
+          value={props.currentPatternIndex}
+          onChange={(currentPatternIndex) => {
+            props.slice.set({ currentPatternIndex });
+          }}
         />
         <NumberInputWithArrowButtons
           label={'Steps'}

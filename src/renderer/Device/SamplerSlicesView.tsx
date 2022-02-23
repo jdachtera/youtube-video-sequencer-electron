@@ -18,11 +18,6 @@ export const SamplerSlicesView = (props: {
     'sliceSelected'
   );
 
-  const currentPatternIndex = props.sampler.engine.createSignal(
-    (engine) => engine.currentPatternIndex,
-    'currentPatternIndexUpdated'
-  );
-
   return (
     <div
       style={{
@@ -44,7 +39,6 @@ export const SamplerSlicesView = (props: {
             <SamplerSliceView
               slice={slice}
               isSelected={slice === selectedSlice()}
-              currentPatternIndex={currentPatternIndex()}
               onClickSlice={(slice: Slice) => props.sampler.selectSlice(slice)}
               onRemoveSlice={(slice: Slice) => {
                 if (!confirm('Do you wish to remove this Slice?')) return;

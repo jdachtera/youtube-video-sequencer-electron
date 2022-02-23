@@ -17,7 +17,7 @@ import type { Slice } from '../engine/device/Slice';
 import { NumberInputWithLabel } from '../UI/Knob';
 
 import { ShareSliceButton } from '../UI/ShareSliceButton';
-import { SlicePattern } from './PatternEditor';
+import { PatternEditor } from './PatternEditor';
 import { DeviceChainView } from './DeviceChainView';
 import { Column, Flex, Row } from '../UI/Grid';
 import { exportBuffer } from '../engine/helpers';
@@ -26,7 +26,6 @@ import { SameHeightContainer } from '../UI/SameHeightContainer';
 
 export const SamplerSliceView = (props: {
   slice: Slice;
-  currentPatternIndex: number;
   isSelected: boolean;
   onClickSlice: (slice: Slice) => void;
   onRemoveSlice: (slice: Slice) => void;
@@ -379,9 +378,9 @@ export const SamplerSliceView = (props: {
           hidden={!viewMode.sequencer}
           background={sliceState.color}
         >
-          <SlicePattern
+          <PatternEditor
             slice={props.slice}
-            currentPatternIndex={props.currentPatternIndex}
+            currentPatternIndex={sliceState.currentPatternIndex}
           />
         </DeviceWrapper>
 

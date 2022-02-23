@@ -16,7 +16,7 @@ import { entries, PropertyUpdateEvents } from '../helpers';
 import { SamplerDevice } from './Sampler';
 import { DeviceChain, SerializedDeviceChain } from './DeviceChain';
 
-import { createUniqueId } from 'solid-js';
+import { batch, createUniqueId } from 'solid-js';
 import { DeepPartial, subdivisionTypes } from '../types';
 import { EngineBase } from '../EngineBase';
 
@@ -30,6 +30,7 @@ export type SerializedSlice = {
   pitch: number;
   reverse: boolean;
   color: string;
+  currentPatternIndex: number;
   patterns: Pattern[];
   name: string;
   solo: boolean;
@@ -82,6 +83,8 @@ export class Slice extends EngineBase<SliceEvents> {
   lastFrameTime = 0;
   currentPosition = 0;
 
+  currentPatternIndex = 0;
+
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   chain: DeviceChain = null!;
 
@@ -102,6 +105,7 @@ export class Slice extends EngineBase<SliceEvents> {
     playbackRate: slice.playbackRate ?? 1,
     reverse: slice.reverse ?? false,
     volume: slice.volume ?? 1,
+    currentPatternIndex: slice.currentPatternIndex ?? 0,
     patterns: (Array.isArray(slice.patterns) ? slice.patterns : [])
       .filter((maybeStep): maybeStep is DeepPartial<Pattern> => !!maybeStep)
       .map(normalizePatternData),
@@ -142,7 +146,7 @@ export class Slice extends EngineBase<SliceEvents> {
   };
 
   protected getCurrentPattern(patterns: Pattern[]) {
-    return patterns?.[this.sampler.engine.currentPatternIndex];
+    return patterns?.[this.currentPatternIndex];
   }
 
   protected updateSequence() {
@@ -194,6 +198,16 @@ export class Slice extends EngineBase<SliceEvents> {
         case 'mute':
           this.player.mute = entry[1] ?? false;
           break;
+        case 'currentPatternIndex':
+          this.currentPatternIndex = entry[1]!;
+          this.set({
+            patterns: this.ensurePatternExists(
+              this.patterns,
+              this.currentPatternIndex
+            ),
+          });
+          break;
+
         case 'patterns': {
           this.patterns = this.ensurePatternExists(
             entry[1] ?? [],
@@ -304,10 +318,6 @@ export class Slice extends EngineBase<SliceEvents> {
     }
   }
 
-  setCurrentPatternIndex = (index: number) => {
-    this.set({ patterns: this.ensurePatternExists(this.patterns, index) });
-  };
-
   duplicate() {
     this.sampler.createSlice(
       { ...this.serialize(), id: `${this.id}_clone` },
@@ -325,6 +335,7 @@ export class Slice extends EngineBase<SliceEvents> {
       pitch: this.pitch,
       reverse: this.reverse,
       color: this.color,
+      currentPatternIndex: this.currentPatternIndex,
       patterns: this.patterns.map((pattern) => {
         return {
           ...pattern,
@@ -368,10 +379,12 @@ export class Slice extends EngineBase<SliceEvents> {
     const timeSinceLastFrame = now - this.lastFrameTime;
     this.lastFrameTime = now;
     if (timeSinceLastFrame > 0.003) {
-      this.emit(
-        'currentPositionUpdated',
-        this.currentPosition / this.player.playbackRate
-      );
+      batch(() => {
+        this.emit(
+          'currentPositionUpdated',
+          this.currentPosition / this.player.playbackRate
+        );
+      });
     }
 
     if (this.player.state === 'started') {

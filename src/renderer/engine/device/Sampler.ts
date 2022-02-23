@@ -196,7 +196,7 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
   }
 
   setCurrentPatternIndex = (index: number) => {
-    this.slices.forEach((slice) => slice.setCurrentPatternIndex(index));
+    this.slices.forEach((slice) => slice.set({ currentPatternIndex: index }));
   };
 
   stop() {
