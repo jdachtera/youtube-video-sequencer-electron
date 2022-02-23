@@ -1,6 +1,6 @@
-import { Engine } from 'renderer/engine/Engine';
-import { exportBuffer } from 'renderer/engine/helpers';
-import { ButtonWithLabel } from 'renderer/UI/ButtonWithLabel';
+import { Engine } from '../engine/Engine';
+import { exportBuffer } from '../engine/helpers';
+import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { createMemo, createSignal, onCleanup, onMount } from 'solid-js';
 
 export const MixdownButton = (props: { engine: Engine }) => {

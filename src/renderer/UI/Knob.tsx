@@ -11,13 +11,13 @@ import {
   untrack,
 } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
-import { css } from 'renderer/emotion-solid';
+import { css } from '../emotion-solid';
 
 import MoogKnobSvg from '../svg/moog_knob.svg';
 import { useAppTheme } from './theme';
 import { Label } from './Label';
-import { NumberInputWithArrowButtons } from 'renderer/UI/NumberInputWithArrowButtons';
-import { LCDLabel } from 'renderer/UI/LCD';
+import { NumberInputWithArrowButtons } from '../UI/NumberInputWithArrowButtons';
+import { LCDLabel } from '../UI/LCD';
 
 type KnobProps = {
   value?: number;

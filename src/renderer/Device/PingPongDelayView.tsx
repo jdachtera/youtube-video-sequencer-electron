@@ -1,6 +1,6 @@
 import { MoogKnobWithLabel } from '../UI/Knob';
-import { PingPongDelayDevice } from 'renderer/engine/device/PingPongDelay';
-import { Row } from 'renderer/UI/Grid';
+import { PingPongDelayDevice } from '../engine/device/PingPongDelay';
+import { Row } from '../UI/Grid';
 
 export const PingPongDelayView = (props: {
   pingPongDelay: PingPongDelayDevice;

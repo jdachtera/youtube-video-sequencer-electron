@@ -1,8 +1,7 @@
 import { ToneAudioBuffer } from 'tone';
 import { encodeWav } from './encodeWav';
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-var-requires
-const fileSaver = require('file-saver');
+import fileSaver from 'file-saver';
 
 type Entry<T> = {
   [K in keyof T]: [K, T[K]];

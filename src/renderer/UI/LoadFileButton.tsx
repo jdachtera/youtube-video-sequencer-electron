@@ -1,5 +1,5 @@
 import { splitProps, JSX } from 'solid-js';
-import { css } from 'renderer/emotion-solid';
+import { css } from '../emotion-solid';
 import { ButtonWithLabel } from './ButtonWithLabel';
 
 export const LoadFileButton = (
@@ -11,6 +11,7 @@ export const LoadFileButton = (
     'classList',
     'className',
   ]);
+
   return (
     <ButtonWithLabel
       {...props}

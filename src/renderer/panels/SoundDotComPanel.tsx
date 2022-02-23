@@ -7,15 +7,15 @@ import {
   Suspense,
 } from 'solid-js';
 
-import { Engine } from 'renderer/engine/Engine';
-import { Column, Row } from 'renderer/UI/Grid';
-import { InputLCD } from 'renderer/UI/lcdStyles';
-import { ButtonWithLabel } from 'renderer/UI/ButtonWithLabel';
+import { Engine } from '../engine/Engine';
+import { Column, Row } from '../UI/Grid';
+import { InputLCD } from '../UI/lcdStyles';
+import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { css } from '@emotion/css';
-import { Track } from 'renderer/engine/Track';
-import { styled } from 'renderer/emotion-solid';
-import { SamplerDevice } from 'renderer/engine/device/Sampler';
-import { Slice } from 'renderer/engine/device/Slice';
+import { Track } from '../engine/Track';
+import { styled } from '../emotion-solid';
+import { SamplerDevice } from '../engine/device/Sampler';
+import { Slice } from '../engine/device/Slice';
 
 const types = ['One-shot', 'Loop'] as const;
 

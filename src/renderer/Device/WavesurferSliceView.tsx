@@ -1,6 +1,6 @@
 import { createEffect, mergeProps, onCleanup, onMount } from 'solid-js';
 
-import { css } from 'renderer/emotion-solid';
+import { css } from '../emotion-solid';
 
 import Wavesurfer from 'wavesurfer.js';
 

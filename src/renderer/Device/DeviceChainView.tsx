@@ -17,13 +17,13 @@ import { SerializedDevice } from '../engine/types';
 
 import { DeviceWrapper, DummyDevice } from '../UI/DeviceWrapper';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
-import { normalizeDeviceData } from 'renderer/engine/device/normalizeDeviceData';
-import { css } from 'renderer/emotion-solid';
-import { SamplerDevice } from 'renderer/engine/device/Sampler';
+import { normalizeDeviceData } from '../engine/device/normalizeDeviceData';
+import { css } from '../emotion-solid';
+import { SamplerDevice } from '../engine/device/Sampler';
 import { SamplerSlicesView } from './SamplerSlicesView';
-import { Column, Row } from 'renderer/UI/Grid';
-import { SameHeightContainer } from 'renderer/UI/SameHeightContainer';
-import { SelectWithArrowButtons } from 'renderer/UI/SelectWithArrowButtons';
+import { Column, Row } from '../UI/Grid';
+import { SameHeightContainer } from '../UI/SameHeightContainer';
+import { SelectWithArrowButtons } from '../UI/SelectWithArrowButtons';
 
 const deviceNames: SerializedDevice['name'][] = [
   // 'DeviceChain',

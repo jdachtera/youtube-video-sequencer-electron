@@ -1,6 +1,6 @@
 import { css } from '@emotion/css';
 import { Property } from 'csstype';
-import { styled } from 'renderer/emotion-solid';
+import { styled } from '../emotion-solid';
 
 export const Flex = styled('div')<{
   flex?: Property.Flex;

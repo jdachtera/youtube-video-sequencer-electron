@@ -1,6 +1,6 @@
-import { css } from 'renderer/emotion-solid';
-import { SamplerDevice } from 'renderer/engine/device/Sampler';
-import { Slice } from 'renderer/engine/device/Slice';
+import { css } from '../emotion-solid';
+import { SamplerDevice } from '../engine/device/Sampler';
+import { Slice } from '../engine/device/Slice';
 import { For } from 'solid-js';
 import { SamplerSliceView } from './SamplerSliceView';
 

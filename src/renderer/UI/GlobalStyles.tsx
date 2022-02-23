@@ -2,7 +2,7 @@ import ChessTypeFont from '../fonts/ChessType.ttf';
 import OswaldFont from '../fonts/Oswald.ttf';
 import DSEG14Classic from '../fonts/DSEG14Classic-Regular.ttf';
 
-import { createGlobalStyles as css } from 'renderer/emotion-solid';
+import { createGlobalStyles as css } from '../emotion-solid';
 
 const ChessType = css`
   @font-face {
@@ -29,6 +29,10 @@ const SevenSeg = css`
 `;
 
 const Styles = css`
+  img {
+    pointer-events: none;
+  }
+
   html,
   body,
   ol,

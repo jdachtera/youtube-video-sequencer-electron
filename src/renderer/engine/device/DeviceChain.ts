@@ -45,7 +45,7 @@ export class DeviceChain extends Device<DeviceChainEvents> {
   emitChange = () => this.emit('change', this);
 
   handleSequenceEvent = (time: number, step: Step) => {
-    const firstDevice = this.devices.at(0);
+    const firstDevice = this.devices[0];
     if (firstDevice) {
       firstDevice.handleSequenceEvent(time, step);
     }
@@ -152,8 +152,8 @@ export class DeviceChain extends Device<DeviceChainEvents> {
       return currentDevice;
     }, undefined);
 
-    const firstDevice = this.devices.at(0);
-    const lastDevice = this.devices.at(this.devices.length - 1);
+    const firstDevice = this.devices[0];
+    const lastDevice = this.devices[this.devices.length - 1];
 
     if (lastDevice) {
       lastDevice.output.connect(this.output);

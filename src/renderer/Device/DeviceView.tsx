@@ -1,14 +1,14 @@
 import { Match, Switch } from 'solid-js';
 import { DeviceChainView } from './DeviceChainView';
 
-import { css } from 'renderer/emotion-solid';
+import { css } from '../emotion-solid';
 import { Device } from '../engine/device/Device';
 import { DeviceChain } from '../engine/device/DeviceChain';
 import { FilterDevice } from '../engine/device/Filter';
 import { SamplerDevice } from '../engine/device/Sampler';
-import { DistortionDevice } from 'renderer/engine/device/Distortion';
-import { CompressorDevice } from 'renderer/engine/device/Compressor';
-import { PingPongDelayDevice } from 'renderer/engine/device/PingPongDelay';
+import { DistortionDevice } from '../engine/device/Distortion';
+import { CompressorDevice } from '../engine/device/Compressor';
+import { PingPongDelayDevice } from '../engine/device/PingPongDelay';
 
 import { PingPongDelayView } from './PingPongDelayView';
 
@@ -17,9 +17,9 @@ import { FilterView } from './FilterView';
 
 import { DistortionView } from './DistortionView';
 import { CompressorView } from './CompressorView';
-import { ReverbDevice } from 'renderer/engine/device/Reverb';
+import { ReverbDevice } from '../engine/device/Reverb';
 import { ReverbView } from './ReverbView';
-import { DeviceWrapper } from 'renderer/UI/DeviceWrapper';
+import { DeviceWrapper } from '../UI/DeviceWrapper';
 
 export const DeviceView = (props: {
   device: Device;

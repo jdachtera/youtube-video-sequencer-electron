@@ -1,11 +1,11 @@
 import { createResource, createSignal, For, Show, Suspense } from 'solid-js';
 
-import { Engine } from 'renderer/engine/Engine';
-import { Column } from 'renderer/UI/Grid';
-import { InputLCD } from 'renderer/UI/lcdStyles';
-import { ButtonWithLabel } from 'renderer/UI/ButtonWithLabel';
+import { Engine } from '../engine/Engine';
+import { Column } from '../UI/Grid';
+import { InputLCD } from '../UI/lcdStyles';
+import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { css } from '@emotion/css';
-import { Track } from 'renderer/engine/Track';
+import { Track } from '../engine/Track';
 
 export const YoutubeSearchPanel = (props: { engine: Engine }) => {
   const [searchTerm, setSearchTerm] = createSignal('breakbeat');

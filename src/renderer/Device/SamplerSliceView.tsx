@@ -1,4 +1,4 @@
-import { css } from 'renderer/emotion-solid';
+import { css } from '../emotion-solid';
 
 import {
   parseFormattedTime,
@@ -19,10 +19,10 @@ import { MoogKnobWithLabel, NumberInputWithLabel } from '../UI/Knob';
 import { ShareSliceButton } from '../UI/ShareSliceButton';
 import { SlicePattern } from './PatternEditor';
 import { DeviceChainView } from './DeviceChainView';
-import { Column, Flex, Row } from 'renderer/UI/Grid';
-import { exportBuffer } from 'renderer/engine/helpers';
+import { Column, Flex, Row } from '../UI/Grid';
+import { exportBuffer } from '../engine/helpers';
 import { Show } from 'solid-js';
-import { SameHeightContainer } from 'renderer/UI/SameHeightContainer';
+import { SameHeightContainer } from '../UI/SameHeightContainer';
 
 export const SamplerSliceView = (props: {
   slice: Slice;

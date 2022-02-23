@@ -78,6 +78,8 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
     } else {
       const base64StringOrBuffer = await this.loadArrayBuffer();
 
+      console.log(base64StringOrBuffer);
+
       const arrayBuffer =
         typeof base64StringOrBuffer === 'string'
           ? base64ToArrayBuffer(base64StringOrBuffer)
@@ -105,9 +107,10 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
 
   private async loadArrayBuffer() {
     if (!this.url.includes('youtube.com')) {
-      const response = await fetch(this.url);
-      return await response.arrayBuffer();
+      return await window.yt.fetchVideo(this.url);
     }
+
+    return new ArrayBuffer(1);
 
     const result = await window.yt.getInfo(this.url);
 

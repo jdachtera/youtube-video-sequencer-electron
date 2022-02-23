@@ -1,5 +1,5 @@
 import { splitProps, JSX, Show, mergeProps } from 'solid-js';
-import { css } from 'renderer/emotion-solid';
+import { css } from '../emotion-solid';
 import { Label } from './Label';
 
 export const ButtonWithLabel = (

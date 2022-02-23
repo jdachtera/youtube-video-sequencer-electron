@@ -36,10 +36,7 @@ export const SidePanel = (props: { engine: Engine }) => {
     props.engine.set({
       viewMode: {
         sidePanel: {
-          width: Math.max(
-            Math.min(sidePanelState.width + event.movementX, maxWidth),
-            dragHandleWidth
-          ),
+          width: Math.max(Math.min(event.clientX, maxWidth), dragHandleWidth),
         },
       },
     });

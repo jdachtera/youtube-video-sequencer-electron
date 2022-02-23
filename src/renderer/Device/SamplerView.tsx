@@ -4,15 +4,15 @@ import { createSignal, onMount, onCleanup } from 'solid-js';
 import { Region } from 'wavesurfer.js/src/plugin/regions';
 import { Transport } from 'tone';
 
-import { css } from 'renderer/emotion-solid';
+import { css } from '../emotion-solid';
 
 import { SamplerDevice } from '../engine/device/Sampler';
 import { WavesurferView } from './WavesurferView';
 
 import { Slice } from '../engine/device/Slice';
-import { LCDFrame, LCDLine } from 'renderer/UI/LCD';
-import { LCD } from 'renderer/UI/lcdStyles';
-import { AkaiButton } from 'renderer/UI/AkaiButton';
+import { LCDFrame, LCDLine } from '../UI/LCD';
+import { LCD } from '../UI/lcdStyles';
+import { AkaiButton } from '../UI/AkaiButton';
 
 export const SamplerView = (props: { sampler: SamplerDevice }) => {
   const [waveformCenter, setWaveformCenter] = createSignal(0);

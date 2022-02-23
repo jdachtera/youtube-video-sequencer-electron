@@ -1,5 +1,5 @@
 import { PropsWithChildren, splitProps, JSX } from 'solid-js';
-import { css } from 'renderer/emotion-solid';
+import { css } from '../emotion-solid';
 
 export const LCDLabel = (props: PropsWithChildren<{ minWidth?: string }>) => {
   return (

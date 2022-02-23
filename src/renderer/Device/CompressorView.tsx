@@ -1,6 +1,6 @@
 import { MoogKnobWithLabel } from '../UI/Knob';
-import { CompressorDevice } from 'renderer/engine/device/Compressor';
-import { Column, Row } from 'renderer/UI/Grid';
+import { CompressorDevice } from '../engine/device/Compressor';
+import { Column, Row } from '../UI/Grid';
 
 export const CompressorView = (props: { compressor: CompressorDevice }) => {
   const compressorState = props.compressor.createStore(

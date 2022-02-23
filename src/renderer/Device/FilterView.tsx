@@ -3,9 +3,9 @@ import { FilterRollOff } from 'tone';
 
 import { FilterDevice } from '../engine/device/Filter';
 import { MoogKnobWithLabel } from '../UI/Knob';
-import { Column, Row } from 'renderer/UI/Grid';
-import { SelectWithArrowButtons } from 'renderer/UI/SelectWithArrowButtons';
-import { LCD } from 'renderer/UI/lcdStyles';
+import { Column, Row } from '../UI/Grid';
+import { SelectWithArrowButtons } from '../UI/SelectWithArrowButtons';
+import { LCD } from '../UI/lcdStyles';
 
 const filterTypes: BiquadFilterType[] = [
   'lowpass',

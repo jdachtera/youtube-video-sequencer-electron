@@ -1,5 +1,5 @@
 import { splitProps, JSX, Show } from 'solid-js';
-import { css, styled } from 'renderer/emotion-solid';
+import { css, styled } from '../emotion-solid';
 import { BiCompass } from 'solid-icons/bi';
 import megarack from '../svg/megarack.png';
 import { RackEar } from './RackEar';
