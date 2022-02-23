@@ -46,7 +46,10 @@ export const SamplerSlicesView = (props: {
               isSelected={slice === selectedSlice()}
               currentPatternIndex={currentPatternIndex()}
               onClickSlice={(slice: Slice) => props.sampler.selectSlice(slice)}
-              onRemoveSlice={(slice: Slice) => props.sampler.removeSlice(slice)}
+              onRemoveSlice={(slice: Slice) => {
+                if (!confirm('Do you wish to remove this Slice?')) return;
+                props.sampler.removeSlice(slice);
+              }}
             />
           )}
         </For>

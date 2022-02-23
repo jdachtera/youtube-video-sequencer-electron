@@ -14,14 +14,14 @@ import { LCDLabel } from '../UI/LCD';
 import { WavesurferSliceView } from './WavesurferSliceView';
 
 import type { Slice } from '../engine/device/Slice';
-import { MoogKnobWithLabel, NumberInputWithLabel } from '../UI/Knob';
+import { NumberInputWithLabel } from '../UI/Knob';
 
 import { ShareSliceButton } from '../UI/ShareSliceButton';
 import { SlicePattern } from './PatternEditor';
 import { DeviceChainView } from './DeviceChainView';
 import { Column, Flex, Row } from '../UI/Grid';
 import { exportBuffer } from '../engine/helpers';
-import { Show } from 'solid-js';
+
 import { SameHeightContainer } from '../UI/SameHeightContainer';
 
 export const SamplerSliceView = (props: {
@@ -67,6 +67,7 @@ export const SamplerSliceView = (props: {
         <DeviceWrapper
           hidden={!viewMode.channel}
           onClickLeftRackEar={toggleCollapse}
+          onClickRightRackEar={() => props.onRemoveSlice(props.slice)}
           background={sliceState.color}
         >
           <Row
@@ -75,9 +76,6 @@ export const SamplerSliceView = (props: {
                 flex: 1;
                 margin: 20px 0;
               `]: true,
-              [css`
-                height: 430px;
-              `]: !sliceState.collapsed,
             }}
           >
             <InputLCD
@@ -112,7 +110,12 @@ export const SamplerSliceView = (props: {
           </Row>
         </DeviceWrapper>
 
-        <DeviceWrapper hidden={!viewMode.slice} background={sliceState.color}>
+        <DeviceWrapper
+          onClickLeftRackEar={toggleCollapse}
+          onClickRightRackEar={() => props.onRemoveSlice(props.slice)}
+          hidden={!viewMode.slice}
+          background={sliceState.color}
+        >
           <div
             class={css`
               display: flex;
@@ -124,6 +127,7 @@ export const SamplerSliceView = (props: {
             <LCD>
               <WavesurferSliceView
                 slice={props.slice}
+                collapsed={!sliceState.collapsed}
                 center={1}
                 height={30}
                 currentTime={currentPlayPosition()}
@@ -143,14 +147,12 @@ export const SamplerSliceView = (props: {
               class={css`
                 width: 100%;
                 display: flex;
-                padding: 8px;
               `}
             >
               <div
                 class={css`
                   display: flex;
                   flex-direction: column;
-                  padding: 2px;
                 `}
               >
                 <Column>
@@ -164,12 +166,11 @@ export const SamplerSliceView = (props: {
                       border-radius: 4px;
                       text-shadow: 1px 1px 1px rgba(119, 119, 119, 0.849);
                       padding: 8px;
-                      margin-right: 20px;
-                      margin-left: 20px;
                     `}
                   >
                     <LCDLabel>Sample</LCDLabel>
                     <WavesurferSliceView
+                      collapsed={sliceState.collapsed}
                       slice={props.slice}
                       center={1}
                       currentTime={currentPlayPosition()}
@@ -197,82 +198,99 @@ export const SamplerSliceView = (props: {
                       />
                     </Flex>
 
-                    <NumberInputWithLabel
-                      label="Current Time"
-                      disabled
-                      size={12}
-                      value={currentPlayPosition()}
-                      parse={parseFormattedTime}
-                      format={formatTime}
-                    />
-                    <NumberInputWithLabel
-                      label="Playback Speed"
-                      size={12}
-                      step={0.01}
-                      min={0}
-                      max={3}
-                      format={formatPercentage(0)}
-                      parse={parseFloat}
-                      value={sliceState.playbackRate}
-                      onChange={(playbackRate) => {
-                        props.slice.set({ playbackRate });
-                      }}
-                    />
-                    <NumberInputWithLabel
-                      label="Volume"
-                      size={12}
-                      step={0.01}
-                      min={0}
-                      max={3}
-                      format={formatPercentage()}
-                      parse={parseFloat}
-                      value={sliceState.volume}
-                      onChange={(volume) => props.slice.set({ volume })}
-                    />
-                    <div
+                    <Row
                       class={css`
-                        display: flex;
                         justify-content: space-between;
                       `}
                     >
-                      <NumberInputWithLabel
-                        label="Start"
-                        size={12}
-                        min={sliceState.end - 10}
-                        max={sliceState.end - 0.00001}
-                        step={formattedTimeStep}
-                        parse={parseFormattedTime}
-                        format={formatTime}
-                        value={sliceState.start}
-                        onChange={(start: number) => props.slice.set({ start })}
-                      />
+                      <Column>
+                        <NumberInputWithLabel
+                          label="Current Time"
+                          disabled
+                          size={12}
+                          value={currentPlayPosition()}
+                          parse={parseFormattedTime}
+                          format={formatTime}
+                        />
+                        <NumberInputWithLabel
+                          label="Playback Speed"
+                          size={12}
+                          step={0.01}
+                          min={0}
+                          max={3}
+                          format={formatPercentage(0)}
+                          parse={parseFloat}
+                          value={sliceState.playbackRate}
+                          onChange={(playbackRate) => {
+                            props.slice.set({ playbackRate });
+                          }}
+                        />
 
-                      <NumberInputWithLabel
-                        label={
-                          <span
-                            class={css`
-                              min-width: 20px;
-                            `}
-                          >
-                            End
-                          </span>
-                        }
-                        size={12}
-                        min={sliceState.start + 0.00001}
-                        max={sliceState.start + 10}
-                        step={formattedTimeStep}
-                        parse={parseFormattedTime}
-                        format={formatTime}
-                        value={sliceState.end}
-                        onChange={(end) => props.slice.set({ end })}
-                      />
-                    </div>
+                        <NumberInputWithLabel
+                          label="Start"
+                          size={12}
+                          min={sliceState.end - 10}
+                          max={sliceState.end - 0.00001}
+                          step={formattedTimeStep}
+                          parse={parseFormattedTime}
+                          format={formatTime}
+                          value={sliceState.start}
+                          onChange={(start: number) =>
+                            props.slice.set({ start })
+                          }
+                        />
+                      </Column>
+                      <Column>
+                        <NumberInputWithLabel
+                          label="Volume"
+                          size={12}
+                          step={0.01}
+                          min={0}
+                          max={3}
+                          format={formatPercentage()}
+                          parse={parseFloat}
+                          value={sliceState.volume}
+                          onChange={(volume) => props.slice.set({ volume })}
+                        />
+                        <NumberInputWithLabel
+                          label="Pitch"
+                          size={12}
+                          min={-2400}
+                          max={2400}
+                          value={sliceState.pitch}
+                          onChange={(pitch) => {
+                            props.slice.set({ pitch });
+                          }}
+                        />
+                        <NumberInputWithLabel
+                          label={
+                            <span
+                              class={css`
+                                min-width: 20px;
+                              `}
+                            >
+                              End
+                            </span>
+                          }
+                          size={12}
+                          min={sliceState.start + 0.00001}
+                          max={sliceState.start + 10}
+                          step={formattedTimeStep}
+                          parse={parseFormattedTime}
+                          format={formatTime}
+                          value={sliceState.end}
+                          onChange={(end) => props.slice.set({ end })}
+                        />
+                      </Column>
+                    </Row>
                   </Column>
                 </Column>
               </div>
               <Column
                 class={css`
                   padding-left: 10px;
+                  margin: 20px 0;
+
                   align-items: flex-start;
                 `}
               >
@@ -311,8 +329,6 @@ export const SamplerSliceView = (props: {
 
                   <div
                     class={css`
-                      margin-top: 18px;
-                      margin-bottom: 18px;
                       display: flex;
                     `}
                   >
@@ -352,30 +368,16 @@ export const SamplerSliceView = (props: {
                     />
                   </div>
                 </Column>
-                <div>
-                  <MoogKnobWithLabel
-                    min={0}
-                    max={3}
-                    value={sliceState.playbackRate}
-                    onChange={(playbackRate: number) =>
-                      props.slice.set({ playbackRate })
-                    }
-                    label="Pitch"
-                  />
-                </div>
               </Column>
             </div>
           </div>
         </DeviceWrapper>
 
         <DeviceWrapper
+          onClickLeftRackEar={toggleCollapse}
+          onClickRightRackEar={() => props.onRemoveSlice(props.slice)}
           hidden={!viewMode.sequencer}
           background={sliceState.color}
-          classList={{
-            [css`
-              height: 430px;
-            `]: !sliceState.collapsed,
-          }}
         >
           <SlicePattern
             slice={props.slice}
@@ -386,16 +388,11 @@ export const SamplerSliceView = (props: {
         <DeviceChainView
           hidden={sliceState.collapsed}
           deviceChain={props.slice.chain}
-          classList={{
-            [css`
-              .device {
-                height: 430px;
-              }
-            `]: true,
-          }}
         ></DeviceChainView>
 
         <DeviceWrapper
+          onClickLeftRackEar={toggleCollapse}
+          onClickRightRackEar={() => props.onRemoveSlice(props.slice)}
           classList={{
             device: true,
             [css`

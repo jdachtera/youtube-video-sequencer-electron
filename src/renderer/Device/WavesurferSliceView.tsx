@@ -11,6 +11,7 @@ type WavesurferSliceViewProps = {
   center: number;
   height?: number;
   currentTime?: number;
+  collapsed: boolean;
   onClickWaveform: (event: MouseEvent) => void;
 };
 
@@ -61,8 +62,12 @@ export const WavesurferSliceView = (
   );
 
   createEffect(() => {
-    if (wavesurfer && buffer()) {
-      wavesurfer.loadDecodedBuffer(buffer());
+    console.log(props.collapsed, buffer());
+    const currentBuffer = buffer();
+    if (!props.collapsed && wavesurfer && currentBuffer) {
+      setTimeout(() => {
+        wavesurfer.loadDecodedBuffer(currentBuffer);
+      }, 200);
     }
   });
 
@@ -76,7 +81,6 @@ export const WavesurferSliceView = (
       class={css`
         min-width: 300px;
         width: 100%;
-        margin: 4px;
         background-color: #464646;
         text-shadow: 1px 1px red;
         wave {

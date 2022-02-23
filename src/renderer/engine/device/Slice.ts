@@ -28,6 +28,7 @@ export type SerializedSlice = {
   volume: number;
   mute: boolean;
   playbackRate: number;
+  pitch: number;
   reverse: boolean;
   color: string;
   patterns: Pattern[];
@@ -96,6 +97,7 @@ export class Slice extends EngineBase<SliceEvents> {
     color: slice.color ?? 'red',
     start: slice.start ?? 0,
     end: slice.end ?? 0,
+    pitch: slice.pitch ?? 0,
     playbackRate: slice.playbackRate ?? 1,
     reverse: slice.reverse ?? false,
     volume: slice.volume ?? 1,
@@ -178,6 +180,9 @@ export class Slice extends EngineBase<SliceEvents> {
           break;
         case 'playbackRate':
           this.playbackRate = entry[1] ?? 1;
+          break;
+        case 'pitch':
+          this.pitch = entry[1] ?? 1;
           break;
         case 'reverse':
           this.reverse = entry[1] ?? false;
@@ -316,6 +321,7 @@ export class Slice extends EngineBase<SliceEvents> {
       end: this.end,
       volume: this.volume,
       playbackRate: this.playbackRate,
+      pitch: this.pitch,
       reverse: this.reverse,
       color: this.color,
       patterns: this.patterns.map((pattern) => {
