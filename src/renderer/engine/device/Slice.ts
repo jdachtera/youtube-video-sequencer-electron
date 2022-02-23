@@ -3,7 +3,6 @@ import {
   Gain,
   getDraw,
   GrainPlayer,
-  Player,
   Sequence,
   Solo,
   Time,
@@ -79,6 +78,8 @@ export class Slice extends EngineBase<SliceEvents> {
   pitch = 1;
   volume = 1;
 
+  firstFrameTime = 0;
+  lastFrameTime = 0;
   currentPosition = 0;
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -360,15 +361,23 @@ export class Slice extends EngineBase<SliceEvents> {
     this.off('endUpdated', this.updateBuffer);
   }
 
-  updatePlayPosition(startTime: number = this.player.immediate()) {
-    if (this.player.state === 'started') {
-      this.currentPosition = this.player.immediate() - startTime;
-      window.requestAnimationFrame(() => this.updatePlayPosition(startTime));
-    } else {
-      this.currentPosition = 0;
+  updatePlayPosition = () => {
+    const now = this.player.immediate();
+    this.currentPosition = now - this.firstFrameTime;
+
+    const timeSinceLastFrame = now - this.lastFrameTime;
+    this.lastFrameTime = now;
+    if (timeSinceLastFrame > 0.003) {
+      this.emit(
+        'currentPositionUpdated',
+        this.currentPosition / this.player.playbackRate
+      );
     }
-    this.emit('currentPositionUpdated', this.currentPosition);
-  }
+
+    if (this.player.state === 'started') {
+      requestAnimationFrame(this.updatePlayPosition);
+    }
+  };
 
   play(time?: number) {
     if (!this.player.buffer.loaded) return;
@@ -376,6 +385,10 @@ export class Slice extends EngineBase<SliceEvents> {
     try {
       this.stop(time);
       this.player.start(time);
+      this.firstFrameTime = this.player.immediate();
+      this.lastFrameTime = this.player.immediate();
+
+      requestAnimationFrame(this.updatePlayPosition);
     } catch (e) {
       console.log({ e, time, p: this.player });
     }

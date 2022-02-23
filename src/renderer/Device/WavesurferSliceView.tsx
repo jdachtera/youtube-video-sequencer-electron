@@ -40,7 +40,6 @@ export const WavesurferSliceView = (
       height: props.height ?? 50,
       barGap: 0,
       fillParent: true,
-      responsive: true,
       minPxPerSec: 10,
     });
 
