@@ -197,7 +197,7 @@ export const SequencerStep = (allProps: SequencerStepProps) => {
                   sequencerStepIsSelected: props.isSelected,
                   [css`
                     &:active {
-                      border: none;
+                      border-style: inset;
                     }
                   `]: true,
                 }}
