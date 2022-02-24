@@ -6,12 +6,10 @@ import { DeepPartial } from './types';
 import { entries, PropertyUpdateEvents } from './helpers';
 
 import { SamplerDevice, SerializedSamplerDevice } from './device/Sampler';
-import { getContext, getDraw, Offline, OfflineContext, setContext } from 'tone';
+import { getContext, OfflineContext, setContext } from 'tone';
 import { EngineBase } from './EngineBase';
 
 import type { SidePanelTab } from '../panels/SidePanel';
-import { Sequence } from '../../../__mocks__/tone';
-import { buffer } from 'stream/consumers';
 
 export type SerializedEngine = {
   currentPatternIndex: number;

@@ -1,6 +1,5 @@
-import { createMemo, createSignal, For, JSX, splitProps } from 'solid-js';
+import { createMemo, createSignal, JSX, splitProps } from 'solid-js';
 
-import { SamplerDevice } from '../engine/device/Sampler';
 import { Slice } from '../engine/device/Slice';
 import { subdivisions, subdivisionTypes } from '../engine/types';
 import { Sequencer } from './Sequencer';
