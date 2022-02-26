@@ -10,12 +10,15 @@ import {
   createEffect,
 } from 'solid-js';
 
-import { Slice, Step } from '../engine/device/Slice';
+import { Slice } from '../engine/device/Slice';
 import { css } from '../emotion-solid';
 import { SequencerMode, SequencerStep } from './SequencerStep';
 import { Row } from '../UI/Grid';
 import { NumberInputWithArrowButtons } from '../UI/NumberInputWithArrowButtons';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
+import { createSignalFromEventEmitter } from 'renderer/engine/EngineBase';
+import { Step } from 'renderer/engine/device/Patttern';
+import { DeepReadonly } from 'solid-js/store';
 
 const colors808Knobs = ['#ffffff', '#f1f827', '#f8a125', '#e72e2e'];
 
@@ -24,7 +27,7 @@ const getColor = (index: number) =>
 
 export const Sequencer = (
   propsWithoutDefaults: Omit<JSX.IntrinsicElements['ul'], 'onChange'> & {
-    steps: Step[];
+    steps: DeepReadonly<Step[]>;
     slice: Slice;
     mode: SequencerMode;
     onChange: (steps: Step[]) => void;
@@ -44,7 +47,8 @@ export const Sequencer = (
   const [page, setPage] = createSignal(1);
   const [currentStep, setCurrentStep] = createSignal<Step>();
   const [autoPage, setAutoPage] = createSignal(true);
-  const collapsed = props.slice.createSignal(
+  const collapsed = createSignalFromEventEmitter(
+    () => props.slice,
     (slice) => slice.collapsed,
     ['collapsedUpdated']
   );

@@ -10,10 +10,13 @@ import { Track } from '../engine/Track';
 export const YoutubeSearchPanel = (props: { engine: Engine }) => {
   const [searchTerm, setSearchTerm] = createSignal('breakbeat');
 
-  const [results] = createResource(searchTerm, () => {
-    if (!searchTerm().length) return [];
-    return window.yt.search(searchTerm());
-  });
+  const [results] = createResource(
+    () => searchTerm(),
+    (searchTerm) => {
+      if (!searchTerm.length) return [];
+      return window.yt.search(searchTerm);
+    }
+  );
 
   const [selectedResult, setSelectedResult] =
     createSignal<NonNullable<ReturnType<typeof results>>[number]>();
@@ -28,6 +31,7 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
     );
 
     const sourceFormat = videoTracks
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       .sort((a, b) => (a.bitrate! < b.bitrate! ? 1 : -1))
       .shift();
 

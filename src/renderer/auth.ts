@@ -49,8 +49,8 @@ authStore.setMaxListeners(Infinity);
 export const useIsLoggedIn = () =>
   createSignalFromEventEmitter(
     authStore,
-    'change',
-    (authStore) => !!authStore.getAccessToken()
+    (authStore) => !!authStore.getAccessToken(),
+    'change'
   );
 
 export const authLink = ApolloLink.from([withToken, handleAuthError]);

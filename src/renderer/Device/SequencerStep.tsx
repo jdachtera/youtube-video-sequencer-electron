@@ -1,4 +1,4 @@
-import { Step } from 'renderer/engine/device/Slice';
+import { Step } from 'renderer/engine/device/Patttern';
 import { camelCaseToSpaced } from 'renderer/UI/format';
 
 import { RangeInput } from 'renderer/UI/RangeInput';

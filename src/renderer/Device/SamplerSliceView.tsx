@@ -6,14 +6,14 @@ import {
   formatPercentage,
   formattedTimeStep,
 } from '../UI/format';
-import { LCD, InputLCD } from '../UI/lcdStyles';
+import { LCD } from '../UI/lcdStyles';
 import { DeviceWrapper } from '../UI/DeviceWrapper';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { LCDLabel } from '../UI/LCD';
 
 import { WavesurferSliceView } from './WavesurferSliceView';
 
-import type { Slice } from '../engine/device/Slice';
+import type { SerializedSlice, Slice } from '../engine/device/Slice';
 import { NumberInputWithLabel } from '../UI/Knob';
 
 import { ShareSliceButton } from '../UI/ShareSliceButton';
@@ -23,6 +23,12 @@ import { Column, Flex, Row } from '../UI/Grid';
 import { exportBuffer } from '../engine/helpers';
 
 import { SameHeightContainer } from '../UI/SameHeightContainer';
+import {
+  createSignalFromEventEmitter,
+  createStoreFromEventEmitter,
+} from 'renderer/engine/EngineBase';
+import { SampleSliceChannelControls } from './SampleSliceControls';
+import { SelectWithArrowButtons } from 'renderer/UI/SelectWithArrowButtons';
 
 export const SamplerSliceView = (props: {
   slice: Slice;
@@ -30,17 +36,20 @@ export const SamplerSliceView = (props: {
   onClickSlice: (slice: Slice) => void;
   onRemoveSlice: (slice: Slice) => void;
 }) => {
-  const sliceState = props.slice.createStore(
+  const sliceState = createStoreFromEventEmitter(
+    () => props.slice,
     (slice) => slice.serialize(),
     'change'
   );
 
-  const viewMode = props.slice.sampler.engine.createStore(
+  const viewMode = createStoreFromEventEmitter(
+    () => props.slice.sampler.engine,
     (engine) => engine.viewMode,
     'viewModeUpdated'
   );
 
-  const currentPlayPosition = props.slice.createSignal(
+  const currentPlayPosition = createSignalFromEventEmitter(
+    () => props.slice,
     (slice) => slice.currentPosition,
     'currentPositionUpdated'
   );
@@ -63,51 +72,11 @@ export const SamplerSliceView = (props: {
           margin: 0;
         `}
       >
-        <DeviceWrapper
-          hidden={!viewMode.channel}
-          onClickLeftRackEar={toggleCollapse}
-          onClickRightRackEar={() => props.onRemoveSlice(props.slice)}
-          background={sliceState.color}
-        >
-          <Row
-            classList={{
-              [css`
-                flex: 1;
-                margin: 20px 0;
-              `]: true,
-            }}
-          >
-            <InputLCD
-              classList={{
-                [css`
-                  width: 150px;
-                  white-space: nowrap;
-                  text-overflow: ellipsis;
-                `]: true,
-              }}
-              value={sliceState.name}
-              onInput={(event) => {
-                props.slice.set({ name: event.currentTarget.value });
-              }}
-            />
-            <ButtonWithLabel
-              label="Solo"
-              activated={sliceState.solo}
-              labelOnButton={true}
-              onClick={(event) => {
-                props.slice.setSolo(!sliceState.solo, event.altKey);
-              }}
-            />
-            <ButtonWithLabel
-              label="Mute"
-              activated={sliceState.mute}
-              labelOnButton={true}
-              onClick={() => {
-                props.slice.set({ mute: !sliceState.mute });
-              }}
-            />
-          </Row>
-        </DeviceWrapper>
+        <SampleSliceChannelControls
+          toggleCollapse={toggleCollapse}
+          onRemoveSlice={(slice: Slice) => props.onRemoveSlice(slice)}
+          slice={props.slice}
+        />
 
         <DeviceWrapper
           onClickLeftRackEar={toggleCollapse}
@@ -204,6 +173,19 @@ export const SamplerSliceView = (props: {
                     >
                       <Column>
                         <NumberInputWithLabel
+                          label="Start"
+                          size={12}
+                          min={sliceState.end - 10}
+                          max={sliceState.end - 0.00001}
+                          step={formattedTimeStep}
+                          parse={parseFormattedTime}
+                          format={formatTime}
+                          value={sliceState.start}
+                          onChange={(start: number) =>
+                            props.slice.set({ start })
+                          }
+                        />
+                        <NumberInputWithLabel
                           label="Current Time"
                           disabled
                           size={12}
@@ -211,6 +193,7 @@ export const SamplerSliceView = (props: {
                           parse={parseFormattedTime}
                           format={formatTime}
                         />
+
                         <NumberInputWithLabel
                           label="Playback Speed"
                           size={12}
@@ -224,22 +207,42 @@ export const SamplerSliceView = (props: {
                             props.slice.set({ playbackRate });
                           }}
                         />
-
+                        <div
+                          class={css`
+                            display: flex;
+                            align-items: center;
+                          `}
+                        >
+                          <LCDLabel>Warp Mode</LCDLabel>
+                          <SelectWithArrowButtons
+                            options={
+                              [
+                                'resample',
+                                'stretch',
+                              ] as SerializedSlice['warpmode'][]
+                            }
+                            size={12}
+                            selectedOption={sliceState.warpmode}
+                            onChange={(warpmode) => {
+                              console.log(warpmode);
+                              props.slice.set({ warpmode });
+                            }}
+                          />
+                        </div>
+                      </Column>
+                      <Column>
                         <NumberInputWithLabel
-                          label="Start"
+                          label={'End'}
                           size={12}
-                          min={sliceState.end - 10}
-                          max={sliceState.end - 0.00001}
+                          min={sliceState.start + 0.00001}
+                          max={sliceState.start + 10}
                           step={formattedTimeStep}
                           parse={parseFormattedTime}
                           format={formatTime}
-                          value={sliceState.start}
-                          onChange={(start: number) =>
-                            props.slice.set({ start })
-                          }
+                          value={sliceState.end}
+                          onChange={(end) => props.slice.set({ end })}
                         />
-                      </Column>
-                      <Column>
+
                         <NumberInputWithLabel
                           label="Volume"
                           size={12}
@@ -260,25 +263,6 @@ export const SamplerSliceView = (props: {
                           onChange={(pitch) => {
                             props.slice.set({ pitch });
                           }}
-                        />
-                        <NumberInputWithLabel
-                          label={
-                            <span
-                              class={css`
-                                min-width: 20px;
-                              `}
-                            >
-                              End
-                            </span>
-                          }
-                          size={12}
-                          min={sliceState.start + 0.00001}
-                          max={sliceState.start + 10}
-                          step={formattedTimeStep}
-                          parse={parseFormattedTime}
-                          format={formatTime}
-                          value={sliceState.end}
-                          onChange={(end) => props.slice.set({ end })}
                         />
                       </Column>
                     </Row>
@@ -378,10 +362,7 @@ export const SamplerSliceView = (props: {
           hidden={!viewMode.sequencer}
           background={sliceState.color}
         >
-          <PatternEditor
-            slice={props.slice}
-            currentPatternIndex={sliceState.currentPatternIndex}
-          />
+          <PatternEditor slice={props.slice} />
         </DeviceWrapper>
 
         <DeviceChainView

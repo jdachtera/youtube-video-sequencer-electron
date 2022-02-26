@@ -1,3 +1,4 @@
+import { batch } from 'solid-js';
 import { DefaultListener, ListenerSignature } from 'tiny-typed-emitter';
 import { Gain } from 'tone';
 
@@ -6,8 +7,7 @@ import { EngineBase } from '../EngineBase';
 import { entries, PropertyUpdateEvents } from '../helpers';
 
 import { SerializedDevice } from '../types';
-
-import { Step } from './Slice';
+import { Step } from './Patttern';
 
 export type SerializedDeviceBase = {
   volume: number;

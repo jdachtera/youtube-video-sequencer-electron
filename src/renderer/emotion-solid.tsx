@@ -1,4 +1,3 @@
-import { Property } from 'csstype';
 import { css, CSSInterpolation, injectGlobal } from '@emotion/css';
 import {
   createContext,
@@ -7,7 +6,6 @@ import {
   JSX,
   mergeProps,
   splitProps,
-  ComponentProps,
 } from 'solid-js';
 import { createComponent, spread } from 'solid-js/web';
 
@@ -54,6 +52,7 @@ export const styled =
 
     const newProps = mergeProps(
       {
+        // eslint-disable-next-line solid/reactivity
         get classList() {
           const className =
             typeof template === 'function' ? template(props) : css(template);

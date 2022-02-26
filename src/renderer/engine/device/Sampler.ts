@@ -6,6 +6,7 @@ import { loadCachedVideo, storeCachedVideo } from '../blobStore';
 import { entries, PropertyUpdateEvents } from '../helpers';
 import { Device, SerializedDeviceBase } from './Device';
 import { DeepPartial } from '../types';
+import { batch } from 'solid-js';
 
 export type SerializedSamplerDevice = SerializedDeviceBase & {
   name: 'Sampler';
@@ -61,8 +62,6 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
     this.on('sliceAdded', this.emitChange);
     this.on('sliceRemoved', this.emitChange);
 
-    this.engine.on('currentPatternIndexUpdated', this.setCurrentPatternIndex);
-
     this.set(serializedSampler);
   }
 
@@ -77,8 +76,6 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
       this.buffer.fromArray(cachedBlob);
     } else {
       const base64StringOrBuffer = await this.loadArrayBuffer();
-
-      console.log(base64StringOrBuffer);
 
       const arrayBuffer =
         typeof base64StringOrBuffer === 'string'
@@ -117,10 +114,12 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
     );
 
     const sourceFormat = audioTracks
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       .sort((a, b) => (a.audioBitrate! > b.audioBitrate! ? 1 : -1))
       .shift();
 
     const title = result.videoDetails.title;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const sourceUrl = sourceFormat!.url;
 
     console.log(sourceFormat);
@@ -131,32 +130,34 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
   }
 
   set(samplerPartial: Partial<SerializedSamplerDevice>) {
-    entries(samplerPartial).forEach((entry) => {
-      if (!entry) return;
-      switch (entry[0]) {
-        case 'url':
-          this.url = entry[1] ?? '';
-          this.load();
-          break;
-        case 'zoom':
-          this.zoom = entry[1] ?? 1;
-          break;
-        case 'title':
-          this.title = entry[1] ?? '';
-          break;
-        case 'slices':
-          this.slices.forEach((slice) => this.removeSlice(slice));
-          entry[1]?.forEach((serializedSlice) =>
-            this.createSlice(serializedSlice)
-          );
-          break;
-      }
+    batch(() => {
+      entries(samplerPartial).forEach((entry) => {
+        if (!entry) return;
+        switch (entry[0]) {
+          case 'url':
+            this.url = entry[1] ?? '';
+            this.load();
+            break;
+          case 'zoom':
+            this.zoom = entry[1] ?? 1;
+            break;
+          case 'title':
+            this.title = entry[1] ?? '';
+            break;
+          case 'slices':
+            this.slices.forEach((slice) => this.removeSlice(slice));
+            entry[1]?.forEach((serializedSlice) =>
+              this.createSlice(serializedSlice)
+            );
+            break;
+        }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      this.emit(`${entry[0]}Updated` as any, entry[1]);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.emit(`${entry[0]}Updated` as any, entry[1]);
+      });
+
+      super.set(samplerPartial);
     });
-
-    super.set(samplerPartial);
   }
 
   createSlice(serializedSlice: SerializedSlice, atIndex = this.slices.length) {
@@ -195,10 +196,6 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
     this.emit('sliceRemoved', slice);
   }
 
-  setCurrentPatternIndex = (index: number) => {
-    this.slices.forEach((slice) => slice.set({ currentPatternIndex: index }));
-  };
-
   stop() {
     this.slices.forEach((slice) => slice.stop());
   }
@@ -206,7 +203,6 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
   dispose() {
     super.dispose();
     this.slices.forEach((slice) => this.removeSlice(slice));
-    this.engine.on('currentPatternIndexUpdated', this.setCurrentPatternIndex);
     this.buffer.dispose();
   }
 

@@ -4,7 +4,7 @@ import { Engine } from '../Engine';
 import { DeepPartial, SerializedDevice } from '../types';
 import { createDevice } from './createDevice';
 import { normalizeDeviceData } from './normalizeDeviceData';
-import { Step } from './Slice';
+import { Step } from './Patttern';
 
 export type SerializedDeviceChain = SerializedDeviceBase & {
   name: 'DeviceChain';

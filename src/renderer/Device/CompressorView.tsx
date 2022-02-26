@@ -1,9 +1,11 @@
 import { MoogKnobWithLabel } from '../UI/Knob';
 import { CompressorDevice } from '../engine/device/Compressor';
 import { Column, Row } from '../UI/Grid';
+import { createStoreFromEventEmitter } from 'renderer/engine/EngineBase';
 
 export const CompressorView = (props: { compressor: CompressorDevice }) => {
-  const compressorState = props.compressor.createStore(
+  const compressorState = createStoreFromEventEmitter(
+    () => props.compressor,
     (compressor) => compressor.serialize(),
     'change'
   );

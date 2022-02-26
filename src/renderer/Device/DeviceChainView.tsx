@@ -24,6 +24,10 @@ import { SamplerSlicesView } from './SamplerSlicesView';
 import { Column, Row } from '../UI/Grid';
 import { SameHeightContainer } from '../UI/SameHeightContainer';
 import { SelectWithArrowButtons } from '../UI/SelectWithArrowButtons';
+import {
+  createSignalFromEventEmitter,
+  createStoreFromEventEmitter,
+} from 'renderer/engine/EngineBase';
 
 const deviceNames: SerializedDevice['name'][] = [
   // 'DeviceChain',
@@ -49,17 +53,20 @@ export const DeviceChainView = (
   const [selectedDeviceName, setSelectedDeviceName] =
     createSignal<SerializedDevice['name']>('Filter');
 
-  const viewMode = props.deviceChain.engine.createStore(
+  const viewMode = createStoreFromEventEmitter(
+    () => props.deviceChain.engine,
     (engine) => engine.viewMode,
     ['viewModeUpdated']
   );
 
-  const devices = props.deviceChain.createSignal(
+  const devices = createSignalFromEventEmitter(
+    () => props.deviceChain,
     (chain) => chain.devices,
     ['deviceAdded', 'deviceRemoved']
   );
 
-  const collapsed = props.deviceChain.createSignal(
+  const collapsed = createSignalFromEventEmitter(
+    () => props.deviceChain,
     (chain) => chain.collapsed,
     'collapsedUpdated'
   );

@@ -57,6 +57,7 @@ export class ReverbDevice extends Device<ReverbDeviceEvents> {
           break;
         case 'preDelay':
           this.reverbNode.set({
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             preDelay: entry[1]!,
           });
           break;

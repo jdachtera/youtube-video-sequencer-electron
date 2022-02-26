@@ -3,17 +3,20 @@ import { SamplerDevice } from '../engine/device/Sampler';
 import { Slice } from '../engine/device/Slice';
 import { For } from 'solid-js';
 import { SamplerSliceView } from './SamplerSliceView';
+import { createSignalFromEventEmitter } from 'renderer/engine/EngineBase';
 
 export const SamplerSlicesView = (props: {
   sampler: SamplerDevice;
   onClickSlice?: (slice: Slice) => void;
 }) => {
-  const slices = props.sampler.createSignal(
+  const slices = createSignalFromEventEmitter(
+    () => props.sampler,
     (sampler) => sampler.slices,
     ['sliceAdded', 'sliceRemoved', 'sliceUpdated']
   );
 
-  const selectedSlice = props.sampler.createSignal(
+  const selectedSlice = createSignalFromEventEmitter(
+    () => props.sampler,
     (sampler) => sampler.selectedSlice,
     'sliceSelected'
   );

@@ -6,14 +6,13 @@ import {
   Frequency,
   Filter as FilterNode,
   Envelope,
-  Signal,
   Scale,
   Time,
   Add,
 } from 'tone';
 import { Engine } from '../Engine';
 import { DeepPartial } from '../types';
-import { Step } from './Slice';
+import { Step } from './Patttern';
 
 export type SerializedFilterDevice = SerializedDeviceBase & {
   name: 'Filter';

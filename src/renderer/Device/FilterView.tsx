@@ -6,6 +6,10 @@ import { MoogKnobWithLabel } from '../UI/Knob';
 import { Column, Row } from '../UI/Grid';
 import { SelectWithArrowButtons } from '../UI/SelectWithArrowButtons';
 import { LCD } from '../UI/lcdStyles';
+import {
+  createSignalFromEventEmitter,
+  createStoreFromEventEmitter,
+} from 'renderer/engine/EngineBase';
 
 const filterTypes: BiquadFilterType[] = [
   'lowpass',
@@ -20,7 +24,8 @@ const filterTypes: BiquadFilterType[] = [
 const filterRolloffOptions: FilterRollOff[] = [-12, -24, -48, -96];
 
 export const FilterView = (props: { filter: FilterDevice }) => {
-  const filterState = props.filter.createStore(
+  const filterState = createStoreFromEventEmitter(
+    () => props.filter,
     (filter) => filter.serialize(),
     'change'
   );
@@ -102,7 +107,8 @@ export const FilterView = (props: { filter: FilterDevice }) => {
 const FrequencyResponseDisplay = (props: { filter: FilterDevice }) => {
   let canvasRef: HTMLCanvasElement | undefined;
 
-  const frequencyResponse = props.filter.createSignal(
+  const frequencyResponse = createSignalFromEventEmitter(
+    () => props.filter,
     (filter) => filter.filterNode.getFrequencyResponse(100),
     ['frequencyUpdated', 'resonanceUpdated', 'typeUpdated', 'rolloffUpdated']
   );

@@ -8,9 +8,14 @@ import { useIsLoggedIn } from '../auth';
 import { Slice } from '../engine/device/Slice';
 import { AddSliceDocument } from '../panels/Slice.generated';
 import { ButtonWithLabel } from './ButtonWithLabel';
+import { createStoreFromEventEmitter } from 'renderer/engine/EngineBase';
 
 export const ShareSliceButton = (props: { slice: Slice }) => {
-  const slice = props.slice.createStore((slice) => slice.serialize(), 'change');
+  const slice = createStoreFromEventEmitter(
+    () => props.slice,
+    (slice) => slice.serialize(),
+    'change'
+  );
 
   const isLoggedIn = useIsLoggedIn();
 

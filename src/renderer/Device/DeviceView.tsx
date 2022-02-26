@@ -20,6 +20,7 @@ import { CompressorView } from './CompressorView';
 import { ReverbDevice } from '../engine/device/Reverb';
 import { ReverbView } from './ReverbView';
 import { DeviceWrapper } from '../UI/DeviceWrapper';
+import { createSignalFromEventEmitter } from 'renderer/engine/EngineBase';
 
 export const DeviceView = (props: {
   device: Device;
@@ -28,7 +29,8 @@ export const DeviceView = (props: {
   return (
     <Switch
       fallback={() => {
-        const collapsed = props.device.createSignal(
+        const collapsed = createSignalFromEventEmitter(
+          () => props.device,
           (device) => device.collapsed,
           'collapsedUpdated'
         );

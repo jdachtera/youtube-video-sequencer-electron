@@ -42,11 +42,3 @@ export const SameHeightContainer = (props: JSX.IntrinsicElements['div']) => {
 
   return <div {...props} ref={parent}></div>;
 };
-
-function getInnerHeight(elm: HTMLElement) {
-  const computed = window.getComputedStyle(elm);
-  const padding =
-    parseInt(computed.paddingTop) + parseInt(computed.paddingBottom);
-
-  return elm.clientHeight - padding;
-}

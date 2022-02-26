@@ -1,6 +1,6 @@
 import { createEffect, createSignal, For, onCleanup, onMount } from 'solid-js';
 import { css } from '../emotion-solid';
-import { Transport, start } from 'tone';
+import { Time } from 'tone';
 import { debounce } from 'ts-debounce';
 
 import { Engine } from '../engine/Engine';
@@ -16,29 +16,47 @@ import { SamplerDevice } from '../engine/device/Sampler';
 import { DeviceChain } from '../engine/device/DeviceChain';
 import { MixdownButton } from './MixdownButton';
 import { camelCaseToSpaced } from 'renderer/UI/format';
+import { createStoreFromEventEmitter } from 'renderer/engine/EngineBase';
+import { InputLCD } from 'renderer/UI/lcdStyles';
 
 export const Toolbar = (props: { engine: Engine }) => {
-  const [isPlaying, setIsPlaying] = createSignal(false);
-
-  const engineState = props.engine.createStore(
+  const engineState = createStoreFromEventEmitter(
+    () => props.engine,
     (engine) => ({
       bpm: engine.transport.bpm.value,
       viewMode: engine.viewMode,
       swing: engine.transport.swing,
       currentPatternIndex: engine.currentPatternIndex,
       zoom: engine.zoom,
+      playing: engine.transport.state === 'started',
     }),
     [
       'bpmUpdated',
       'swingUpdated',
-      'currentPatternIndexUpdated',
       'viewModeUpdated',
       'zoomUpdated',
+      'start',
+      'stop',
     ]
   );
 
+  const [currentPosition, setCurrentPosition] = createSignal('');
+  createEffect(() => {
+    props.engine.transport.scheduleRepeat(() => {
+      setCurrentPosition(
+        Time(props.engine.transport.position)
+          .toBarsBeatsSixteenths()
+          .split('.')[0]
+      );
+    }, '60hz');
+  });
+
   const togglePlay = async () => {
-    setIsPlaying(!isPlaying());
+    if (engineState.playing) {
+      props.engine.stop();
+    } else {
+      props.engine.start();
+    }
   };
 
   const handleKeydown = (event: KeyboardEvent) => {
@@ -163,20 +181,6 @@ export const Toolbar = (props: { engine: Engine }) => {
     );
   });
 
-  createEffect(() => {
-    if (isPlaying()) {
-      start()
-        .then(() => {
-          Transport.start();
-          props.engine.start();
-          return;
-        })
-        .catch(console.error);
-    } else {
-      Transport.stop();
-    }
-  });
-
   const [minimized, setMinimized] = createSignal(false);
 
   return (
@@ -192,11 +196,14 @@ export const Toolbar = (props: { engine: Engine }) => {
         <Row>
           <ButtonWithLabel
             type="button"
-            activated={isPlaying()}
+            activated={engineState.playing}
             onClick={togglePlay}
             labelOnButton={true}
+            activatedColor={'#46d323'}
+            blinkInterval={engineState.playing ? 60 / engineState.bpm : 0}
             label={'▶'}
           />
+
           <ButtonGroup>
             <LoadFileButton label={'Load'} onChange={loadJSON} accept=".json" />
             <ButtonWithLabel
@@ -222,6 +229,7 @@ export const Toolbar = (props: { engine: Engine }) => {
               `]: true,
             }}
           >
+            <InputLCD value={currentPosition()} readOnly size={4} />
             <NumberInputWithArrowButtons
               label={'Tempo'}
               min={20}
@@ -239,15 +247,6 @@ export const Toolbar = (props: { engine: Engine }) => {
               size={4}
               value={engineState.swing}
               onChange={handleSwingChange}
-            />
-            <NumberInputWithArrowButtons
-              label={'Pattern'}
-              min={0}
-              size={3}
-              value={engineState.currentPatternIndex}
-              onChange={(currentPatternIndex) =>
-                props.engine.set({ currentPatternIndex })
-              }
             />
             <NumberInputWithArrowButtons
               label={'Zoom'}

@@ -1,3 +1,5 @@
+import { createSignalFromEventEmitter } from 'renderer/engine/EngineBase';
+import { randomColor } from 'renderer/engine/helpers';
 import { createEffect, onMount, onCleanup } from 'solid-js';
 
 import { debounce } from 'ts-debounce';
@@ -15,7 +17,8 @@ type WavesurferViewProps = {
 };
 
 export const WavesurferView = (props: WavesurferViewProps) => {
-  const zoom = props.sampler.createSignal(
+  const zoom = createSignalFromEventEmitter(
+    () => props.sampler,
     (sampler) => sampler.zoom,
     'zoomUpdated'
   );
@@ -23,12 +26,14 @@ export const WavesurferView = (props: WavesurferViewProps) => {
   let waveformRef: HTMLDivElement | undefined;
   let timelineRef: HTMLDivElement | undefined;
 
-  const collapsed = props.sampler.createSignal(
+  const collapsed = createSignalFromEventEmitter(
+    () => props.sampler,
     (sampler) => sampler.collapsed,
     'collapsedUpdated'
   );
 
-  const showDevices = props.sampler.engine.createSignal(
+  const showDevices = createSignalFromEventEmitter(
+    () => props.sampler.engine,
     (engine) => engine.viewMode.device,
     ['viewModeUpdated']
   );
@@ -79,10 +84,7 @@ export const WavesurferView = (props: WavesurferViewProps) => {
     if (existingSlice) {
       region.update({ id: region.id, color: existingSlice.color });
     } else {
-      const randR = Math.floor(Math.random() * (255 - 0 + 1) + 0);
-      const randG = Math.floor(Math.random() * (255 - 0 + 1) + 0);
-      const randB = Math.floor(Math.random() * (255 - 0 + 1) + 0);
-      const color = `rgba(${randR},${randG},${randB},0.8)`;
+      const color = randomColor();
       region.update({ id: region.id, color });
     }
   };
@@ -173,7 +175,8 @@ export const WavesurferView = (props: WavesurferViewProps) => {
     wavesurfer.un('region-update-end', props.onRegionClick);
   });
 
-  const buffer = props.sampler.createSignal(
+  const buffer = createSignalFromEventEmitter(
+    () => props.sampler,
     (sampler) =>
       sampler.buffer.length ? sampler.buffer.toMono().get() : undefined,
     'load'
