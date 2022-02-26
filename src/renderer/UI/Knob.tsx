@@ -120,6 +120,7 @@ export const Knob = (props: KnobProps) => {
   return (
     <Dynamic
       onWheel={(event: WheelEvent) => {
+        console.log(event);
         event.preventDefault();
         handleChange(
           event.deltaY / window.screen.height / 5,
@@ -128,6 +129,7 @@ export const Knob = (props: KnobProps) => {
       }}
       onMouseDown={(event: MouseEvent) => {
         event.preventDefault();
+        console.log(event);
         setLastPosition({ x: event.x, y: event.y });
         setIsDragging(true);
       }}
@@ -173,6 +175,7 @@ const MoogKnob = (
       initialRotation={30}
       component={(props: { rotation: number }) => (
         <div
+          {...props}
           style={{
             position: 'relative',
             padding: '10px',
@@ -182,7 +185,6 @@ const MoogKnob = (
         >
           <div style={{ position: 'relative' }}>
             <img
-              {...props}
               src={MoogKnobSvg}
               width={size()}
               class={css`
