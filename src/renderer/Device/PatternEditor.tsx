@@ -1,4 +1,4 @@
-import { createMemo, createSignal, JSX, splitProps } from 'solid-js';
+import { createEffect, createSignal, JSX, Show, splitProps } from 'solid-js';
 
 import { Slice } from '../engine/device/Slice';
 import { subdivisions, subdivisionTypes } from '../engine/types';
@@ -8,9 +8,15 @@ import { SelectWithArrowButtons } from '../UI/SelectWithArrowButtons';
 import { NumberInputWithArrowButtons } from '../UI/NumberInputWithArrowButtons';
 import { ScreenPrintBackground } from '../UI/ScreenPrintBackground';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
-import { Flex, Row } from '../UI/Grid';
+import { Column, Flex, Row } from '../UI/Grid';
 import { css } from '@emotion/css';
 import { SequencerMode, sequencerModes } from './SequencerStep';
+import {
+  FollowupAction,
+  followupActionTypes,
+  normalizeFollowupActionData,
+} from 'renderer/engine/device/Patttern';
+import { createSignalFromEventEmitter } from 'renderer/engine/EngineBase';
 
 const sequencerModeLabels = {
   play: '▶',
@@ -30,18 +36,46 @@ export const PatternEditor = (
     'slice',
     'currentPatternIndex',
   ]);
-  const sliceState = props.slice.createStore(
-    (slice) => slice.serialize(),
-    'change'
+
+  const collapsed = createSignalFromEventEmitter(
+    () => props.slice,
+    (slice) => slice.collapsed,
+    'collapsedUpdated'
   );
 
-  const patterns = props.slice.createSignal(
-    (slice) => slice.patterns,
-    'patternsUpdated'
+  const numberOfPatterns = createSignalFromEventEmitter(
+    () => props.slice,
+    (slice) => slice.patterns.length,
+    ['patternAdded', 'patternRemoved']
   );
 
-  const currentPattern = createMemo(
-    () => patterns()[props.currentPatternIndex]
+  const [autoSelectPattern, setAutoSelectPattern] = createSignal(false);
+
+  createEffect(() => {
+    if (autoSelectPattern()) {
+      setSelectedPatternIndex(props.currentPatternIndex);
+    }
+  });
+
+  const [selectedPatternIndex, setSelectedPatternIndex] = createSignal(
+    props.slice.currentPatternIndex
+  );
+
+  const selectedPattern = createSignalFromEventEmitter(
+    () => props.slice,
+    (slice) => slice.patterns[selectedPatternIndex()],
+    ['patternAdded', 'patternRemoved', 'patternUpdated']
+  );
+
+  const selectedPatternState = createSignalFromEventEmitter(
+    selectedPattern,
+    (pattern) => ({
+      subdivision: pattern?.subdivision,
+      subdivisionType: pattern?.subdivisionType,
+      followupAction: pattern?.followupAction,
+      steps: pattern?.steps,
+    }),
+    ['change']
   );
 
   const [selectedMode, setSelectedMode] = createSignal<SequencerMode>('play');
@@ -51,126 +85,250 @@ export const PatternEditor = (
       {...divProps}
       classList={{
         [css`
-          flex-direction: ${sliceState.collapsed ? 'row' : 'column'};
+          flex-direction: ${collapsed() ? 'row' : 'column'};
         `]: true,
       }}
     >
-      <Row
-        classList={{
-          [css`
-            margin: 10px;
-          `]: !sliceState.collapsed,
-        }}
-      >
-        <ButtonWithLabel
-          label={'Clone'}
-          labelOnButton={true}
-          onClick={() =>
-            props.slice.set({
-              patterns: [
-                ...patterns().slice(0, props.currentPatternIndex + 1),
-                {
-                  ...currentPattern(),
-                  steps: currentPattern().steps.map((step) => ({ ...step })),
-                },
-                ...patterns().slice(props.currentPatternIndex + 2),
-              ],
-              currentPatternIndex: sliceState.currentPatternIndex + 1,
-            })
-          }
-        />
-        <ButtonWithLabel
-          label={'Delete'}
-          labelOnButton={true}
-          onClick={() =>
-            props.slice.set({
-              currentPatternIndex: Math.max(
-                sliceState.currentPatternIndex - 1,
-                0
-              ),
-              patterns: [
-                ...patterns().slice(0, props.currentPatternIndex),
-                ...patterns().slice(props.currentPatternIndex + 1),
-              ],
-            })
-          }
-        />
-        <ButtonWithLabel
-          label={'Duplicate'}
-          labelOnButton={true}
-          onClick={() =>
-            props.slice.updatePattern(props.currentPatternIndex, {
-              steps: [
-                ...currentPattern().steps,
-                ...currentPattern().steps.map((step) => ({ ...step })),
-              ],
-            })
-          }
-        />
-        <NumberInputWithArrowButtons
-          label={'Pattern'}
-          size={2}
-          step={1}
-          min={0}
-          max={patterns().length + 1}
-          value={props.currentPatternIndex}
-          onChange={(currentPatternIndex) => {
-            props.slice.set({ currentPatternIndex });
-          }}
-        />
-        <NumberInputWithArrowButtons
-          label={'Steps'}
-          size={4}
-          step={1}
-          min={1}
-          max={1024}
-          value={currentPattern()?.steps?.length}
-          onChange={(length) => {
-            props.slice.updatePatternLength(props.currentPatternIndex, length);
-          }}
-        />
-        <SelectWithArrowButtons
-          label={'Div'}
-          size={2}
-          options={subdivisions}
-          selectedOption={currentPattern()?.subdivision ?? 16}
-          onChange={(subdivision) => {
-            props.slice.updatePattern(props.currentPatternIndex, {
-              subdivision,
-            });
-          }}
-        />
-        <SelectWithArrowButtons
-          size={2}
-          label={'Type'}
-          options={[...subdivisionTypes]}
-          selectedOption={currentPattern()?.subdivisionType ?? 'n' ?? 16}
-          onChange={(subdivisionType) => {
-            props.slice.updatePattern(props.currentPatternIndex, {
-              subdivisionType,
-            });
-          }}
-        />
-        <SelectWithArrowButtons
-          size={1}
-          options={sequencerModes}
-          selectedOption={selectedMode()}
-          optionLabel={(mode) => sequencerModeLabels[mode]}
-          onChange={setSelectedMode}
-        />
-      </Row>
+      <Column>
+        <ScreenPrintBackground
+          hidden={collapsed()}
+          class={css`
+            margin-bottom: 10px;
+          `}
+          background={'rgba(255,255,255,0.2)'}
+        >
+          <Row
+            class={css`
+              margin: 10px;
+            `}
+          >
+            <ButtonWithLabel
+              label={'Clone'}
+              labelOnButton={true}
+              onClick={() => {
+                props.slice.createPattern(
+                  selectedPattern().serialize(),
+                  props.currentPatternIndex + 1
+                );
+              }}
+            />
+            <ButtonWithLabel
+              label={'Delete'}
+              labelOnButton={true}
+              onClick={() => {
+                const pattern = selectedPattern();
+                if (!pattern) return;
+                props.slice.removePattern(pattern);
+              }}
+            />
+            <ButtonWithLabel
+              label={'Duplicate'}
+              labelOnButton={true}
+              onClick={() => {
+                props.slice.getPattern()?.set({
+                  steps: [
+                    ...selectedPattern().steps,
+                    ...selectedPattern().steps.map((step) => ({ ...step })),
+                  ],
+                });
+              }}
+            />
+            <NumberInputWithArrowButtons
+              label={'Active Pattern'}
+              size={2}
+              step={1}
+              min={0}
+              max={numberOfPatterns() - 1}
+              value={props.currentPatternIndex}
+              onChange={(currentPatternIndex) => {
+                props.slice.set({ currentPatternIndex });
+              }}
+            />
+            <ButtonWithLabel
+              label={'Auto'}
+              labelOnButton={true}
+              activated={autoSelectPattern()}
+              onClick={() => setAutoSelectPattern(!autoSelectPattern())}
+            />
+            <NumberInputWithArrowButtons
+              label={'Edit Pattern'}
+              size={2}
+              step={1}
+              min={0}
+              max={numberOfPatterns() - 1}
+              value={selectedPatternIndex()}
+              onChange={(index) => {
+                setSelectedPatternIndex(index);
+              }}
+            />
+
+            <NumberInputWithArrowButtons
+              label={'Steps'}
+              size={4}
+              step={1}
+              min={1}
+              max={1024}
+              value={selectedPatternState()?.steps?.length}
+              onChange={(length) => {
+                selectedPattern().setLength(length);
+              }}
+            />
+            <SelectWithArrowButtons
+              label={'Div'}
+              size={2}
+              options={subdivisions}
+              selectedOption={selectedPatternState()?.subdivision ?? 16}
+              onChange={(subdivision) => {
+                selectedPattern()?.set({ subdivision });
+              }}
+            />
+            <SelectWithArrowButtons
+              size={2}
+              label={'Type'}
+              options={[...subdivisionTypes]}
+              selectedOption={
+                selectedPatternState()?.subdivisionType ?? 'n' ?? 16
+              }
+              onChange={(subdivisionType) => {
+                selectedPattern()?.set({ subdivisionType });
+              }}
+            />
+            <SelectWithArrowButtons
+              size={1}
+              options={sequencerModes}
+              selectedOption={selectedMode()}
+              optionLabel={(mode) => sequencerModeLabels[mode]}
+              onChange={setSelectedMode}
+            />
+          </Row>
+        </ScreenPrintBackground>
+
+        <ScreenPrintBackground
+          hidden={collapsed()}
+          class={css`
+            margin-bottom: 10px;
+            align-items: flex-start;
+          `}
+          background={'rgba(255,255,255,0.2)'}
+        >
+          <Row
+            class={css`
+              margin: 10px;
+            `}
+          >
+            <FollowupActionControls
+              numberOfPatterns={numberOfPatterns()}
+              followupAction={selectedPatternState().followupAction}
+              onChange={(followupAction) => {
+                selectedPattern()?.set({
+                  followupAction: normalizeFollowupActionData({
+                    ...selectedPatternState().followupAction,
+                    ...followupAction,
+                  }),
+                });
+              }}
+            />
+          </Row>
+        </ScreenPrintBackground>
+      </Column>
       <ScreenPrintBackground background={'rgba(255,255,255,0.2)'}>
-        <Sequencer
-          mode={selectedMode()}
-          steps={currentPattern().steps}
-          onChange={(steps) => {
-            props.slice.updatePattern(props.currentPatternIndex, {
-              steps,
-            });
-          }}
-          slice={props.slice}
-        />
+        <Show when={selectedPattern()}>
+          <Sequencer
+            mode={selectedMode()}
+            steps={selectedPatternState().steps}
+            onChange={(steps) => {
+              selectedPattern()?.set({ steps });
+            }}
+            slice={props.slice}
+          />
+        </Show>
       </ScreenPrintBackground>
     </Flex>
+  );
+};
+
+export const FollowupActionControls = (props: {
+  followupAction?: FollowupAction;
+  onChange: (followupAction?: Partial<FollowupAction>) => void;
+  numberOfPatterns: number;
+}) => {
+  return (
+    <>
+      <SelectWithArrowButtons
+        size={5}
+        label={'Follow Action'}
+        options={[...followupActionTypes]}
+        selectedOption={props.followupAction?.type ?? 'no'}
+        onChange={(type) => {
+          props.onChange({ type });
+        }}
+      />
+
+      <Show when={props.followupAction}>
+        {(followupAction) => {
+          return (
+            <>
+              <Show when={followupAction.type !== 'no'}>
+                <ButtonWithLabel
+                  label={'Linked'}
+                  labelOnButton
+                  activated={followupAction.linked}
+                  onClick={() => {
+                    props.onChange({
+                      linked: !followupAction.linked,
+                    });
+                  }}
+                />
+              </Show>
+              <Show when={!followupAction.linked && followupAction}>
+                {(followupAction) => (
+                  <NumberInputWithArrowButtons
+                    label={'Time'}
+                    size={4}
+                    step={1}
+                    min={0}
+                    max={1024}
+                    value={followupAction.triggerTime}
+                    onChange={(triggerTime) => {
+                      props.onChange({ triggerTime });
+                    }}
+                  />
+                )}
+              </Show>
+              <Show when={followupAction.linked && followupAction}>
+                {(followupAction) => (
+                  <NumberInputWithArrowButtons
+                    label={'Multiplicator'}
+                    size={4}
+                    step={1}
+                    min={0}
+                    max={32}
+                    value={followupAction.multiplicator}
+                    onChange={(multiplicator) => {
+                      props.onChange({ multiplicator });
+                    }}
+                  />
+                )}
+              </Show>
+              <Show when={followupAction.type === 'jump' && followupAction}>
+                {(followupAction) => (
+                  <NumberInputWithArrowButtons
+                    label={'Target'}
+                    size={4}
+                    step={1}
+                    min={0}
+                    max={props.numberOfPatterns - 1}
+                    value={followupAction.targetIndex}
+                    onChange={(targetIndex) => {
+                      props.onChange({ targetIndex });
+                    }}
+                  />
+                )}
+              </Show>
+            </>
+          );
+        }}
+      </Show>
+    </>
   );
 };

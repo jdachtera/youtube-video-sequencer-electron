@@ -1,11 +1,13 @@
 import { MoogKnobWithLabel } from '../UI/Knob';
 import { PingPongDelayDevice } from '../engine/device/PingPongDelay';
 import { Row } from '../UI/Grid';
+import { createStoreFromEventEmitter } from 'renderer/engine/EngineBase';
 
 export const PingPongDelayView = (props: {
   pingPongDelay: PingPongDelayDevice;
 }) => {
-  const pingPongDelayState = props.pingPongDelay.createStore(
+  const pingPongDelayState = createStoreFromEventEmitter(
+    () => props.pingPongDelay,
     (pingPongDelay) => pingPongDelay.serialize(),
     'change'
   );

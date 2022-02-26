@@ -23,6 +23,10 @@ import { Column, Flex, Row } from '../UI/Grid';
 import { exportBuffer } from '../engine/helpers';
 
 import { SameHeightContainer } from '../UI/SameHeightContainer';
+import {
+  createSignalFromEventEmitter,
+  createStoreFromEventEmitter,
+} from 'renderer/engine/EngineBase';
 
 export const SamplerSliceView = (props: {
   slice: Slice;
@@ -30,17 +34,20 @@ export const SamplerSliceView = (props: {
   onClickSlice: (slice: Slice) => void;
   onRemoveSlice: (slice: Slice) => void;
 }) => {
-  const sliceState = props.slice.createStore(
+  const sliceState = createStoreFromEventEmitter(
+    () => props.slice,
     (slice) => slice.serialize(),
     'change'
   );
 
-  const viewMode = props.slice.sampler.engine.createStore(
+  const viewMode = createStoreFromEventEmitter(
+    () => props.slice.sampler.engine,
     (engine) => engine.viewMode,
     'viewModeUpdated'
   );
 
-  const currentPlayPosition = props.slice.createSignal(
+  const currentPlayPosition = createSignalFromEventEmitter(
+    () => props.slice,
     (slice) => slice.currentPosition,
     'currentPositionUpdated'
   );

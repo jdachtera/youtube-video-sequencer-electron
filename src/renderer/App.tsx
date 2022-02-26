@@ -13,16 +13,22 @@ import { GlobalStyles } from './UI/GlobalStyles';
 import { DeviceChainView } from './Device/DeviceChainView';
 import { Column, Row } from './UI/Grid';
 import { SidePanel } from './panels/SidePanel';
+import { createSignalFromEventEmitter } from './engine/EngineBase';
 
 const engine = new Engine(Transport);
 
 export function App() {
-  const tracks = engine.createSignal(
+  const tracks = createSignalFromEventEmitter(
+    engine,
     (engine) => engine.tracks,
     ['trackAdded', 'trackRemoved']
   );
 
-  const zoom = engine.createSignal((engine) => engine.zoom, 'zoomUpdated');
+  const zoom = createSignalFromEventEmitter(
+    engine,
+    (engine) => engine.zoom,
+    'zoomUpdated'
+  );
 
   return (
     <ThemeProvider theme={theme}>

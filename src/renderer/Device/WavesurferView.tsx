@@ -1,3 +1,4 @@
+import { createSignalFromEventEmitter } from 'renderer/engine/EngineBase';
 import { createEffect, onMount, onCleanup } from 'solid-js';
 
 import { debounce } from 'ts-debounce';
@@ -15,7 +16,8 @@ type WavesurferViewProps = {
 };
 
 export const WavesurferView = (props: WavesurferViewProps) => {
-  const zoom = props.sampler.createSignal(
+  const zoom = createSignalFromEventEmitter(
+    () => props.sampler,
     (sampler) => sampler.zoom,
     'zoomUpdated'
   );
@@ -23,12 +25,14 @@ export const WavesurferView = (props: WavesurferViewProps) => {
   let waveformRef: HTMLDivElement | undefined;
   let timelineRef: HTMLDivElement | undefined;
 
-  const collapsed = props.sampler.createSignal(
+  const collapsed = createSignalFromEventEmitter(
+    () => props.sampler,
     (sampler) => sampler.collapsed,
     'collapsedUpdated'
   );
 
-  const showDevices = props.sampler.engine.createSignal(
+  const showDevices = createSignalFromEventEmitter(
+    () => props.sampler.engine,
     (engine) => engine.viewMode.device,
     ['viewModeUpdated']
   );
@@ -173,7 +177,8 @@ export const WavesurferView = (props: WavesurferViewProps) => {
     wavesurfer.un('region-update-end', props.onRegionClick);
   });
 
-  const buffer = props.sampler.createSignal(
+  const buffer = createSignalFromEventEmitter(
+    () => props.sampler,
     (sampler) =>
       sampler.buffer.length ? sampler.buffer.toMono().get() : undefined,
     'load'

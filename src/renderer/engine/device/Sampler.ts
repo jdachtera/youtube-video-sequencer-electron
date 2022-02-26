@@ -6,6 +6,7 @@ import { loadCachedVideo, storeCachedVideo } from '../blobStore';
 import { entries, PropertyUpdateEvents } from '../helpers';
 import { Device, SerializedDeviceBase } from './Device';
 import { DeepPartial } from '../types';
+import { batch } from 'solid-js';
 
 export type SerializedSamplerDevice = SerializedDeviceBase & {
   name: 'Sampler';
@@ -78,8 +79,6 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
     } else {
       const base64StringOrBuffer = await this.loadArrayBuffer();
 
-      console.log(base64StringOrBuffer);
-
       const arrayBuffer =
         typeof base64StringOrBuffer === 'string'
           ? base64ToArrayBuffer(base64StringOrBuffer)
@@ -131,32 +130,34 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
   }
 
   set(samplerPartial: Partial<SerializedSamplerDevice>) {
-    entries(samplerPartial).forEach((entry) => {
-      if (!entry) return;
-      switch (entry[0]) {
-        case 'url':
-          this.url = entry[1] ?? '';
-          this.load();
-          break;
-        case 'zoom':
-          this.zoom = entry[1] ?? 1;
-          break;
-        case 'title':
-          this.title = entry[1] ?? '';
-          break;
-        case 'slices':
-          this.slices.forEach((slice) => this.removeSlice(slice));
-          entry[1]?.forEach((serializedSlice) =>
-            this.createSlice(serializedSlice)
-          );
-          break;
-      }
+    batch(() => {
+      entries(samplerPartial).forEach((entry) => {
+        if (!entry) return;
+        switch (entry[0]) {
+          case 'url':
+            this.url = entry[1] ?? '';
+            this.load();
+            break;
+          case 'zoom':
+            this.zoom = entry[1] ?? 1;
+            break;
+          case 'title':
+            this.title = entry[1] ?? '';
+            break;
+          case 'slices':
+            this.slices.forEach((slice) => this.removeSlice(slice));
+            entry[1]?.forEach((serializedSlice) =>
+              this.createSlice(serializedSlice)
+            );
+            break;
+        }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      this.emit(`${entry[0]}Updated` as any, entry[1]);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.emit(`${entry[0]}Updated` as any, entry[1]);
+      });
+
+      super.set(samplerPartial);
     });
-
-    super.set(samplerPartial);
   }
 
   createSlice(serializedSlice: SerializedSlice, atIndex = this.slices.length) {

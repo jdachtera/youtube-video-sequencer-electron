@@ -14,12 +14,14 @@ import { ButtonGroup } from '../UI/ButtonGroup';
 import { YoutubeSearchPanel } from './YoutubeSearchPanel';
 import { css } from '@emotion/css';
 import { SoundsDotComPanel } from './SoundDotComPanel';
+import { createStoreFromEventEmitter } from 'renderer/engine/EngineBase';
 
 const tabs = ['YouTube', 'SliceDB', 'Sounds.com'] as const;
 export type SidePanelTab = typeof tabs[number];
 
 export const SidePanel = (props: { engine: Engine }) => {
-  const sidePanelState = props.engine.createStore(
+  const sidePanelState = createStoreFromEventEmitter(
+    () => props.engine,
     (engine) => engine.viewMode.sidePanel,
     ['viewModeUpdated']
   );

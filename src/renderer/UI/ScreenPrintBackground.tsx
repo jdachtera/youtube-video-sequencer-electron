@@ -1,15 +1,22 @@
-import { PropsWithChildren, Show } from 'solid-js';
+import { Show, JSX, splitProps } from 'solid-js';
 import { css } from '../emotion-solid';
 
 export const ScreenPrintBackground = (
-  props: PropsWithChildren<{
+  allProps: {
     class?: string;
     background?: string;
     label?: string;
-  }>
+  } & JSX.IntrinsicElements['div']
 ) => {
+  const [props, divProps] = splitProps(allProps, [
+    'class',
+    'background',
+    'label',
+    'children',
+  ]);
   return (
     <div
+      {...divProps}
       class={[
         css`
           background: ${props.background ?? '#ff9100'};

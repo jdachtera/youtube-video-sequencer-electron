@@ -1,5 +1,5 @@
 /* eslint-disable max-classes-per-file */
-import { Time } from 'tone/build/esm/core/type/Units';
+import { Time, TransportTime } from 'tone/build/esm/core/type/Units';
 import { Transport } from 'tone/build/esm/core/clock/Transport';
 import { SerializedTrack, Track } from './Track';
 import { DeepPartial } from './types';
@@ -34,8 +34,8 @@ type EngineEvents = {
   trackAdded: (track: Track) => void;
   trackRemoved: (track: Track) => void;
   change: (engine: Engine) => void;
-  start: (time?: Time | undefined, offset?: number | undefined) => void;
-  stop: (time?: Time | undefined) => void;
+  start: (time?: Time, offset?: TransportTime) => void;
+  stop: (time?: Time) => void;
   mixdownProgress: (progress: number) => void;
 } & PropertyUpdateEvents<SerializedEngine>;
 
@@ -212,12 +212,15 @@ export class Engine extends EngineBase<EngineEvents> {
     };
   }
 
-  start(time?: Time | undefined, offset?: number | undefined) {
+  start(time?: Time, offset?: TransportTime) {
+    this.stop();
     this.emit('start', time, offset);
+    this.transport.start();
   }
 
-  stop(time?: Time | undefined) {
+  stop(time?: Time) {
     this.emit('stop', time);
+    this.transport.stop();
   }
 
   getMaxSequenceLength() {

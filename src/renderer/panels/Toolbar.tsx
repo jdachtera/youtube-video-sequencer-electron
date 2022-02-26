@@ -1,6 +1,6 @@
 import { createEffect, createSignal, For, onCleanup, onMount } from 'solid-js';
 import { css } from '../emotion-solid';
-import { Transport, start } from 'tone';
+import { start } from 'tone';
 import { debounce } from 'ts-debounce';
 
 import { Engine } from '../engine/Engine';
@@ -16,11 +16,13 @@ import { SamplerDevice } from '../engine/device/Sampler';
 import { DeviceChain } from '../engine/device/DeviceChain';
 import { MixdownButton } from './MixdownButton';
 import { camelCaseToSpaced } from 'renderer/UI/format';
+import { createStoreFromEventEmitter } from 'renderer/engine/EngineBase';
 
 export const Toolbar = (props: { engine: Engine }) => {
   const [isPlaying, setIsPlaying] = createSignal(false);
 
-  const engineState = props.engine.createStore(
+  const engineState = createStoreFromEventEmitter(
+    () => props.engine,
     (engine) => ({
       bpm: engine.transport.bpm.value,
       viewMode: engine.viewMode,
@@ -165,15 +167,9 @@ export const Toolbar = (props: { engine: Engine }) => {
 
   createEffect(() => {
     if (isPlaying()) {
-      start()
-        .then(() => {
-          Transport.start();
-          props.engine.start();
-          return;
-        })
-        .catch(console.error);
+      props.engine.start();
     } else {
-      Transport.stop();
+      props.engine.stop();
     }
   });
 

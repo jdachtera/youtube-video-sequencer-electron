@@ -5,6 +5,7 @@ import { css } from '../emotion-solid';
 import Wavesurfer from 'wavesurfer.js';
 
 import { Slice } from '../engine/device/Slice';
+import { createSignalFromEventEmitter } from 'renderer/engine/EngineBase';
 
 type WavesurferSliceViewProps = {
   slice: Slice;
@@ -52,7 +53,8 @@ export const WavesurferSliceView = (
     waveformRef.removeEventListener('click', handleClickWaveform);
   });
 
-  const buffer = props.slice.createSignal(
+  const buffer = createSignalFromEventEmitter(
+    () => props.slice,
     (slice) =>
       slice.player.buffer.length
         ? slice.player.buffer.toMono().get()
