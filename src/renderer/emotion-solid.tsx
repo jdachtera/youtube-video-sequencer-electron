@@ -52,6 +52,7 @@ export const styled =
 
     const newProps = mergeProps(
       {
+        // eslint-disable-next-line solid/reactivity
         get classList() {
           const className =
             typeof template === 'function' ? template(props) : css(template);

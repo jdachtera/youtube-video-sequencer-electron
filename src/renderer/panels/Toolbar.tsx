@@ -18,7 +18,6 @@ import { MixdownButton } from './MixdownButton';
 import { camelCaseToSpaced } from 'renderer/UI/format';
 import { createStoreFromEventEmitter } from 'renderer/engine/EngineBase';
 import { InputLCD } from 'renderer/UI/lcdStyles';
-import { keyframes } from '@emotion/css';
 
 export const Toolbar = (props: { engine: Engine }) => {
   const engineState = createStoreFromEventEmitter(

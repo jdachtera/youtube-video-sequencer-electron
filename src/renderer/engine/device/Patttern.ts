@@ -68,6 +68,7 @@ type PatternEvents = {
 export class Pattern extends EngineBase<
   PatternEvents & PropertyUpdateEvents<SerializedPattern>
 > {
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   sequence: Sequence<Step> = null!;
   engine: Engine;
 
@@ -110,6 +111,7 @@ export class Pattern extends EngineBase<
 
       switch (entry[0]) {
         case 'steps':
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this.steps = entry[1]!;
           if (!this.sequence) {
             this.createSequence();
@@ -118,20 +120,25 @@ export class Pattern extends EngineBase<
           }
           break;
         case 'subdivision':
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this.subdivision = entry[1]!;
           this.createSequence();
           break;
         case 'subdivisionType':
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this.subdivisionType = entry[1]!;
           this.createSequence();
           break;
         case 'followupAction':
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this.followupAction = entry[1]!;
           break;
         case 'name':
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this.name = entry[1]!;
           break;
         case 'color':
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this.color = entry[1]!;
           break;
         default:
@@ -187,10 +194,6 @@ export class Pattern extends EngineBase<
 
   stop(time?: TransportTime) {
     this.sequence.stop(time);
-  }
-
-  cancel(time: TransportTime) {
-    (this.sequence as any).clear();
   }
 
   serialize(): SerializedPattern {

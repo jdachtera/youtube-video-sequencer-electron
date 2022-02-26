@@ -6,7 +6,7 @@ import {
   formatPercentage,
   formattedTimeStep,
 } from '../UI/format';
-import { LCD, InputLCD } from '../UI/lcdStyles';
+import { LCD } from '../UI/lcdStyles';
 import { DeviceWrapper } from '../UI/DeviceWrapper';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { LCDLabel } from '../UI/LCD';

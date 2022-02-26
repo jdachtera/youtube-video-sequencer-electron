@@ -35,7 +35,7 @@ export const SampleSliceChannelControls = (props: {
   return (
     <DeviceWrapper
       hidden={!viewMode.channel}
-      onClickLeftRackEar={props.toggleCollapse}
+      onClickLeftRackEar={() => props.toggleCollapse()}
       onClickRightRackEar={() => props.onRemoveSlice(props.slice)}
       background={sliceState.color}
     >

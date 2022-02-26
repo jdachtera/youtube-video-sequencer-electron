@@ -23,6 +23,7 @@ export const exportBuffer = async (
   fileName: string,
   setEncodeProgress?: (progress: number) => void
 ) => {
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const encodedWave = await encodeWav(audioBuffer.get()!, setEncodeProgress);
   fileSaver.saveAs(encodedWave, fileName);
 };

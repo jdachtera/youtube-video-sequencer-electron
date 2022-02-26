@@ -114,10 +114,12 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
     );
 
     const sourceFormat = audioTracks
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       .sort((a, b) => (a.audioBitrate! > b.audioBitrate! ? 1 : -1))
       .shift();
 
     const title = result.videoDetails.title;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const sourceUrl = sourceFormat!.url;
 
     console.log(sourceFormat);
