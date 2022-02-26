@@ -3,9 +3,9 @@ import { Sequence, Time } from 'tone';
 import { TransportTime } from 'tone/build/esm/core/type/Units';
 import { Engine } from '../Engine';
 import { EngineBase } from '../EngineBase';
-import { entries, PropertyUpdateEvents } from '../helpers';
+import { entries, PropertyUpdateEvents, randomColor } from '../helpers';
 import { DeepPartial, subdivisionTypes } from '../types';
-import { SerializedSlice, Slice } from './Slice';
+import { Slice } from './Slice';
 
 export type FollowupActionBase = {
   linked: boolean;
@@ -45,6 +45,8 @@ export const followupActionTypes: FollowupAction['type'][] = [
 ];
 
 export type SerializedPattern = {
+  name: string;
+  color: string;
   subdivision: number;
   subdivisionType: typeof subdivisionTypes[number];
   followupAction?: FollowupAction;
@@ -69,6 +71,8 @@ export class Pattern extends EngineBase<
   sequence: Sequence<Step> = null!;
   engine: Engine;
 
+  name = '';
+  color = '';
   steps: Step[] = [];
   subdivision = 16;
   subdivisionType: typeof subdivisionTypes[number] = 'n';
@@ -84,23 +88,21 @@ export class Pattern extends EngineBase<
 
   static normalizePatternData = (
     pattern: DeepPartial<SerializedPattern> | Step[]
-  ): SerializedPattern => ({
-    followupAction: Array.isArray(pattern)
-      ? undefined
-      : normalizeFollowupActionData(pattern.followupAction),
-    subdivision: Array.isArray(pattern) ? 16 : pattern.subdivision ?? 16,
-    subdivisionType: Array.isArray(pattern)
-      ? 'n'
-      : pattern.subdivisionType ?? 'n',
-    steps: (Array.isArray(pattern)
-      ? pattern
-      : Array.isArray(pattern.steps)
-      ? pattern.steps
-      : []
-    )
-      .filter((maybeStep): maybeStep is DeepPartial<Step> => !!maybeStep)
-      .map((step) => normalizeStepData(step)),
-  });
+  ): SerializedPattern =>
+    Array.isArray(pattern)
+      ? Pattern.normalizePatternData({
+          steps: pattern,
+        })
+      : {
+          name: pattern.name ?? '',
+          color: pattern.color ?? randomColor(),
+          followupAction: normalizeFollowupActionData(pattern.followupAction),
+          subdivision: pattern.subdivision ?? 16,
+          subdivisionType: pattern.subdivisionType ?? 'n',
+          steps: (pattern.steps ?? [])
+            .filter((maybeStep): maybeStep is DeepPartial<Step> => !!maybeStep)
+            .map((step) => normalizeStepData(step)),
+        };
 
   set(slicePartial: Partial<SerializedPattern>) {
     entries(slicePartial).forEach((entry) => {
@@ -125,6 +127,12 @@ export class Pattern extends EngineBase<
           break;
         case 'followupAction':
           this.followupAction = entry[1]!;
+          break;
+        case 'name':
+          this.name = entry[1]!;
+          break;
+        case 'color':
+          this.color = entry[1]!;
           break;
         default:
           break;
@@ -169,6 +177,10 @@ export class Pattern extends EngineBase<
     this.set({ steps });
   }
 
+  remove() {
+    this.slice.removePattern(this);
+  }
+
   start(time?: TransportTime) {
     this.createSequence().start(time, this.engine.transport.progress);
   }
@@ -183,6 +195,8 @@ export class Pattern extends EngineBase<
 
   serialize(): SerializedPattern {
     return {
+      name: this.name,
+      color: this.color,
       subdivision: this.subdivision,
       subdivisionType: this.subdivisionType,
       followupAction: this.followupAction,

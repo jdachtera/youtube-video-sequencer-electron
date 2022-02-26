@@ -12,7 +12,6 @@ import { EngineBase } from './EngineBase';
 import type { SidePanelTab } from '../panels/SidePanel';
 
 export type SerializedEngine = {
-  currentPatternIndex: number;
   zoom: number;
   bpm: number;
   swing: number;
@@ -69,7 +68,6 @@ export class Engine extends EngineBase<EngineEvents> {
       bpm: parsedData.bpm ?? 120,
       swing: parsedData.swing ?? 0,
       zoom: parsedData.zoom ?? 1,
-      currentPatternIndex: parsedData.currentPatternIndex ?? 0,
       viewMode: {
         channel: parsedData?.viewMode?.channel ?? true,
         sequencer: parsedData?.viewMode?.sequencer ?? true,
@@ -170,9 +168,6 @@ export class Engine extends EngineBase<EngineEvents> {
         case 'bpm':
           this.transport.bpm.value = entry[1] ?? 120;
           break;
-        case 'currentPatternIndex':
-          this.currentPatternIndex = entry[1] ?? 0;
-          break;
         case 'swing':
           this.transport.swing = entry[1] ?? 0;
           this.transport.swingSubdivision = '16n';
@@ -205,7 +200,6 @@ export class Engine extends EngineBase<EngineEvents> {
     return {
       viewMode: this.viewMode,
       tracks: this.tracks.map((track) => track.serialize()),
-      currentPatternIndex: this.currentPatternIndex,
       bpm: this.transport.bpm.value,
       swing: this.transport.swing,
       zoom: this.zoom,
@@ -214,13 +208,13 @@ export class Engine extends EngineBase<EngineEvents> {
 
   start(time?: Time, offset?: TransportTime) {
     this.stop();
-    this.emit('start', time, offset);
     this.transport.start();
+    this.emit('start', time, offset);
   }
 
   stop(time?: Time) {
-    this.emit('stop', time);
     this.transport.stop();
+    this.emit('stop', time);
   }
 
   getMaxSequenceLength() {

@@ -1,4 +1,4 @@
-import { createEffect, createSignal, JSX, Show, splitProps } from 'solid-js';
+import { createSignal, JSX, Show, splitProps } from 'solid-js';
 
 import { Slice } from '../engine/device/Slice';
 import { subdivisions, subdivisionTypes } from '../engine/types';
@@ -16,7 +16,10 @@ import {
   followupActionTypes,
   normalizeFollowupActionData,
 } from 'renderer/engine/device/Patttern';
-import { createSignalFromEventEmitter } from 'renderer/engine/EngineBase';
+import {
+  createSignalFromEventEmitter,
+  createStoreFromEventEmitter,
+} from 'renderer/engine/EngineBase';
 
 const sequencerModeLabels = {
   play: '▶',
@@ -29,41 +32,32 @@ const sequencerModeLabels = {
 export const PatternEditor = (
   allProps: {
     slice: Slice;
-    currentPatternIndex: number;
   } & JSX.IntrinsicElements['div']
 ) => {
-  const [props, divProps] = splitProps(allProps, [
-    'slice',
-    'currentPatternIndex',
-  ]);
+  const [props, divProps] = splitProps(allProps, ['slice']);
 
-  const collapsed = createSignalFromEventEmitter(
+  const sliceState = createStoreFromEventEmitter(
     () => props.slice,
-    (slice) => slice.collapsed,
-    'collapsedUpdated'
-  );
-
-  const numberOfPatterns = createSignalFromEventEmitter(
-    () => props.slice,
-    (slice) => slice.patterns.length,
-    ['patternAdded', 'patternRemoved']
-  );
-
-  const [autoSelectPattern, setAutoSelectPattern] = createSignal(false);
-
-  createEffect(() => {
-    if (autoSelectPattern()) {
-      setSelectedPatternIndex(props.currentPatternIndex);
-    }
-  });
-
-  const [selectedPatternIndex, setSelectedPatternIndex] = createSignal(
-    props.slice.currentPatternIndex
+    (slice) => ({
+      collapsed: slice.collapsed,
+      numberOfPatterns: slice.patterns.length,
+      autoSelectPattern: slice.autoSelectPattern,
+      selectedPatternIndex: slice.autoSelectPattern
+        ? slice.currentPatternIndex
+        : slice.selectedPatternIndex,
+    }),
+    [
+      'collapsedUpdated',
+      'patternAdded',
+      'patternRemoved',
+      'autoSelectPatternUpdated',
+      'selectedPatternIndexUpdated',
+    ]
   );
 
   const selectedPattern = createSignalFromEventEmitter(
     () => props.slice,
-    (slice) => slice.patterns[selectedPatternIndex()],
+    (slice) => slice.patterns[sliceState.selectedPatternIndex],
     ['patternAdded', 'patternRemoved', 'patternUpdated']
   );
 
@@ -85,16 +79,13 @@ export const PatternEditor = (
       {...divProps}
       classList={{
         [css`
-          flex-direction: ${collapsed() ? 'row' : 'column'};
+          flex-direction: ${sliceState.collapsed ? 'row' : 'column'};
         `]: true,
       }}
     >
       <Column>
         <ScreenPrintBackground
-          hidden={collapsed()}
-          class={css`
-            margin-bottom: 10px;
-          `}
+          hidden={sliceState.collapsed}
           background={'rgba(255,255,255,0.2)'}
         >
           <Row
@@ -108,7 +99,7 @@ export const PatternEditor = (
               onClick={() => {
                 props.slice.createPattern(
                   selectedPattern().serialize(),
-                  props.currentPatternIndex + 1
+                  sliceState.selectedPatternIndex + 1
                 );
               }}
             />
@@ -116,9 +107,7 @@ export const PatternEditor = (
               label={'Delete'}
               labelOnButton={true}
               onClick={() => {
-                const pattern = selectedPattern();
-                if (!pattern) return;
-                props.slice.removePattern(pattern);
+                selectedPattern().remove();
               }}
             />
             <ButtonWithLabel
@@ -127,38 +116,12 @@ export const PatternEditor = (
               onClick={() => {
                 props.slice.getPattern()?.set({
                   steps: [
-                    ...selectedPattern().steps,
-                    ...selectedPattern().steps.map((step) => ({ ...step })),
+                    ...selectedPatternState().steps,
+                    ...selectedPatternState().steps.map((step) => ({
+                      ...step,
+                    })),
                   ],
                 });
-              }}
-            />
-            <NumberInputWithArrowButtons
-              label={'Active Pattern'}
-              size={2}
-              step={1}
-              min={0}
-              max={numberOfPatterns() - 1}
-              value={props.currentPatternIndex}
-              onChange={(currentPatternIndex) => {
-                props.slice.set({ currentPatternIndex });
-              }}
-            />
-            <ButtonWithLabel
-              label={'Auto'}
-              labelOnButton={true}
-              activated={autoSelectPattern()}
-              onClick={() => setAutoSelectPattern(!autoSelectPattern())}
-            />
-            <NumberInputWithArrowButtons
-              label={'Edit Pattern'}
-              size={2}
-              step={1}
-              min={0}
-              max={numberOfPatterns() - 1}
-              value={selectedPatternIndex()}
-              onChange={(index) => {
-                setSelectedPatternIndex(index);
               }}
             />
 
@@ -204,11 +167,7 @@ export const PatternEditor = (
         </ScreenPrintBackground>
 
         <ScreenPrintBackground
-          hidden={collapsed()}
-          class={css`
-            margin-bottom: 10px;
-            align-items: flex-start;
-          `}
+          hidden={sliceState.collapsed}
           background={'rgba(255,255,255,0.2)'}
         >
           <Row
@@ -217,7 +176,7 @@ export const PatternEditor = (
             `}
           >
             <FollowupActionControls
-              numberOfPatterns={numberOfPatterns()}
+              numberOfPatterns={sliceState.numberOfPatterns}
               followupAction={selectedPatternState().followupAction}
               onChange={(followupAction) => {
                 selectedPattern()?.set({
@@ -231,18 +190,19 @@ export const PatternEditor = (
           </Row>
         </ScreenPrintBackground>
       </Column>
-      <ScreenPrintBackground background={'rgba(255,255,255,0.2)'}>
-        <Show when={selectedPattern()}>
+      <Show when={selectedPattern()}>
+        <ScreenPrintBackground background={'rgba(255,255,255,0.2)'}>
           <Sequencer
             mode={selectedMode()}
             steps={selectedPatternState().steps}
             onChange={(steps) => {
+              console.log(steps);
               selectedPattern()?.set({ steps });
             }}
             slice={props.slice}
           />
-        </Show>
-      </ScreenPrintBackground>
+        </ScreenPrintBackground>
+      </Show>
     </Flex>
   );
 };

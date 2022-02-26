@@ -27,6 +27,7 @@ import {
   createSignalFromEventEmitter,
   createStoreFromEventEmitter,
 } from 'renderer/engine/EngineBase';
+import { SampleSliceChannelControls } from './SampleSliceControls';
 
 export const SamplerSliceView = (props: {
   slice: Slice;
@@ -70,51 +71,11 @@ export const SamplerSliceView = (props: {
           margin: 0;
         `}
       >
-        <DeviceWrapper
-          hidden={!viewMode.channel}
-          onClickLeftRackEar={toggleCollapse}
-          onClickRightRackEar={() => props.onRemoveSlice(props.slice)}
-          background={sliceState.color}
-        >
-          <Row
-            classList={{
-              [css`
-                flex: 1;
-                margin: 20px 0;
-              `]: true,
-            }}
-          >
-            <InputLCD
-              classList={{
-                [css`
-                  width: 150px;
-                  white-space: nowrap;
-                  text-overflow: ellipsis;
-                `]: true,
-              }}
-              value={sliceState.name}
-              onInput={(event) => {
-                props.slice.set({ name: event.currentTarget.value });
-              }}
-            />
-            <ButtonWithLabel
-              label="Solo"
-              activated={sliceState.solo}
-              labelOnButton={true}
-              onClick={(event) => {
-                props.slice.setSolo(!sliceState.solo, event.altKey);
-              }}
-            />
-            <ButtonWithLabel
-              label="Mute"
-              activated={sliceState.mute}
-              labelOnButton={true}
-              onClick={() => {
-                props.slice.set({ mute: !sliceState.mute });
-              }}
-            />
-          </Row>
-        </DeviceWrapper>
+        <SampleSliceChannelControls
+          toggleCollapse={toggleCollapse}
+          onRemoveSlice={(slice: Slice) => props.onRemoveSlice(slice)}
+          slice={props.slice}
+        />
 
         <DeviceWrapper
           onClickLeftRackEar={toggleCollapse}
@@ -385,10 +346,7 @@ export const SamplerSliceView = (props: {
           hidden={!viewMode.sequencer}
           background={sliceState.color}
         >
-          <PatternEditor
-            slice={props.slice}
-            currentPatternIndex={sliceState.currentPatternIndex}
-          />
+          <PatternEditor slice={props.slice} />
         </DeviceWrapper>
 
         <DeviceChainView

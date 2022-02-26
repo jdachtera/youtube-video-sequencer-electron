@@ -62,8 +62,6 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
     this.on('sliceAdded', this.emitChange);
     this.on('sliceRemoved', this.emitChange);
 
-    this.engine.on('currentPatternIndexUpdated', this.setCurrentPatternIndex);
-
     this.set(serializedSampler);
   }
 
@@ -196,10 +194,6 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
     this.emit('sliceRemoved', slice);
   }
 
-  setCurrentPatternIndex = (index: number) => {
-    this.slices.forEach((slice) => slice.set({ currentPatternIndex: index }));
-  };
-
   stop() {
     this.slices.forEach((slice) => slice.stop());
   }
@@ -207,7 +201,6 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
   dispose() {
     super.dispose();
     this.slices.forEach((slice) => this.removeSlice(slice));
-    this.engine.on('currentPatternIndexUpdated', this.setCurrentPatternIndex);
     this.buffer.dispose();
   }
 

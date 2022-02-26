@@ -3,7 +3,7 @@ import { Gain, getDraw, GrainPlayer, Solo, Time, ToneAudioBuffer } from 'tone';
 
 import { debounce } from 'ts-debounce';
 
-import { entries, PropertyUpdateEvents } from '../helpers';
+import { entries, PropertyUpdateEvents, randomColor } from '../helpers';
 import { SamplerDevice } from './Sampler';
 import { DeviceChain, SerializedDeviceChain } from './DeviceChain';
 
@@ -32,6 +32,8 @@ export type SerializedSlice = {
   reverse: boolean;
   color: string;
   currentPatternIndex: number;
+  selectedPatternIndex: number;
+  autoSelectPattern: boolean;
   patterns: SerializedPattern[];
   name: string;
   solo: boolean;
@@ -49,6 +51,7 @@ export type SliceEvents = {
   patternAdded: (pattern: Pattern) => void;
   patternRemoved: (pattern: Pattern) => void;
   patternUpdated: (pattern: Pattern) => void;
+  cuedPatternIndexUpdated: (cuedPatternIndex: number) => void;
 } & PropertyUpdateEvents<SerializedSlice>;
 
 export class Slice extends EngineBase<SliceEvents> {
@@ -72,6 +75,9 @@ export class Slice extends EngineBase<SliceEvents> {
   currentPosition = 0;
 
   currentPatternIndex = 0;
+  cuedPatternIndex = 0;
+  selectedPatternIndex = 0;
+  autoSelectPattern = false;
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   chain: DeviceChain = null!;
@@ -92,7 +98,7 @@ export class Slice extends EngineBase<SliceEvents> {
     collapsed: slice.collapsed ?? false,
     mute: slice.mute ?? false,
     name: slice.name ?? '',
-    color: slice.color ?? 'red',
+    color: slice.color ?? randomColor(),
     start: slice.start ?? 0,
     end: slice.end ?? 0,
     pitch: slice.pitch ?? 0,
@@ -100,6 +106,8 @@ export class Slice extends EngineBase<SliceEvents> {
     reverse: slice.reverse ?? false,
     volume: slice.volume ?? 1,
     currentPatternIndex: slice.currentPatternIndex ?? 0,
+    selectedPatternIndex: slice.selectedPatternIndex ?? 0,
+    autoSelectPattern: slice.autoSelectPattern ?? false,
     patterns: (() => {
       const patterns = (Array.isArray(slice.patterns) ? slice.patterns : [])
         .filter(
@@ -228,12 +236,15 @@ export class Slice extends EngineBase<SliceEvents> {
             this.player.mute = entry[1] ?? false;
             break;
           case 'currentPatternIndex': {
-            this.cuePattern(
-              entry[1]!,
-              Time(this.engine.transport.position).quantize('1n')
-            );
+            this.currentPatternIndex = entry[1]!;
             break;
           }
+          case 'selectedPatternIndex':
+            this.selectedPatternIndex = entry[1]!;
+            break;
+          case 'autoSelectPattern':
+            this.autoSelectPattern = entry[1]!;
+            break;
           case 'patterns': {
             this.getPattern()?.stop();
             this.patterns.forEach((pattern) => pattern.dispose());
@@ -325,11 +336,9 @@ export class Slice extends EngineBase<SliceEvents> {
       this.getPattern()?.stop(time);
     } else {
       const nextPatternIndex = this.getNextPatternIndex();
+
       this.cuePattern(nextPatternIndex, time);
     }
-    this.scheduledFollowUpAction = this.engine.transport.schedule(() => {
-      this.scheduleFollowUpAction();
-    }, time);
   }
 
   async cuePattern(nextPatternIndex: number, time: TransportTime) {
@@ -341,24 +350,27 @@ export class Slice extends EngineBase<SliceEvents> {
     const nextPattern = this.getPattern(nextPatternIndex);
 
     currentPattern?.stop(time);
-
     nextPattern?.start(time);
 
-    if (this.engine.transport.state === 'stopped') {
-      this.currentPatternIndex = nextPatternIndex;
+    this.cuedPatternIndex = nextPatternIndex;
+    this.emit('cuedPatternIndexUpdated', nextPatternIndex);
 
-      this.emit('currentPatternIndexUpdated', nextPatternIndex);
-      this.emit('change', this);
-      console.log('stopped');
-    } else {
-      this.scheduledFollowUpAction = this.engine.transport.schedule(() => {
-        console.log('sdfdsfsd');
-        this.currentPatternIndex = nextPatternIndex;
+    if (this.engine.transport.state !== 'stopped') {
+      await new Promise((resolve) => {
+        this.scheduledFollowUpAction = this.engine.transport.schedule(
+          resolve,
+          time
+        );
+      });
+    }
 
-        this.emit('currentPatternIndexUpdated', nextPatternIndex);
-        this.emit('change', this);
-        this.scheduleFollowUpAction();
-      }, time);
+    if (nextPatternIndex < this.patterns.length) {
+      console.log({ currentPatternIndex: nextPatternIndex });
+      this.set({ currentPatternIndex: nextPatternIndex });
+    }
+
+    if (this.engine.transport.state !== 'stopped') {
+      this.scheduleFollowUpAction();
     }
   }
 
@@ -421,6 +433,8 @@ export class Slice extends EngineBase<SliceEvents> {
       reverse: this.reverse,
       color: this.color,
       currentPatternIndex: this.currentPatternIndex,
+      selectedPatternIndex: this.selectedPatternIndex,
+      autoSelectPattern: this.autoSelectPattern,
       patterns: this.patterns.map((pattern) => pattern.serialize()),
       name: this.name,
       solo: this.soloNode.solo,
@@ -490,8 +504,9 @@ export class Slice extends EngineBase<SliceEvents> {
   }
 }
 
-const createEmptyPattern = (numberOfSteps = 16): SerializedPattern => ({
-  subdivision: 16,
-  subdivisionType: 'n',
-  steps: Array.from({ length: numberOfSteps }).map(() => normalizeStepData({})),
-});
+const createEmptyPattern = (numberOfSteps = 16): SerializedPattern =>
+  Pattern.normalizePatternData({
+    steps: Array.from({ length: numberOfSteps }).map(() =>
+      normalizeStepData({})
+    ),
+  });

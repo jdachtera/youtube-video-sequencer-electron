@@ -1,3 +1,5 @@
+import { keyframes } from '@emotion/css';
+import { adjustHue, darken } from 'polished';
 import { splitProps, JSX, Show, mergeProps } from 'solid-js';
 import { css } from '../emotion-solid';
 import { Label } from './Label';
@@ -5,14 +7,25 @@ import { Label } from './Label';
 export const ButtonWithLabel = (
   allProps: {
     activated?: boolean;
+    activatedColor?: string;
     label: string;
     labelOnButton?: boolean;
+    blinkInterval?: number;
   } & JSX.IntrinsicElements['button']
 ) => {
-  const [ownProps, buttonProps] = splitProps(allProps, ['label']);
+  const [ownProps, buttonProps] = splitProps(allProps, [
+    'label',
+    'activatedColor',
+    'activated',
+    'label',
+    'labelOnButton',
+    'children',
+    'blinkInterval',
+  ]);
+
   const props = mergeProps(
-    { activated: false, labelOnButton: false },
-    allProps
+    { activated: false, labelOnButton: false, activatedColor: '#ffed4c' },
+    ownProps
   );
   return (
     <div
@@ -57,13 +70,39 @@ export const ButtonWithLabel = (
                 font-variant: small-caps;
                 &:active,
                 &.activated {
-                  box-shadow: 0 0 14px 2px #ff6c27;
-                  background: radial-gradient(#ffed4c, #ff810b);
+                  box-shadow: 0 0 14px 2px
+                    ${adjustHue(-23, darken(0.1, props.activatedColor))};
+                  background: radial-gradient(
+                    ${props.activatedColor},
+                    ${adjustHue(-23, darken(0.1, props.activatedColor))}
+                  );
                 }
                 &:active {
-                  border: 2px inset #ffbf47d7;
+                  border: 2px inset
+                    ${adjustHue(-23, darken(0.1, props.activatedColor))};
                 }
               `]: true,
+              [css`
+                animation: ${keyframes`
+                  0%,
+                  49% {
+                    box-shadow: 0 0 14px 2px ${adjustHue(
+                      -23,
+                      darken(0.1, props.activatedColor)
+                    )};
+                    background: radial-gradient(
+                      ${props.activatedColor},
+                      ${adjustHue(-23, darken(0.1, props.activatedColor))}
+                    );
+                  }
+                  50%,
+                  100% {
+                    background: radial-gradient(#c2c2c2, #fff);
+                    box-shadow: none;
+
+                  }
+                  `} ${props.blinkInterval}s infinite;
+              `]: !!props.blinkInterval,
             }}
           >
             {props.children}

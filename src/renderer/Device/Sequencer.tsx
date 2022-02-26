@@ -18,6 +18,7 @@ import { NumberInputWithArrowButtons } from '../UI/NumberInputWithArrowButtons';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { createSignalFromEventEmitter } from 'renderer/engine/EngineBase';
 import { Step } from 'renderer/engine/device/Patttern';
+import { DeepReadonly } from 'solid-js/store';
 
 const colors808Knobs = ['#ffffff', '#f1f827', '#f8a125', '#e72e2e'];
 
@@ -26,7 +27,7 @@ const getColor = (index: number) =>
 
 export const Sequencer = (
   propsWithoutDefaults: Omit<JSX.IntrinsicElements['ul'], 'onChange'> & {
-    steps: Step[];
+    steps: DeepReadonly<Step[]>;
     slice: Slice;
     mode: SequencerMode;
     onChange: (steps: Step[]) => void;

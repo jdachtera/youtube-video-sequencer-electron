@@ -1,4 +1,5 @@
 import { createSignalFromEventEmitter } from 'renderer/engine/EngineBase';
+import { randomColor } from 'renderer/engine/helpers';
 import { createEffect, onMount, onCleanup } from 'solid-js';
 
 import { debounce } from 'ts-debounce';
@@ -83,10 +84,7 @@ export const WavesurferView = (props: WavesurferViewProps) => {
     if (existingSlice) {
       region.update({ id: region.id, color: existingSlice.color });
     } else {
-      const randR = Math.floor(Math.random() * (255 - 0 + 1) + 0);
-      const randG = Math.floor(Math.random() * (255 - 0 + 1) + 0);
-      const randB = Math.floor(Math.random() * (255 - 0 + 1) + 0);
-      const color = `rgba(${randR},${randG},${randB},0.8)`;
+      const color = randomColor();
       region.update({ id: region.id, color });
     }
   };
