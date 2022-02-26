@@ -1,5 +1,13 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { Gain, getDraw, GrainPlayer, Solo, Time, ToneAudioBuffer } from 'tone';
+import {
+  Gain,
+  getDraw,
+  GrainPlayer,
+  Player,
+  Solo,
+  Time,
+  ToneAudioBuffer,
+} from 'tone';
 
 import { debounce } from 'ts-debounce';
 
@@ -23,6 +31,7 @@ import { TransportTime } from 'tone/build/esm/core/type/Units';
 
 export type SerializedSlice = {
   id: string;
+  warpmode: 'resample' | 'stretch';
   start: number;
   end: number;
   volume: number;
@@ -55,7 +64,7 @@ export type SliceEvents = {
 } & PropertyUpdateEvents<SerializedSlice>;
 
 export class Slice extends EngineBase<SliceEvents> {
-  player = new GrainPlayer();
+  player: Player | GrainPlayer = null!;
 
   id = '';
   start = 0;
@@ -79,6 +88,8 @@ export class Slice extends EngineBase<SliceEvents> {
   selectedPatternIndex = 0;
   autoSelectPattern = false;
 
+  warpmode: SerializedSlice['warpmode'] = 'resample';
+
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   chain: DeviceChain = null!;
 
@@ -96,6 +107,7 @@ export class Slice extends EngineBase<SliceEvents> {
   ): SerializedSlice => ({
     id: slice.id && slice.id !== '' ? slice.id : createUniqueId(),
     collapsed: slice.collapsed ?? false,
+    warpmode: slice.warpmode ?? 'resample',
     mute: slice.mute ?? false,
     name: slice.name ?? '',
     color: slice.color ?? randomColor(),
@@ -129,7 +141,7 @@ export class Slice extends EngineBase<SliceEvents> {
 
     this.engine = sampler.engine;
 
-    this.player.connect(this.gainNode);
+    this.createPlayer();
 
     this.on('startUpdated', this.updateBuffer);
     this.on('endUpdated', this.updateBuffer);
@@ -147,7 +159,9 @@ export class Slice extends EngineBase<SliceEvents> {
       this.play(time);
     }
     this.player.playbackRate = this.playbackRate * step.playbackRate;
-    this.player.detune = this.pitch + step.pitch;
+    if (this.player instanceof GrainPlayer) {
+      this.player.detune = this.pitch + step.pitch;
+    }
 
     this.gainNode.gain.setValueAtTime(this.volume * step.volume, time);
     this.chain.handleSequenceEvent(time, step);
@@ -219,6 +233,12 @@ export class Slice extends EngineBase<SliceEvents> {
         switch (entry[0]) {
           case 'volume':
             this.volume = entry[1] ?? 1;
+            break;
+          case 'warpmode':
+            if (entry[1] !== this.warpmode) {
+              this.warpmode = entry[1]!;
+              this.createPlayer();
+            }
             break;
           case 'playbackRate':
             this.playbackRate = entry[1] ?? 1;
@@ -374,6 +394,22 @@ export class Slice extends EngineBase<SliceEvents> {
     }
   }
 
+  createPlayer() {
+    if (this.player) {
+      this.player.disconnect();
+      this.player.dispose();
+    }
+    switch (this.warpmode) {
+      case 'resample':
+        this.player = new Player();
+        break;
+      case 'stretch':
+        this.player = new GrainPlayer();
+    }
+    this.player.connect(this.gainNode);
+    this.updateBuffer();
+  }
+
   getNextPatternIndex() {
     const {
       followupAction,
@@ -425,6 +461,7 @@ export class Slice extends EngineBase<SliceEvents> {
   serialize() {
     return {
       id: this.id,
+      warpmode: this.warpmode,
       start: this.start,
       end: this.end,
       volume: this.volume,

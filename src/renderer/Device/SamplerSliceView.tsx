@@ -13,7 +13,7 @@ import { LCDLabel } from '../UI/LCD';
 
 import { WavesurferSliceView } from './WavesurferSliceView';
 
-import type { Slice } from '../engine/device/Slice';
+import type { SerializedSlice, Slice } from '../engine/device/Slice';
 import { NumberInputWithLabel } from '../UI/Knob';
 
 import { ShareSliceButton } from '../UI/ShareSliceButton';
@@ -28,6 +28,7 @@ import {
   createStoreFromEventEmitter,
 } from 'renderer/engine/EngineBase';
 import { SampleSliceChannelControls } from './SampleSliceControls';
+import { SelectWithArrowButtons } from 'renderer/UI/SelectWithArrowButtons';
 
 export const SamplerSliceView = (props: {
   slice: Slice;
@@ -172,6 +173,19 @@ export const SamplerSliceView = (props: {
                     >
                       <Column>
                         <NumberInputWithLabel
+                          label="Start"
+                          size={12}
+                          min={sliceState.end - 10}
+                          max={sliceState.end - 0.00001}
+                          step={formattedTimeStep}
+                          parse={parseFormattedTime}
+                          format={formatTime}
+                          value={sliceState.start}
+                          onChange={(start: number) =>
+                            props.slice.set({ start })
+                          }
+                        />
+                        <NumberInputWithLabel
                           label="Current Time"
                           disabled
                           size={12}
@@ -179,6 +193,7 @@ export const SamplerSliceView = (props: {
                           parse={parseFormattedTime}
                           format={formatTime}
                         />
+
                         <NumberInputWithLabel
                           label="Playback Speed"
                           size={12}
@@ -192,22 +207,42 @@ export const SamplerSliceView = (props: {
                             props.slice.set({ playbackRate });
                           }}
                         />
-
+                        <div
+                          class={css`
+                            display: flex;
+                            align-items: center;
+                          `}
+                        >
+                          <LCDLabel>Warp Mode</LCDLabel>
+                          <SelectWithArrowButtons
+                            options={
+                              [
+                                'resample',
+                                'stretch',
+                              ] as SerializedSlice['warpmode'][]
+                            }
+                            size={12}
+                            selectedOption={sliceState.warpmode}
+                            onChange={(warpmode) => {
+                              console.log(warpmode);
+                              props.slice.set({ warpmode });
+                            }}
+                          />
+                        </div>
+                      </Column>
+                      <Column>
                         <NumberInputWithLabel
-                          label="Start"
+                          label={'End'}
                           size={12}
-                          min={sliceState.end - 10}
-                          max={sliceState.end - 0.00001}
+                          min={sliceState.start + 0.00001}
+                          max={sliceState.start + 10}
                           step={formattedTimeStep}
                           parse={parseFormattedTime}
                           format={formatTime}
-                          value={sliceState.start}
-                          onChange={(start: number) =>
-                            props.slice.set({ start })
-                          }
+                          value={sliceState.end}
+                          onChange={(end) => props.slice.set({ end })}
                         />
-                      </Column>
-                      <Column>
+
                         <NumberInputWithLabel
                           label="Volume"
                           size={12}
@@ -228,25 +263,6 @@ export const SamplerSliceView = (props: {
                           onChange={(pitch) => {
                             props.slice.set({ pitch });
                           }}
-                        />
-                        <NumberInputWithLabel
-                          label={
-                            <span
-                              class={css`
-                                min-width: 20px;
-                              `}
-                            >
-                              End
-                            </span>
-                          }
-                          size={12}
-                          min={sliceState.start + 0.00001}
-                          max={sliceState.start + 10}
-                          step={formattedTimeStep}
-                          parse={parseFormattedTime}
-                          format={formatTime}
-                          value={sliceState.end}
-                          onChange={(end) => props.slice.set({ end })}
                         />
                       </Column>
                     </Row>

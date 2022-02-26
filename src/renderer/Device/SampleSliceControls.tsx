@@ -1,10 +1,7 @@
-import { css, keyframes } from '@emotion/css';
+import { css } from '@emotion/css';
 import { lighten } from 'polished';
 import { Slice } from 'renderer/engine/device/Slice';
-import {
-  createSignalFromEventEmitter,
-  createStoreFromEventEmitter,
-} from 'renderer/engine/EngineBase';
+import { createStoreFromEventEmitter } from 'renderer/engine/EngineBase';
 import { ButtonWithLabel } from 'renderer/UI/ButtonWithLabel';
 import { DeviceWrapper } from 'renderer/UI/DeviceWrapper';
 import { Row } from 'renderer/UI/Grid';
@@ -111,7 +108,10 @@ const PatternSelector = (props: { slice: Slice }) => {
   );
 
   return (
-    <ScreenPrintBackground background={'rgba(255,255,255,0.2)'}>
+    <ScreenPrintBackground
+      hidden={sliceState.collapsed}
+      background={'rgba(255,255,255,0.2)'}
+    >
       <Row
         class={css`
           margin-top: 10px;
