@@ -120,7 +120,6 @@ export const Knob = (props: KnobProps) => {
   return (
     <Dynamic
       onWheel={(event: WheelEvent) => {
-        console.log(event);
         event.preventDefault();
         handleChange(
           event.deltaY / window.screen.height / 5,
@@ -129,7 +128,7 @@ export const Knob = (props: KnobProps) => {
       }}
       onMouseDown={(event: MouseEvent) => {
         event.preventDefault();
-        console.log(event);
+
         setLastPosition({ x: event.x, y: event.y });
         setIsDragging(true);
       }}

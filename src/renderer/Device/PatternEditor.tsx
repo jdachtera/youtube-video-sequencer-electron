@@ -196,7 +196,6 @@ export const PatternEditor = (
             mode={selectedMode()}
             steps={selectedPatternState().steps}
             onChange={(steps) => {
-              console.log(steps);
               selectedPattern()?.set({ steps });
             }}
             slice={props.slice}
