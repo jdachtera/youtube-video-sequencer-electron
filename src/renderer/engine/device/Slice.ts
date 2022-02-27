@@ -148,6 +148,15 @@ export class Slice extends EngineBase<SliceEvents> {
     this.engine.on('start', this.startSequence);
     this.engine.on('stop', this.stopSequence);
 
+    this.engine.on('draw', (now) => {
+      this.currentPosition = now - this.firstFrameTime;
+
+      this.emit(
+        'currentPositionUpdated',
+        this.currentPosition / this.player.playbackRate
+      );
+    });
+
     this.set(serializedSlice);
   }
 
@@ -503,26 +512,6 @@ export class Slice extends EngineBase<SliceEvents> {
     this.removeAllListeners();
   }
 
-  updatePlayPosition = () => {
-    const now = this.player.immediate();
-    this.currentPosition = now - this.firstFrameTime;
-
-    const timeSinceLastFrame = now - this.lastFrameTime;
-    this.lastFrameTime = now;
-    if (timeSinceLastFrame > 0.003) {
-      batch(() => {
-        this.emit(
-          'currentPositionUpdated',
-          this.currentPosition / this.player.playbackRate
-        );
-      });
-    }
-
-    if (this.player.state === 'started') {
-      requestAnimationFrame(this.updatePlayPosition);
-    }
-  };
-
   play(time?: number) {
     if (!this.player.buffer.loaded) return;
 
@@ -530,13 +519,10 @@ export class Slice extends EngineBase<SliceEvents> {
       this.stop(time);
       this.player.start(time);
       this.firstFrameTime = this.player.immediate();
-      this.lastFrameTime = this.player.immediate();
-
-      requestAnimationFrame(this.updatePlayPosition);
     } catch (e) {
       console.log({ e, time, p: this.player });
     }
-    this.updatePlayPosition();
+
     this.emit('playerStarted');
   }
 }

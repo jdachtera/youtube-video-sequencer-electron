@@ -16,7 +16,10 @@ import { SamplerDevice } from '../engine/device/Sampler';
 import { DeviceChain } from '../engine/device/DeviceChain';
 import { MixdownButton } from './MixdownButton';
 import { camelCaseToSpaced } from 'renderer/UI/format';
-import { createStoreFromEventEmitter } from 'renderer/engine/EngineBase';
+import {
+  createSignalFromEventEmitter,
+  createStoreFromEventEmitter,
+} from 'renderer/engine/EngineBase';
 import { InputLCD } from 'renderer/UI/lcdStyles';
 
 export const Toolbar = (props: { engine: Engine }) => {
@@ -40,16 +43,12 @@ export const Toolbar = (props: { engine: Engine }) => {
     ]
   );
 
-  const [currentPosition, setCurrentPosition] = createSignal('');
-  createEffect(() => {
-    props.engine.transport.scheduleRepeat(() => {
-      setCurrentPosition(
-        Time(props.engine.transport.position)
-          .toBarsBeatsSixteenths()
-          .split('.')[0]
-      );
-    }, '60hz');
-  });
+  const currentPosition = createSignalFromEventEmitter(
+    () => props.engine,
+    (engine) =>
+      Time(engine.transport.position).toBarsBeatsSixteenths().split('.')[0],
+    ['draw']
+  );
 
   const togglePlay = async () => {
     if (engineState.playing) {
@@ -223,13 +222,22 @@ export const Toolbar = (props: { engine: Engine }) => {
             classList={{
               [css`
                 zoom: 0.6;
+                align-items: center;
                 label {
                   color: white;
                 }
               `]: true,
             }}
           >
-            <InputLCD value={currentPosition()} readOnly size={4} />
+            <InputLCD
+              value={currentPosition()}
+              class={css`
+                text-align: right;
+                height: 22px;
+              `}
+              readOnly
+              size={6}
+            />
             <NumberInputWithArrowButtons
               label={'Tempo'}
               min={20}
