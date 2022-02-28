@@ -6,12 +6,12 @@ import Wavesurfer from 'wavesurfer.js';
 
 import { Slice } from '../engine/device/Slice';
 import { createSignalFromEventEmitter } from 'renderer/engine/EngineBase';
+import { keyframes } from '@emotion/css';
 
 type WavesurferSliceViewProps = {
   slice: Slice;
   center: number;
   height?: number;
-  currentTime?: number;
   collapsed: boolean;
   onClickWaveform: (event: MouseEvent) => void;
 };
@@ -32,7 +32,7 @@ export const WavesurferSliceView = (
     wavesurfer = Wavesurfer.create({
       container: waveformRef,
       waveColor: '#adadad',
-      progressColor: '#ff0000',
+      progressColor: props.slice.color,
       cursorColor: '#4353FF',
       normalize: true,
       barWidth: 1,
@@ -71,8 +71,27 @@ export const WavesurferSliceView = (
     }
   });
 
+  const isPlaying = createSignalFromEventEmitter(
+    () => props.slice,
+    (slice) => slice.player.state === 'started',
+    ['playingUpdated']
+  );
+
+  const playingClass = css`
+    wave wave {
+      animation: ${keyframes`
+      0% {
+        width: 0px;
+      }
+      100% {
+        width: 100%;
+      }
+    `} ${props.slice.end - props.slice.start}s linear;
+    }
+  `;
+
   createEffect(() => {
-    wavesurfer?.setCurrentTime(props.currentTime);
+    waveformRef?.classList.toggle(playingClass, isPlaying());
   });
 
   return (
@@ -86,6 +105,9 @@ export const WavesurferSliceView = (
         wave {
           overflow: hidden !important;
           cursor: pointer !important;
+        }
+        wave wave {
+          width: 0px;
         }
       `}
     />

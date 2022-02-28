@@ -223,7 +223,7 @@ export class Engine extends EngineBase<EngineEvents> {
       batch(() => {
         this.emit('draw', time, this.transport.position);
       });
-    }, '30hz');
+    }, '40hz');
 
     this.transport.start(time, offset);
   }

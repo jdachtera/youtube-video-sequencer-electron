@@ -98,7 +98,6 @@ export const SamplerSliceView = (props: {
                 collapsed={!sliceState.collapsed}
                 center={1}
                 height={30}
-                currentTime={currentPlayPosition()}
                 onClickWaveform={() => props.onClickSlice(props.slice)}
               />
             </LCD>
@@ -141,7 +140,6 @@ export const SamplerSliceView = (props: {
                       collapsed={sliceState.collapsed}
                       slice={props.slice}
                       center={1}
-                      currentTime={currentPlayPosition()}
                       onClickWaveform={() => props.onClickSlice(props.slice)}
                     />
                     <Flex

@@ -53,8 +53,7 @@ export type SerializedSlice = {
 export type SliceEvents = {
   sequenceEvent: (step: Step) => void;
   change: (slice: Slice) => void;
-  playerStarted: () => void;
-  playerStopped: () => void;
+  playingUpdated: (playing: boolean) => void;
   currentPositionUpdated: (currentPosition: number) => void;
   load: () => void;
   patternAdded: (pattern: Pattern) => void;
@@ -495,6 +494,7 @@ export class Slice extends EngineBase<SliceEvents> {
 
   stop(time?: number) {
     this.player.stop(time);
+    this.emit('playingUpdated', false);
   }
 
   dispose() {
@@ -526,7 +526,7 @@ export class Slice extends EngineBase<SliceEvents> {
       console.log({ e, time, p: this.player });
     }
 
-    this.emit('playerStarted');
+    setImmediate(() => this.emit('playingUpdated', true));
   }
 }
 
