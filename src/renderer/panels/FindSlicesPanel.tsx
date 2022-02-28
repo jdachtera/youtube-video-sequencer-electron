@@ -127,7 +127,7 @@ export const FindSlicesPanel = (props: { engine: Engine }) => {
   fetchNextPage();
 
   return (
-    <Column>
+    <Column overflow={'hidden'} flex={1}>
       <ul>
         <For each={tagsData()?.tags.items}>
           {(tag) => {

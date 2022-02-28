@@ -32,7 +32,14 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
     const { duration } = slice.sampler.buffer;
     if (duration > 0) {
       setWaveformCenter(slice.start / duration);
-      slice.play();
+      if (
+        props.sampler.engine.transport.state === 'stopped' &&
+        slice.player.state === 'started'
+      ) {
+        slice.stop();
+      } else {
+        slice.play();
+      }
     }
   };
 
