@@ -245,6 +245,19 @@ export const Toolbar = (props: { engine: Engine }) => {
             />
           </Row>
           <ButtonGroup>
+            <ButtonWithLabel
+              activated={engineState.viewMode.sidePanel.open ?? false}
+              onClick={() => {
+                props.engine.set({
+                  viewMode: {
+                    ...engineState.viewMode,
+                    sidePanel: { open: !engineState.viewMode.sidePanel.open },
+                  },
+                });
+              }}
+              labelOnButton={true}
+              label={'Browser'}
+            />
             <For each={props.engine.viewModes}>
               {(viewMode) => (
                 <ButtonWithLabel
