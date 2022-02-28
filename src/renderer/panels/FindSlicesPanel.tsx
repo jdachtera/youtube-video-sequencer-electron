@@ -126,6 +126,8 @@ export const FindSlicesPanel = (props: { engine: Engine }) => {
 
   fetchNextPage();
 
+  let playerRef: HTMLAudioElement | undefined;
+
   return (
     <Column overflow={'hidden'} flex={1}>
       <ul>
@@ -202,7 +204,16 @@ export const FindSlicesPanel = (props: { engine: Engine }) => {
                       name={slice.title}
                       thumbnail={''}
                       isSelected={slice === selectedResult()}
-                      onSelect={() => setSelectedResult(slice)}
+                      onSelect={() => {
+                        if (selectedResult() === slice) {
+                          if (playerRef?.paused) {
+                            playerRef?.play();
+                          } else {
+                            playerRef?.pause();
+                          }
+                        }
+                        setSelectedResult(slice);
+                      }}
                       onAdd={async () => {
                         const {
                           sourceUrl,
@@ -260,7 +271,13 @@ export const FindSlicesPanel = (props: { engine: Engine }) => {
 
       <Show when={sourceInfo()}>
         {(item) => (
-          <audio muted={false} autoplay preload="metadata" controls>
+          <audio
+            ref={playerRef}
+            muted={false}
+            autoplay
+            preload="metadata"
+            controls
+          >
             <source
               src={`${item.sourceUrl}#t=${selectedResult()?.start ?? 0},${
                 selectedResult()?.end ?? 0

@@ -37,6 +37,8 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
     return sourceFormat?.url;
   });
 
+  let playerRef: HTMLVideoElement | undefined;
+
   return (
     <Column flex={1} overflow={'hidden'}>
       <InputLCD
@@ -50,7 +52,16 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
             <For each={results() ?? []}>
               {(item) => (
                 <BrowserListItem
-                  onSelect={() => setSelectedResult(item)}
+                  onSelect={() => {
+                    if (selectedResult() === item) {
+                      if (playerRef?.paused) {
+                        playerRef?.play();
+                      } else {
+                        playerRef?.pause();
+                      }
+                    }
+                    setSelectedResult(item);
+                  }}
                   isSelected={selectedResult() === item}
                   name={item.title}
                   thumbnail={item.snippet.thumbnails.url as string}
@@ -72,6 +83,7 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
       <Show when={selectedVideoInfo()}>
         {(item) => (
           <video
+            ref={playerRef}
             muted={false}
             width={'100%'}
             height={(360 / 640) * 300}

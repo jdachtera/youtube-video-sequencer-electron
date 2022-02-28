@@ -80,6 +80,7 @@ export const SoundsDotComPanel = (props: { engine: Engine }) => {
       >['result']['sounds'][number]
     >();
 
+  let playerRef: HTMLAudioElement | undefined;
   return (
     <Column flex={1} overflow={'hidden'}>
       <InputLCD
@@ -167,7 +168,16 @@ export const SoundsDotComPanel = (props: { engine: Engine }) => {
                         )?.cover_small ?? ''
                       }
                       name={item.name}
-                      onSelect={() => setSelectedResult(item)}
+                      onSelect={() => {
+                        if (selectedResult() === item) {
+                          if (playerRef?.paused) {
+                            playerRef?.play();
+                          } else {
+                            playerRef?.pause();
+                          }
+                        }
+                        setSelectedResult(item);
+                      }}
                       onAdd={async () => {
                         event?.preventDefault();
                         const track = props.engine.createTrack(
@@ -203,6 +213,7 @@ export const SoundsDotComPanel = (props: { engine: Engine }) => {
       <Show when={selectedResult()}>
         {(item) => (
           <audio
+            ref={playerRef}
             muted={false}
             src={item.preview_mp3}
             autoplay
