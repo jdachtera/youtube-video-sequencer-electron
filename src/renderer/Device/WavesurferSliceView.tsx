@@ -77,9 +77,11 @@ export const WavesurferSliceView = (
     ['playingUpdated']
   );
 
-  const playingClass = css`
-    wave wave {
-      animation: ${keyframes`
+  createEffect(() => {
+    waveformRef?.classList.toggle(
+      css`
+        wave wave {
+          animation: ${keyframes`
       0% {
         width: 0px;
       }
@@ -87,11 +89,10 @@ export const WavesurferSliceView = (
         width: 100%;
       }
     `} ${props.slice.end - props.slice.start}s linear;
-    }
-  `;
-
-  createEffect(() => {
-    waveformRef?.classList.toggle(playingClass, isPlaying());
+        }
+      `,
+      isPlaying()
+    );
   });
 
   return (
