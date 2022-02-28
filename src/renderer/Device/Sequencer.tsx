@@ -1,13 +1,12 @@
 import {
   createSignal,
-  onMount,
-  onCleanup,
   Index,
   mergeProps,
   JSX,
   splitProps,
   Show,
   createEffect,
+  from,
 } from 'solid-js';
 
 import { Slice } from '../engine/device/Slice';
@@ -45,13 +44,15 @@ export const Sequencer = (
   );
 
   const [page, setPage] = createSignal(1);
-  const [currentStep, setCurrentStep] = createSignal<Step>();
+
   const [autoPage, setAutoPage] = createSignal(true);
   const collapsed = createSignalFromEventEmitter(
     () => props.slice,
     (slice) => slice.collapsed,
     ['collapsedUpdated']
   );
+
+  const currentStep = from(props.slice.observable('sequenceEvent'));
 
   createEffect(() => {
     if (autoPage() && collapsed()) {
@@ -61,9 +62,6 @@ export const Sequencer = (
       }
     }
   });
-
-  onMount(() => props.slice.on('sequenceEvent', setCurrentStep));
-  onCleanup(() => props.slice.off('sequenceEvent', setCurrentStep));
 
   const [selectedStep, setSelectedStep] = createSignal<Step>();
 

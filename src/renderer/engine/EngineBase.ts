@@ -1,4 +1,10 @@
-import { Accessor, createEffect, createSignal, onCleanup } from 'solid-js';
+import {
+  Accessor,
+  createEffect,
+  createSignal,
+  ObservableObserver,
+  onCleanup,
+} from 'solid-js';
 import { createStore, reconcile } from 'solid-js/store';
 import {
   DefaultListener,
@@ -6,9 +12,22 @@ import {
   TypedEmitter,
 } from 'tiny-typed-emitter';
 
-export abstract class EngineBase<
+export class EngineBase<
   L extends ListenerSignature<L> = DefaultListener
-> extends TypedEmitter<L> {}
+> extends TypedEmitter<L> {
+  observable<U extends keyof L>(event: U) {
+    return {
+      subscribe: (callback: L[U]) => {
+        this.on(event, callback);
+        return {
+          unsubscribe: () => {
+            this.off(event, callback);
+          },
+        };
+      },
+    };
+  }
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const createSignalFromEventEmitter = <T, E extends TypedEmitter<any>>(

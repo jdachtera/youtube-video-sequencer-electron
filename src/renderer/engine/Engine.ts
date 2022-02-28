@@ -118,6 +118,12 @@ export class Engine extends EngineBase<EngineEvents> {
 
     this.on('trackAdded', () => this.emit('change', this));
     this.on('trackRemoved', () => this.emit('change', this));
+    this.transport.on('start', (time: number) => {
+      this.emit('start', time);
+    });
+    this.transport.on('stop', () => {
+      this.emit('stop');
+    });
   }
 
   emitChange = () => this.emit('change', this);
@@ -211,20 +217,19 @@ export class Engine extends EngineBase<EngineEvents> {
   }
 
   start(time?: Time, offset?: TransportTime) {
-    this.stop();
-    this.transport.start();
     this.transport.clear(this.drawInterval);
+
     this.drawInterval = this.transport.scheduleRepeat((time) => {
       batch(() => {
         this.emit('draw', time, this.transport.position);
       });
-    }, '20hz');
-    this.emit('start', time, offset);
+    }, '30hz');
+
+    this.transport.start(time, offset);
   }
 
-  stop(time?: Time) {
+  stop() {
     this.transport.stop();
-    this.emit('stop', time);
   }
 
   getMaxSequenceLength() {

@@ -145,8 +145,7 @@ export class Slice extends EngineBase<SliceEvents> {
 
     this.on('startUpdated', this.updateBuffer);
     this.on('endUpdated', this.updateBuffer);
-    this.engine.on('start', this.startSequence);
-    this.engine.on('stop', this.stopSequence);
+    this.engine.on('stop', this.rewindSequence);
 
     this.engine.on('draw', (now) => {
       this.currentPosition = now - this.firstFrameTime;
@@ -158,6 +157,7 @@ export class Slice extends EngineBase<SliceEvents> {
     });
 
     this.set(serializedSlice);
+    this.rewindSequence();
   }
 
   emitChange = () => this.emit('change', this);
@@ -180,10 +180,13 @@ export class Slice extends EngineBase<SliceEvents> {
     }, time);
   };
 
-  startSequence = () => {
+  rewindSequence = () => {
     console.log('startSequence');
+    this.stopSequence();
     this.getPattern()?.start();
-    this.scheduleFollowUpAction();
+    this.engine.transport.scheduleOnce(() => {
+      this.scheduleFollowUpAction();
+    }, 0);
   };
 
   stopSequence = () => {
@@ -386,7 +389,7 @@ export class Slice extends EngineBase<SliceEvents> {
 
     if (this.engine.transport.state !== 'stopped') {
       await new Promise((resolve) => {
-        this.scheduledFollowUpAction = this.engine.transport.schedule(
+        this.scheduledFollowUpAction = this.engine.transport.scheduleOnce(
           resolve,
           time
         );
@@ -507,7 +510,7 @@ export class Slice extends EngineBase<SliceEvents> {
     this.gainNode.dispose();
     this.patterns.forEach((pattern) => pattern.dispose());
 
-    this.engine.off('start', this.startSequence);
+    this.engine.off('start', this.rewindSequence);
     this.engine.off('stop', this.stopSequence);
     this.removeAllListeners();
   }
@@ -518,7 +521,7 @@ export class Slice extends EngineBase<SliceEvents> {
     try {
       this.stop(time);
       this.player.start(time);
-      this.firstFrameTime = this.player.immediate();
+      this.firstFrameTime = time ?? this.player.immediate();
     } catch (e) {
       console.log({ e, time, p: this.player });
     }
