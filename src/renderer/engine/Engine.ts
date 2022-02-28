@@ -10,6 +10,7 @@ import { getContext, OfflineContext, setContext } from 'tone';
 import { EngineBase } from './EngineBase';
 
 import type { SidePanelTab } from '../panels/SidePanel';
+import { batch } from 'solid-js';
 
 export type SerializedEngine = {
   zoom: number;
@@ -36,6 +37,7 @@ type EngineEvents = {
   start: (time?: Time, offset?: TransportTime) => void;
   stop: (time?: Time) => void;
   mixdownProgress: (progress: number) => void;
+  draw: (time: number, position: Time) => void;
 } & PropertyUpdateEvents<SerializedEngine>;
 
 export class Engine extends EngineBase<EngineEvents> {
@@ -58,6 +60,8 @@ export class Engine extends EngineBase<EngineEvents> {
   };
 
   viewModes = ['channel', 'slice', 'sequencer', 'device'] as const;
+
+  drawInterval = 0;
 
   static normalizeData = (
     parsedData: DeepPartial<
@@ -114,6 +118,12 @@ export class Engine extends EngineBase<EngineEvents> {
 
     this.on('trackAdded', () => this.emit('change', this));
     this.on('trackRemoved', () => this.emit('change', this));
+    this.transport.on('start', (time: number) => {
+      this.emit('start', time);
+    });
+    this.transport.on('stop', () => {
+      this.emit('stop');
+    });
   }
 
   emitChange = () => this.emit('change', this);
@@ -207,14 +217,19 @@ export class Engine extends EngineBase<EngineEvents> {
   }
 
   start(time?: Time, offset?: TransportTime) {
-    this.stop();
-    this.transport.start();
-    this.emit('start', time, offset);
+    this.transport.clear(this.drawInterval);
+
+    this.drawInterval = this.transport.scheduleRepeat((time) => {
+      batch(() => {
+        this.emit('draw', time, this.transport.position);
+      });
+    }, '40hz');
+
+    this.transport.start(time, offset);
   }
 
-  stop(time?: Time) {
+  stop() {
     this.transport.stop();
-    this.emit('stop', time);
   }
 
   getMaxSequenceLength() {

@@ -10,12 +10,12 @@ import {
 import { Engine } from '../engine/Engine';
 import { Column, Row } from '../UI/Grid';
 import { InputLCD } from '../UI/lcdStyles';
-import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { css } from '@emotion/css';
 import { Track } from '../engine/Track';
 import { styled } from '../emotion-solid';
 import { SamplerDevice } from '../engine/device/Sampler';
 import { Slice } from '../engine/device/Slice';
+import { BrowserListItem } from './List';
 
 const types = ['One-shot', 'Loop'] as const;
 
@@ -45,32 +45,51 @@ export const SoundsDotComPanel = (props: { engine: Engine }) => {
     }
   });
 
-  const [result] = createResource(
-    () => ({
-      keyword: searchTerm(),
-      type: selectedType(),
-      instrument: selectedInstrument(),
-    }),
-    ({ instrument, keyword, type }) => {
-      return window.soundsDotCom.searchSounds({
-        keyword,
-        type,
-        instrument,
-      });
-    }
-  );
+  const fetchPage = (page: number) => {
+    return createResource(
+      () => ({
+        keyword: searchTerm(),
+        type: selectedType(),
+        instrument: selectedInstrument(),
+      }),
+      ({ instrument, keyword, type }) => {
+        return window.soundsDotCom.searchSounds({
+          keyword,
+          type,
+          instrument,
+          page,
+        });
+      }
+    );
+  };
+
+  const fetchNextPage = () => {
+    setResultPages([...resultPages(), fetchPage(resultPages().length)]);
+  };
+
+  const [resultPages, setResultPages] = createSignal<
+    ReturnType<typeof fetchPage>[]
+  >([]);
+
+  fetchNextPage();
 
   const [selectedResult, setSelectedResult] =
     createSignal<
-      NonNullable<ReturnType<typeof result>>['result']['sounds'][number]
+      NonNullable<
+        ReturnType<ReturnType<typeof fetchPage>[0]>
+      >['result']['sounds'][number]
     >();
 
+  let playerRef: HTMLAudioElement | undefined;
   return (
     <Column flex={1} overflow={'hidden'}>
       <InputLCD
         value={searchTerm()}
         placeholder="Enter search term"
-        onChange={(event) => setSearchTerm(event.currentTarget.value)}
+        onChange={(event) => {
+          setResultPages(resultPages().slice(0, 1));
+          setSearchTerm(event.currentTarget.value);
+        }}
       />
       <Row>
         <TagList>
@@ -114,65 +133,52 @@ export const SoundsDotComPanel = (props: { engine: Engine }) => {
           </For>
         </TagList>
       </Row>
-      <Suspense>
-        <Column
-          flex={1}
-          overflowY={'auto'}
-          overflowX={'hidden'}
-          class={css`
-            margin-top: 10px;
-          `}
-        >
-          <ul>
-            <For each={result()?.result?.sounds ?? []}>
-              {(item) => (
-                <li
-                  classList={{
-                    [css`
-                      display: flex;
-                      cursor: pointer;
-                      border-bottom: 1px black solid;
-                      overflow: hidden;
-                      height: 80px;
-                    `]: true,
-                    [css`
-                      background: #363434;
-                    `]: selectedResult() === item,
-                  }}
-                >
-                  <div
-                    class={css`
-                      display: flex;
-                      width: 80px;
-                      height: 80px;
-                      background-size: cover;
-                      background-position: 50% 50%;
-                    `}
-                    style={{
-                      'background-image': `url('${
+
+      <Column
+        flex={1}
+        overflowY={'auto'}
+        overflowX={'hidden'}
+        class={css`
+          margin-top: 10px;
+        `}
+        onScroll={(event) => {
+          const { scrollTop, scrollHeight, clientHeight } = event.currentTarget;
+
+          const percentScrolled = scrollTop / (scrollHeight - clientHeight);
+          const numberOfPages = resultPages().length;
+
+          const lastPage = resultPages()[numberOfPages - 1];
+
+          if (percentScrolled > 1 - 0.5 / numberOfPages && lastPage[0]?.()) {
+            fetchNextPage();
+          }
+        }}
+      >
+        <ul>
+          <For each={resultPages()}>
+            {([result]) => (
+              <Suspense fallback={'Loading....'}>
+                <For each={result()?.result?.sounds ?? []}>
+                  {(item) => (
+                    <BrowserListItem
+                      isSelected={selectedResult() === item}
+                      thumbnail={
                         result()?.result.sounds_releases.find(
-                          ({ id }) => item.release_id
+                          () => item.release_id
                         )?.cover_small ?? ''
-                      }')`,
-                    }}
-                    onClick={() => setSelectedResult(item)}
-                  ></div>
-                  <div
-                    class={css`
-                      flex: 1;
-                      padding: 5px;
-                      text-overflow: ellipsis;
-                      overflow: hidden;
-                    `}
-                    onClick={() => setSelectedResult(item)}
-                  >
-                    {item.name}
-                  </div>
-                  <div>
-                    <ButtonWithLabel
-                      label="+"
-                      labelOnButton
-                      onClick={async () => {
+                      }
+                      name={item.name}
+                      onSelect={() => {
+                        if (selectedResult() === item) {
+                          if (playerRef?.paused) {
+                            playerRef?.play();
+                          } else {
+                            playerRef?.pause();
+                          }
+                        }
+                        setSelectedResult(item);
+                      }}
+                      onAdd={async () => {
                         event?.preventDefault();
                         const track = props.engine.createTrack(
                           Track.normalizeData({
@@ -196,16 +202,18 @@ export const SoundsDotComPanel = (props: { engine: Engine }) => {
                         );
                       }}
                     />
-                  </div>
-                </li>
-              )}
-            </For>
-          </ul>
-        </Column>
-      </Suspense>
+                  )}
+                </For>
+              </Suspense>
+            )}
+          </For>
+        </ul>
+      </Column>
+
       <Show when={selectedResult()}>
         {(item) => (
           <audio
+            ref={playerRef}
             muted={false}
             src={item.preview_mp3}
             autoplay
@@ -230,8 +238,8 @@ const Tag = styled('li')<{ isActive?: boolean }>(
   (props) => css`
     display: inline-block;
     display: inline-block;
-    padding: 3px;
-    margin: 3px;
+    padding: 1px 2px;
+    margin: 1px 2px;
     border-radius: 2px;
     cursor: pointer;
     ${props.isActive ? `background-color: darkgray;` : ''}

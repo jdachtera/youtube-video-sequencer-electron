@@ -35,3 +35,26 @@ export function randomColor() {
   const color = `rgba(${randR},${randG},${randB},0.8)`;
   return color;
 }
+
+export async function fetchSliceUrlInfo(url: string) {
+  if (url.includes('youtube.com')) {
+    const result = await window.yt.getInfo(url);
+
+    const audioTracks = result.formats.filter(
+      (entry) => !entry.hasVideo && entry.hasAudio
+    );
+
+    const sourceFormat = audioTracks
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      .sort((a, b) => (a.audioBitrate! > b.audioBitrate! ? 1 : -1))
+      .shift();
+
+    const title = result.videoDetails.title;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const sourceUrl = sourceFormat!.url;
+
+    return { sourceUrl, title };
+  }
+
+  return { sourceUrl: url, title: '' };
+}

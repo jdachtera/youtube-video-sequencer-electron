@@ -189,7 +189,7 @@ export class Pattern extends EngineBase<
   }
 
   start(time?: TransportTime) {
-    this.createSequence().start(time, this.engine.transport.progress);
+    this.sequence.start(time, this.engine.transport.progress);
   }
 
   stop(time?: TransportTime) {

@@ -1,4 +1,4 @@
-import { createEffect, createSignal, For, onCleanup, onMount } from 'solid-js';
+import { createSignal, For, onCleanup, onMount } from 'solid-js';
 import { css } from '../emotion-solid';
 import { Time } from 'tone';
 import { debounce } from 'ts-debounce';
@@ -16,7 +16,10 @@ import { SamplerDevice } from '../engine/device/Sampler';
 import { DeviceChain } from '../engine/device/DeviceChain';
 import { MixdownButton } from './MixdownButton';
 import { camelCaseToSpaced } from 'renderer/UI/format';
-import { createStoreFromEventEmitter } from 'renderer/engine/EngineBase';
+import {
+  createSignalFromEventEmitter,
+  createStoreFromEventEmitter,
+} from 'renderer/engine/EngineBase';
 import { InputLCD } from 'renderer/UI/lcdStyles';
 
 export const Toolbar = (props: { engine: Engine }) => {
@@ -40,16 +43,12 @@ export const Toolbar = (props: { engine: Engine }) => {
     ]
   );
 
-  const [currentPosition, setCurrentPosition] = createSignal('');
-  createEffect(() => {
-    props.engine.transport.scheduleRepeat(() => {
-      setCurrentPosition(
-        Time(props.engine.transport.position)
-          .toBarsBeatsSixteenths()
-          .split('.')[0]
-      );
-    }, '60hz');
-  });
+  const currentPosition = createSignalFromEventEmitter(
+    () => props.engine,
+    (engine) =>
+      Time(engine.transport.position).toBarsBeatsSixteenths().split('.')[0],
+    ['draw']
+  );
 
   const togglePlay = async () => {
     if (engineState.playing) {
@@ -112,26 +111,29 @@ export const Toolbar = (props: { engine: Engine }) => {
     window.URL.revokeObjectURL(url);
   };
 
-  const loadJSON = (event: { currentTarget: HTMLInputElement }) => {
-    const file = event.currentTarget.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.addEventListener('load', (loadEvent) => {
-        const fileContents = loadEvent.target?.result?.toString();
+  const loadJSON = async (event: { currentTarget: HTMLInputElement }) => {
+    await new Promise<void>((resolve) => {
+      const file = event.currentTarget.files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.addEventListener('load', (loadEvent) => {
+          const fileContents = loadEvent.target?.result?.toString();
 
-        if (!fileContents) return;
-        try {
-          const parsedData = JSON.parse(fileContents) as Partial<
-            ReturnType<Engine['serialize']>
-          >;
+          if (!fileContents) return;
+          try {
+            const parsedData = JSON.parse(fileContents) as Partial<
+              ReturnType<Engine['serialize']>
+            >;
 
-          props.engine.set(Engine.normalizeData(parsedData));
-        } catch {
-          //
-        }
-      });
-      reader.readAsText(file);
-    }
+            props.engine.set(Engine.normalizeData(parsedData));
+            resolve();
+          } catch {
+            //
+          }
+        });
+        reader.readAsText(file);
+      }
+    });
   };
 
   onMount(() => props.engine.on('change', saveToLocalStorage));
@@ -151,34 +153,7 @@ export const Toolbar = (props: { engine: Engine }) => {
       }
     }
 
-    props.engine.set(
-      Engine.normalizeData(
-        parsedData ?? {
-          tracks: [
-            {
-              chain: {
-                devices: [
-                  {
-                    name: 'Sampler',
-                    url: 'https://www.youtube.com/watch?v=GxZuq57_bYM',
-                  },
-                ],
-              },
-            },
-            {
-              chain: {
-                devices: [
-                  {
-                    name: 'Sampler',
-                    url: 'https://www.youtube.com/watch?v=0-fJLVH8_Es',
-                  },
-                ],
-              },
-            },
-          ],
-        }
-      )
-    );
+    props.engine.set(Engine.normalizeData(parsedData ?? {}));
   });
 
   const [minimized, setMinimized] = createSignal(false);
@@ -223,13 +198,22 @@ export const Toolbar = (props: { engine: Engine }) => {
             classList={{
               [css`
                 zoom: 0.6;
+                align-items: center;
                 label {
                   color: white;
                 }
               `]: true,
             }}
           >
-            <InputLCD value={currentPosition()} readOnly size={4} />
+            <InputLCD
+              value={currentPosition()}
+              class={css`
+                text-align: right;
+                height: 22px;
+              `}
+              readOnly
+              size={6}
+            />
             <NumberInputWithArrowButtons
               label={'Tempo'}
               min={20}
@@ -261,6 +245,19 @@ export const Toolbar = (props: { engine: Engine }) => {
             />
           </Row>
           <ButtonGroup>
+            <ButtonWithLabel
+              activated={engineState.viewMode.sidePanel.open ?? false}
+              onClick={() => {
+                props.engine.set({
+                  viewMode: {
+                    ...engineState.viewMode,
+                    sidePanel: { open: !engineState.viewMode.sidePanel.open },
+                  },
+                });
+              }}
+              labelOnButton={true}
+              label={'Browser'}
+            />
             <For each={props.engine.viewModes}>
               {(viewMode) => (
                 <ButtonWithLabel

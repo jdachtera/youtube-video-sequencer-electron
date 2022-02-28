@@ -3,6 +3,7 @@ import { camelCaseToSpaced } from 'renderer/UI/format';
 
 import { RangeInput } from 'renderer/UI/RangeInput';
 import {
+  createEffect,
   createSignal,
   JSX,
   Match,
@@ -58,39 +59,56 @@ type SequencerStepProps = {
   onChange?: (oldStep: Step, newStep: Step) => void;
 } & Omit<JSX.IntrinsicElements['li'], 'onChange'>;
 
-const sequencerStepStyles = () => {
+const sequencerStepStyles = (color = 'transparent') => {
   const theme = useAppTheme();
   return css`
-    display: inline-block;
+    position: relative;
+    list-style: none;
     user-select: none;
-    width: 20px;
-    height: 20px;
-    margin: 2px;
-    border-radius: 4px;
-    border: 3px outset #eee;
-    background: rgb(198, 198, 198);
-    background: linear-gradient(
-      138deg,
-      rgb(219, 204, 174) 10%,
-      rgb(255, 255, 255) 100%
-    );
+    display: inline-flex;
+    margin: 3px;
 
-    &:active {
-      border: 3px inset white;
-    }
+    cursor: pointer;
+    padding: 1px;
+    border: 3px inset #ffffff9d;
+    border-radius: 7px;
+    background: #555;
+    box-shadow: inset 0 0 2px 2px #222;
+    display: inline-flex;
+    background: ${color};
 
-    &:nth-of-type(8n + 5),
-    &:nth-of-type(8n + 6),
-    &:nth-of-type(8n + 7),
-    &:nth-of-type(8n + 8) {
+    > div {
+      display: inline-block;
+      user-select: none;
+      width: 20px;
+      height: 20px;
+      margin: 2px;
+      border-radius: 4px;
+      border: 3px outset #eee;
+      background: rgb(198, 198, 198);
       background: linear-gradient(
         138deg,
-        rgb(182, 176, 164) 10%,
-        rgba(255, 255, 255, 1) 100%
+        rgb(219, 204, 174) 10%,
+        rgb(255, 255, 255) 100%
       );
+
+      &:active {
+        border: 3px inset white;
+      }
+
+      &:nth-of-type(8n + 5),
+      &:nth-of-type(8n + 6),
+      &:nth-of-type(8n + 7),
+      &:nth-of-type(8n + 8) {
+        background: linear-gradient(
+          138deg,
+          rgb(182, 176, 164) 10%,
+          rgba(255, 255, 255, 1) 100%
+        );
+      }
     }
 
-    &.sequencerStepIsCurrent {
+    &.sequencerStepIsCurrent > div {
       box-shadow: 0px 0px 4px white;
       border: 3px outset #ffffff !important;
       background: rgb(254, 243, 241) !important;
@@ -101,13 +119,13 @@ const sequencerStepStyles = () => {
       ) !important;
     }
 
-    &.sequencerStepIsSelected {
+    &.sequencerStepIsSelected > div {
       box-shadow: 0px 0px 6px white;
       border: 3px outset white;
       background-color: ${theme.colors.primary};
     }
 
-    &.sequencerStepIsActive {
+    &.sequencerStepIsActive > div {
       box-shadow: 0px 0px 6px #ee8624;
       border: 3px outset #ee5724;
       background: rgb(254, 243, 241);
@@ -146,128 +164,101 @@ export const SequencerStep = (allProps: SequencerStepProps) => {
 
   const [isHovering, setIsHovering] = createSignal(false);
 
+  let liRef: HTMLLIElement | undefined;
+
+  createEffect(() => {
+    liRef?.classList.toggle('sequencerStepIsCurrent', props.isCurrent);
+    liRef?.classList.toggle('sequencerStepIsSelected', props.isSelected);
+    liRef?.classList.toggle(
+      'sequencerStepIsActive',
+      !!props.step?.[props.mode]
+    );
+  });
+
   return (
     <li
+      ref={liRef}
       {...liProps}
       onMouseLeave={() => setIsHovering(false)}
+      onMouseEnter={() => setIsHovering(true)}
       classList={{
-        [css`
-          position: relative;
-          list-style: none;
-          user-select: none;
-          display: inline-flex;
-          padding: 3px;
-          cursor: pointer;
-        `]: true,
+        [sequencerStepStyles(props.color)]: true,
         ...liProps.classList,
       }}
-      onMouseEnter={() => setIsHovering(true)}
     >
-      <div
-        class={css`
-          padding: 1px;
-          border: 3px inset #ffffff9d;
-          border-radius: 7px;
-          background: #555;
-          box-shadow: inset 0 0 2px 2px #222;
-          display: inline-flex;
-          background: ${props.color};
-        `}
-      >
-        <Switch>
-          <Match
-            when={
-              (props.mode === 'play' || props.mode === 'reverse') && props.mode
-            }
-          >
-            {(mode) => (
-              <div
-                onClick={() => {
-                  if (props.step) {
-                    props.onChange?.(props.step, {
-                      ...props.step,
-                      [mode]: !props.step?.[mode],
-                    });
-                  }
-                }}
-                classList={{
-                  [sequencerStepStyles()]: true,
-                  sequencerStepIsActive: props.step?.[mode],
-                  sequencerStepIsCurrent: props.isCurrent,
-                  sequencerStepIsSelected: props.isSelected,
-                  [css`
-                    &:active {
-                      border-style: inset;
+      <Switch>
+        <Match
+          when={
+            (props.mode === 'play' || props.mode === 'reverse') && props.mode
+          }
+        >
+          {(mode) => (
+            <div
+              onClick={() => {
+                if (props.step) {
+                  props.onChange?.(props.step, {
+                    ...props.step,
+                    [mode]: !props.step?.[mode],
+                  });
+                }
+              }}
+            />
+          )}
+        </Match>
+        <Match
+          when={
+            (props.mode === 'playbackRate' ||
+              props.mode === 'pitch' ||
+              props.mode === 'volume') &&
+            props.mode
+          }
+        >
+          {(mode) => (
+            <div>
+              <Show when={isHovering()}>
+                <RangeInput
+                  {...controlRangeProps[mode]}
+                  class={css`
+                    position: absolute;
+                    background: rgba(255, 255, 255, 0.9);
+                    border-radius: 3px;
+                    bottom: -50%;
+                    left: -25%;
+                    text-align: center;
+                    label {
                     }
-                  `]: true,
-                }}
-              >
-                &nbsp;
-              </div>
-            )}
-          </Match>
-          <Match
-            when={
-              (props.mode === 'playbackRate' ||
-                props.mode === 'pitch' ||
-                props.mode === 'volume') &&
-              props.mode
-            }
-          >
-            {(mode) => (
-              <div
-                classList={{
-                  [sequencerStepStyles()]: true,
-                  sequencerStepIsActive: props.step?.play,
-                  sequencerStepIsCurrent: props.isCurrent,
-                  sequencerStepIsSelected: props.isSelected,
-                }}
-              >
-                <Show when={isHovering()}>
-                  <RangeInput
-                    {...controlRangeProps[mode]}
-                    class={css`
-                      position: absolute;
-                      background: rgba(255, 255, 255, 0.9);
-                      border-radius: 3px;
-                      bottom: -50%;
-                      left: -25%;
-                      text-align: center;
-                      label {
-                      }
 
-                      font-size: 16px;
-                      color: black;
-                      font-family: 'Oswald';
-                      text-transform: 'uppercase';
-                      padding: 8px;
-                      z-index: 10;
-                      input {
-                        writing-mode: bt-lr; /* IE */
-                        -webkit-appearance: slider-vertical; /* Chromium */
-                        width: 8px;
-                        height: 170px;
-                        padding: 0 5px;
-                      }
-                    `}
-                    onMouseLeave={() => setIsHovering(false)}
-                    value={props.step?.[mode] ?? 1}
-                    label={camelCaseToSpaced(mode)}
-                    onChange={(value) => {
-                      if (props.step) {
-                        props.onChange?.(props.step, {
-                          ...props.step,
-                          [mode]: value,
-                        });
-                      }
-                    }}
-                  />
-                </Show>
-              </div>
-            )}
-          </Match>
-        </Switch>
-      </div>
+                    font-size: 16px;
+                    color: black;
+                    font-family: 'Oswald';
+                    text-transform: 'uppercase';
+                    padding: 8px;
+                    z-index: 10;
+                    input {
+                      writing-mode: bt-lr; /* IE */
+                      -webkit-appearance: slider-vertical; /* Chromium */
+                      width: 8px;
+                      height: 170px;
+                      padding: 0 5px;
+                    }
+                  `}
+                  onMouseLeave={() => setIsHovering(false)}
+                  value={props.step?.[mode] ?? 1}
+                  label={camelCaseToSpaced(mode)}
+                  onChange={(value) => {
+                    if (props.step) {
+                      props.onChange?.(props.step, {
+                        ...props.step,
+                        [mode]: value,
+                      });
+                    }
+                  }}
+                />
+              </Show>
+            </div>
+          )}
+        </Match>
+      </Switch>
     </li>
   );
 };

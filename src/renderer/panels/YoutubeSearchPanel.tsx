@@ -3,9 +3,8 @@ import { createResource, createSignal, For, Show, Suspense } from 'solid-js';
 import { Engine } from '../engine/Engine';
 import { Column } from '../UI/Grid';
 import { InputLCD } from '../UI/lcdStyles';
-import { ButtonWithLabel } from '../UI/ButtonWithLabel';
-import { css } from '@emotion/css';
 import { Track } from '../engine/Track';
+import { BrowserListItem } from './List';
 
 export const YoutubeSearchPanel = (props: { engine: Engine }) => {
   const [searchTerm, setSearchTerm] = createSignal('breakbeat');
@@ -38,6 +37,8 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
     return sourceFormat?.url;
   });
 
+  let playerRef: HTMLVideoElement | undefined;
+
   return (
     <Column flex={1} overflow={'hidden'}>
       <InputLCD
@@ -50,61 +51,30 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
           <ul>
             <For each={results() ?? []}>
               {(item) => (
-                <li
-                  onClick={() => setSelectedResult(item)}
-                  classList={{
-                    [css`
-                      display: flex;
-                      cursor: pointer;
-                      border-bottom: 1px black solid;
-                      overflow: hidden;
-                      height: 80px;
-                    `]: true,
-                    [css`
-                      background: #363434;
-                    `]: selectedResult() === item,
+                <BrowserListItem
+                  onSelect={() => {
+                    if (selectedResult() === item) {
+                      if (playerRef?.paused) {
+                        playerRef?.play();
+                      } else {
+                        playerRef?.pause();
+                      }
+                    }
+                    setSelectedResult(item);
                   }}
-                >
-                  <div
-                    class={css`
-                      display: flex;
-                      width: 80px;
-                      height: 80px;
-                      background-size: cover;
-                      background-position: 50% 50%;
-                    `}
-                    style={{
-                      'background-image': `url('${
-                        item.snippet.thumbnails.url as string
-                      }')`,
-                    }}
-                  ></div>
-                  <div
-                    class={css`
-                      flex: 1;
-                      padding: 5px;
-                      text-overflow: ellipsis;
-                      overflow: hidden;
-                    `}
-                  >
-                    {item.title}
-                  </div>
-                  <div>
-                    <ButtonWithLabel
-                      label="+"
-                      labelOnButton
-                      onClick={() => {
-                        props.engine.createTrack(
-                          Track.normalizeData({
-                            chain: {
-                              devices: [{ name: 'Sampler', url: item.url }],
-                            },
-                          })
-                        );
-                      }}
-                    />
-                  </div>
-                </li>
+                  isSelected={selectedResult() === item}
+                  name={item.title}
+                  thumbnail={item.snippet.thumbnails.url as string}
+                  onAdd={() => {
+                    props.engine.createTrack(
+                      Track.normalizeData({
+                        chain: {
+                          devices: [{ name: 'Sampler', url: item.url }],
+                        },
+                      })
+                    );
+                  }}
+                />
               )}
             </For>
           </ul>
@@ -113,6 +83,7 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
       <Show when={selectedVideoInfo()}>
         {(item) => (
           <video
+            ref={playerRef}
             muted={false}
             width={'100%'}
             height={(360 / 640) * 300}

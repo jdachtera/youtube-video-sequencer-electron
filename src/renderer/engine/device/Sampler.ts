@@ -3,7 +3,7 @@ import { SerializedSlice, Slice } from './Slice';
 import type { Engine } from '../Engine';
 
 import { loadCachedVideo, storeCachedVideo } from '../blobStore';
-import { entries, PropertyUpdateEvents } from '../helpers';
+import { entries, fetchSliceUrlInfo, PropertyUpdateEvents } from '../helpers';
 import { Device, SerializedDeviceBase } from './Device';
 import { DeepPartial } from '../types';
 import { batch } from 'solid-js';
@@ -103,30 +103,9 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
   };
 
   private async loadArrayBuffer() {
-    if (!this.url.includes('youtube.com')) {
-      return await window.yt.fetchVideo(this.url);
-    }
-
-    const result = await window.yt.getInfo(this.url);
-
-    const audioTracks = result.formats.filter(
-      (entry) => !entry.hasVideo && entry.hasAudio
-    );
-
-    const sourceFormat = audioTracks
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      .sort((a, b) => (a.audioBitrate! > b.audioBitrate! ? 1 : -1))
-      .shift();
-
-    const title = result.videoDetails.title;
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const sourceUrl = sourceFormat!.url;
-
-    console.log(sourceFormat);
+    const { sourceUrl, title } = await fetchSliceUrlInfo(this.url);
     this.set({ title });
-
-    const base64StringOrBuffer = await window.yt.fetchVideo(sourceUrl);
-    return base64StringOrBuffer;
+    return await window.yt.fetchVideo(sourceUrl);
   }
 
   set(samplerPartial: Partial<SerializedSamplerDevice>) {
