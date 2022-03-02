@@ -1,4 +1,3 @@
-import { css } from '@emotion/css';
 import {
   createEffect,
   createMemo,
@@ -9,7 +8,7 @@ import {
   splitProps,
   Show,
 } from 'solid-js';
-import { getPeakAt, getPeakAtCached, warmupCache } from './getWaveformPeaks';
+import { getPeakAtCached, warmupCache } from './getWaveformPeaks';
 
 export const Waveform = (
   allProps: {

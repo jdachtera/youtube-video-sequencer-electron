@@ -155,7 +155,7 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
                   position() + zoomedLength * pointerPositionPercentage;
 
                 const newZoom = Math.max(
-                  zoom() + event.deltaY / window.innerHeight / 10,
+                  zoom() * (1 + event.deltaY / window.innerHeight / 100),
                   1,
                 );
 

@@ -54,13 +54,15 @@ export const warmupCache = async (
   cacheKey: string,
   onProgress: (progress: number) => void,
 ) => {
-  const max = 100;
+  const max = 10;
   onProgress(0);
 
   for (let i = 0; i < max; i++) {
     await new Promise(requestAnimationFrame);
     onProgress((i + 1) / max);
-    const samplesPerPx = i + 32;
+
+    const samplesPerPx = data.length / (10000 * i);
+
     const peaksCache = getOrCreatePeaksCache(cacheKey, samplesPerPx);
     getPeaks(data, samplesPerPx).forEach((peak, index) => {
       peaksCache.set(index, peak);
