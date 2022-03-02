@@ -16,6 +16,7 @@ export type SerializedSamplerDevice = SerializedDeviceBase & {
   title: string;
   url: string;
   zoom: number;
+  position: number;
   slices: SerializedSlice[];
 };
 
@@ -35,6 +36,7 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
   slices: Slice[] = [];
   url = '';
   zoom = 1;
+  position = 0;
   title = '';
   selectedSlice?: Slice;
 
@@ -50,7 +52,8 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
     inputGain: sampler.inputGain ?? 1,
     volume: sampler.volume ?? 1,
     url: sampler.url ?? '',
-    zoom: sampler.zoom ?? 0,
+    position: sampler.position ?? 0,
+    zoom: sampler.zoom ?? 1,
     slices: (Array.isArray(sampler.slices) ? sampler.slices : [])
       .filter(
         (maybeStep): maybeStep is DeepPartial<SerializedSlice> => !!maybeStep,
@@ -122,6 +125,9 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
             break;
           case 'zoom':
             this.zoom = entry[1] ?? 1;
+            break;
+          case 'position':
+            this.position = entry[1] ?? 0;
             break;
           case 'title':
             this.title = entry[1] ?? '';
@@ -198,6 +204,7 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
       title: this.title,
       url: this.url,
       zoom: this.zoom,
+      position: this.position,
       slices: [...this.slices.values()].map((slice) => slice.serialize()),
     };
   }

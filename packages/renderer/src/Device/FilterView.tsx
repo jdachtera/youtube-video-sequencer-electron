@@ -116,14 +116,6 @@ const FrequencyResponseDisplay = (props: { filter: FilterDevice }) => {
     CanvasRenderingContext2D | null | undefined
   >();
 
-  const [height, setHeight] = createSignal(0);
-  const [width, setWidth] = createSignal(0);
-
-  const setDimensions = () => {
-    setHeight(canvasRef?.height ?? 0);
-    setWidth(canvasRef?.width ?? 0);
-  };
-
   onMount(() => {
     setContext(canvasRef?.getContext('2d'));
     canvasRef?.addEventListener('resize', setDimensions);
@@ -134,15 +126,25 @@ const FrequencyResponseDisplay = (props: { filter: FilterDevice }) => {
     canvasRef?.removeEventListener('resize', setDimensions);
   });
 
+  const [height, setHeight] = createSignal(0);
+  const [width, setWidth] = createSignal(0);
+
+  const setDimensions = () => {
+    setHeight(canvasRef?.height ?? 0);
+    setWidth(canvasRef?.width ?? 0);
+  };
+
   createEffect(() => {
     const ctx = context();
 
     if (!ctx) return;
 
-    const getX = (i: number) => Math.log(i) * (width() ?? 0);
-    const getY = (y: number) => height() - (y / 5) * (height() ?? 0);
+    const getX = (i: number) => Math.pow(i, 2) * (width() ?? 0);
+    const getY = (y: number) => height() - (y / 20) * (height() ?? 0);
 
     const points = frequencyResponse();
+
+    console.log(points);
 
     ctx.clearRect(0, 0, width(), height());
     ctx.beginPath();

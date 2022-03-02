@@ -92,8 +92,7 @@ export class FilterDevice extends Device<FilterDeviceEvents> {
       switch (entry[0]) {
         case 'frequency':
           this.frequencyAccumulator.addend.set({
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            value: Frequency(Math.round(entry[1]!)).toFrequency(),
+            value: Frequency(entry[1]).toFrequency(),
           });
           break;
         case 'resonance':
