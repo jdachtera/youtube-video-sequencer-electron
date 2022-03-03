@@ -2,7 +2,7 @@ import { keyframes } from '@emotion/css';
 import { adjustHue, darken } from 'polished';
 import type { JSX } from 'solid-js';
 import { splitProps, Show, mergeProps } from 'solid-js';
-import { css } from '../emotion-solid';
+import { css } from '@emotion/css';
 import { Label } from './Label';
 
 export const ButtonWithLabel = (

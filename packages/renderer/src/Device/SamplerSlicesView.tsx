@@ -1,4 +1,4 @@
-import { css } from '../emotion-solid';
+import { css } from '@emotion/css';
 import type { SamplerDevice } from '../engine/device/Sampler';
 import type { Slice } from '../engine/device/Slice';
 import { For } from 'solid-js';

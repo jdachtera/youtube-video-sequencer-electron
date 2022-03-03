@@ -1,4 +1,4 @@
-import { css } from '../emotion-solid';
+import { css } from '@emotion/css';
 
 import {
   parseFormattedTime,

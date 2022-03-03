@@ -109,7 +109,7 @@ export const SidePanel = (props: { engine: Engine }) => {
             <SoundsDotComPanel engine={props.engine} />
           </Match>
         </Switch>
-      </Column>{' '}
+      </Column>
       <Column
         class={css`
           cursor: col-resize;

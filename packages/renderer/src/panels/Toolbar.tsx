@@ -1,5 +1,5 @@
 import { createSignal, For, onCleanup, onMount } from 'solid-js';
-import { css } from '../emotion-solid';
+import { css } from '@emotion/css';
 import { Time } from 'tone';
 import { debounce } from 'ts-debounce';
 

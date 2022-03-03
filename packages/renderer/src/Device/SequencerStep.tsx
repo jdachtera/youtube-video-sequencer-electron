@@ -12,7 +12,7 @@ import {
   splitProps,
   Switch,
 } from 'solid-js';
-import { css } from '../emotion-solid';
+import { css } from '@emotion/css';
 
 import { useAppTheme } from '../UI/theme';
 

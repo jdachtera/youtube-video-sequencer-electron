@@ -8,7 +8,7 @@ import {
   untrack,
 } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
-import { css } from '../emotion-solid';
+import { css } from '@emotion/css';
 
 import MoogKnobSvg from '../svg/moog_knob.svg';
 import { useAppTheme } from './theme';

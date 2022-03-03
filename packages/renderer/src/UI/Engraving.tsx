@@ -1,5 +1,5 @@
 import type { PropsWithChildren } from 'solid-js';
-import { css } from '../emotion-solid';
+import { css } from '@emotion/css';
 import ScrewHead from '../svg/screw_head.svg';
 
 export const Engraving = (props: PropsWithChildren<{ class?: string }>) => {

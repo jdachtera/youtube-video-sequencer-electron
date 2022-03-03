@@ -1,5 +1,5 @@
 import type { JSX } from 'solid-js';
-import { css } from '../emotion-solid';
+import { css } from '@emotion/css';
 
 const lcdStyles = css`
   display: flex;

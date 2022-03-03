@@ -1,6 +1,6 @@
 import type { JSXElement, JSX } from 'solid-js';
 import { createMemo, splitProps } from 'solid-js';
-import { css } from '../emotion-solid';
+import { css } from '@emotion/css';
 import { useAppTheme } from './theme';
 
 export const Label = (

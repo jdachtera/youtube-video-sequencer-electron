@@ -8,7 +8,7 @@ import {
   Show,
   splitProps,
 } from 'solid-js';
-import { css } from '../emotion-solid';
+import { css } from '@emotion/css';
 
 import { SamplerDevice } from '../engine/device/Sampler';
 import { Slice } from '../engine/device/Slice';

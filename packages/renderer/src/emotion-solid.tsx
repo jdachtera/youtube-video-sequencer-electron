@@ -29,8 +29,6 @@ export const createGlobalStyles =
     return null;
   };
 
-export { css };
-
 export const styled =
   <T extends keyof JSX.IntrinsicElements, P extends JSX.IntrinsicElements[T]>(
     ComponentOrTag: T | ((props: P) => JSX.Element),

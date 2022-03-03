@@ -1,5 +1,5 @@
 import { For } from 'solid-js';
-import { ThemeProvider, css } from './emotion-solid';
+import { ThemeProvider } from './emotion-solid';
 import { Transport } from 'tone';
 import { ApolloProvider } from '@merged/solid-apollo';
 
@@ -14,6 +14,7 @@ import { DeviceChainView } from './Device/DeviceChainView';
 import { Column, Row } from './UI/Grid';
 import { SidePanel } from './panels/SidePanel';
 import { createSignalFromEventEmitter } from './engine/EngineBase';
+import { css } from '@emotion/css';
 
 const engine = new Engine(Transport);
 

@@ -10,7 +10,7 @@ import {
 } from 'solid-js';
 
 import type { Slice } from '../engine/device/Slice';
-import { css } from '../emotion-solid';
+import { css } from '@emotion/css';
 import type { SequencerMode } from './SequencerStep';
 import { SequencerStep } from './SequencerStep';
 import { Row } from '../UI/Grid';

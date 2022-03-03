@@ -4,7 +4,7 @@ import { createSignal, onMount, onCleanup } from 'solid-js';
 import type { Region } from 'wavesurfer.js/src/plugin/regions';
 import { Transport } from 'tone';
 
-import { css } from '../emotion-solid';
+import { css } from '@emotion/css';
 
 import type { SamplerDevice } from '../engine/device/Sampler';
 import { WavesurferView } from './WavesurferView';

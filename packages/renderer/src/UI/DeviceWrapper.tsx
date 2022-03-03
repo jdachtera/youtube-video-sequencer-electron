@@ -1,9 +1,10 @@
 import type { JSX } from 'solid-js';
 import { splitProps, Show } from 'solid-js';
-import { css, styled } from '../emotion-solid';
+import { styled } from '../emotion-solid';
 import { BiCompass } from 'solid-icons/bi';
 import megarack from '../svg/megarack.png';
 import { RackEar } from './RackEar';
+import { css } from '@emotion/css';
 
 export const DeviceWrapper = (
   allProps: JSX.IntrinsicElements['div'] & {

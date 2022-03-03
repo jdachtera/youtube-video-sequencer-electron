@@ -3,7 +3,7 @@ import { mergeProps, splitProps } from 'solid-js';
 
 import SwitchOnSvg from '../svg/switch--on.svg';
 import SwitchOffSvg from '../svg/switch--off.svg';
-import { css } from '../emotion-solid';
+import { css } from '@emotion/css';
 import { Label } from './Label';
 import { useAppTheme } from './theme';
 

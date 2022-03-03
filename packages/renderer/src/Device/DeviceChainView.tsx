@@ -18,7 +18,7 @@ import type { SerializedDevice } from '../engine/types';
 import { DeviceWrapper, DummyDevice } from '../UI/DeviceWrapper';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { normalizeDeviceData } from '../engine/device/normalizeDeviceData';
-import { css } from '../emotion-solid';
+import { css } from '@emotion/css';
 import { SamplerDevice } from '../engine/device/Sampler';
 import { SamplerSlicesView } from './SamplerSlicesView';
 import { Column, Row } from '../UI/Grid';

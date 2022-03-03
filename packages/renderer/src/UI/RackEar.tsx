@@ -1,6 +1,6 @@
 import type { JSX } from 'solid-js';
 import { splitProps } from 'solid-js';
-import { css } from '../emotion-solid';
+import { css } from '@emotion/css';
 import { Screw } from './Engraving';
 import { RackMountHole } from './RackMountHole';
 

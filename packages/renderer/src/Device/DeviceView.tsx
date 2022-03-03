@@ -1,7 +1,7 @@
 import { Match, Switch } from 'solid-js';
 import { DeviceChainView } from './DeviceChainView';
 
-import { css } from '../emotion-solid';
+import { css } from '@emotion/css';
 import type { Device } from '../engine/device/Device';
 import { DeviceChain } from '../engine/device/DeviceChain';
 import { FilterDevice } from '../engine/device/Filter';
