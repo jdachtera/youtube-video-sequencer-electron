@@ -1,4 +1,3 @@
-import { css } from '@emotion/css';
 import type { Property } from 'csstype';
 import { styled } from '../emotion-solid';
 
@@ -9,19 +8,17 @@ export const Flex = styled('div')<{
   overflowY?: Property.Overflow;
   width?: Property.Width;
   height?: Property.Height;
-}>(
-  (p) => css`
-    label: Flex;
-    display: flex;
-    ${p.flex !== undefined ? `flex: ${p.flex};` : ''}
-    ${p.overflow !== undefined ? `overflow: ${p.overflow};` : ''}
-    ${p.overflowX !== undefined ? `overflow-x: ${p.overflowX};` : ''}
-    ${p.overflowY !== undefined ? `overflow-y: ${p.overflowY};` : ''}
-    ${p.overflow !== undefined ? `overflow: ${p.overflow};` : ''}
-    ${p.width !== undefined ? `width: ${p.width};` : ''}
-    ${p.height !== undefined ? `height: ${p.height};` : ''}
-  `,
-);
+}>`
+  label: Flex;
+  display: flex;
+  flex: ${(p) => p.flex ?? 0};
+  overflow: ${(p) => p.overflow};
+  overflow-x: ${(p) => p.overflowX};
+  overflow-y: ${(p) => p.overflowY};
+  overflow: ${(p) => p.overflow};
+  width: ${(p) => p.width};
+  height: ${(p) => p.height};
+`;
 
 export const Column = styled(Flex)`
   label: Column;

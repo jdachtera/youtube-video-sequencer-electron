@@ -3,6 +3,7 @@ import { css, injectGlobal } from '@emotion/css';
 import type { PropsWithChildren, JSX } from 'solid-js';
 import { createContext, useContext, mergeProps, splitProps } from 'solid-js';
 import { createComponent, spread } from 'solid-js/web';
+import { isFunction } from 'tone';
 
 const ThemeContext = createContext();
 
@@ -34,7 +35,7 @@ export const styled =
     ComponentOrTag: T | ((props: P) => JSX.Element),
   ) =>
   <OwnProps extends Record<string, unknown>>(
-    template: TemplateStringsArray | ((props: P & OwnProps) => string),
+    ...args: (TemplateStringsArray | ((props: P & OwnProps) => unknown))[]
   ) =>
   (props: P & OwnProps) => {
     const [ownProps, componentProps] = splitProps(props, [
@@ -47,8 +48,16 @@ export const styled =
       {
         // eslint-disable-next-line solid/reactivity
         get classList() {
-          const className =
-            typeof template === 'function' ? template(props) : css(template);
+          const className = css(
+            {
+              ...(typeof ComponentOrTag === 'function' && {
+                label: ComponentOrTag.name,
+              }),
+            },
+            args.reduce((prev, current) => {
+              return `${prev}${isFunction(current) ? current(props) : current}`;
+            }, ''),
+          );
 
           const classNames = [
             ...((props.class as string)?.split(' ') ?? []),
