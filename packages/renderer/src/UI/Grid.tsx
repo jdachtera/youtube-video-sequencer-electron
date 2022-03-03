@@ -11,13 +11,13 @@ export const Flex = styled('div')<{
 }>`
   label: Flex;
   display: flex;
-  flex: ${(p) => p.flex ?? 0};
-  overflow: ${(p) => p.overflow};
-  overflow-x: ${(p) => p.overflowX};
-  overflow-y: ${(p) => p.overflowY};
-  overflow: ${(p) => p.overflow};
-  width: ${(p) => p.width};
-  height: ${(p) => p.height};
+  ${(p) => (p.flex ? `flex: ${p.flex};` : '')};
+  ${(p) => (p.overflow ? `overflow: ${p.overflow};` : '')};
+  ${(p) => (p.overflowX ? `overflow-x: ${p.overflowX};` : '')};
+  ${(p) => (p.overflowY ? `overflow-y: ${p.overflowY};` : '')};
+  ${(p) => (p.overflow ? `overflow: ${p.overflow};` : '')};
+  ${(p) => (p.width ? `width: ${p.width};` : '')};
+  ${(p) => (p.height ? `height: ${p.height};` : '')};
 `;
 
 export const Column = styled(Flex)`
