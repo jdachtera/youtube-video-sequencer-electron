@@ -135,20 +135,5 @@
     "wavesurfer.js": "^6.0.3",
     "youtube-search-without-api-key": "^1.0.7",
     "ytdl-core": "^4.10.1"
-  },
-  "prettier": {
-    "overrides": [
-      {
-        "files": [
-          ".prettierrc",
-          ".eslintrc"
-        ],
-        "options": {
-          "parser": "json"
-        }
-      }
-    ],
-    "singleQuote": true,
-    "trailingComma": "all"
   }
 }
