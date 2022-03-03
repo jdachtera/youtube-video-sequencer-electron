@@ -1,20 +1,20 @@
 overwrite: true
 schema: 'http://localhost:7071/graphql'
-documents: 'src/**/*.graphql'
+documents: 'packages/renderer/src/**/*.graphql'
 generates:
-  src/generated.types.ts:
+  packages/renderer/types/graphql.generated.types.ts:
     - typescript
-  src/:
+  packages/renderer/src:
     preset: near-operation-file
     presetConfig:
       extension: .generated.ts
-      baseTypesPath: generated.types.ts
+      baseTypesPath: ../types/graphql.generated.types.ts
     plugins:
       - typescript
       - typescript-operations
       - typed-document-node
 
-  src/graphql.schema.json:
+  packages/renderer/graphql.schema.json:
     plugins:
       - 'introspection'
 hooks:

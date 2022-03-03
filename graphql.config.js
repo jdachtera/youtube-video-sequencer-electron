@@ -2,7 +2,7 @@
 module.exports = {
   projects: {
     app: {
-      schema: ['src/graphql.schema.json'],
+      schema: ['packages/renderer/graphql.schema.json'],
       documents: ['**/*.graphql'],
     },
   },

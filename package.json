@@ -1,18 +1,29 @@
 {
   "name": "youtube-video-sequencer-electron",
   "description": "Youtube video Sequencer",
+  "private": true,
+  "engines": {
+    "node": ">=v16.13",
+    "npm": ">=8.1"
+  },
+  "main": "packages/main/dist/index.cjs",
   "scripts": {
-    "build": "concurrently \"yarn run build:main\" \"yarn run build:renderer\"",
-    "build:main": "cross-env NODE_ENV=production TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.main.prod.ts",
-    "build:renderer": "cross-env NODE_ENV=production TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.renderer.prod.ts",
-    "rebuild": "electron-rebuild --parallel --types prod,dev,optional --module-dir release/app",
-    "lint": "cross-env NODE_ENV=development eslint . --ext .js,.jsx,.ts,.tsx",
-    "package": "ts-node ./.erb/scripts/clean.js dist && npm run build && electron-builder build --publish never",
-    "postinstall": "ts-node .erb/scripts/build-src-packages.ts && ts-node .erb/scripts/check-native-dep.js && electron-builder install-app-deps && cross-env NODE_ENV=development TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.renderer.dev.dll.ts && opencollective-postinstall",
-    "start": "ts-node ./.erb/scripts/check-port-in-use.js && yarn run start:renderer",
-    "start:main": "cross-env NODE_ENV=development electron -r ts-node/register/transpile-only ./src/main/main.ts",
-    "start:renderer": "cross-env NODE_ENV=development TS_NODE_TRANSPILE_ONLY=true webpack serve --config ./.erb/configs/webpack.config.renderer.dev.ts",
-    "test": "jest",
+    "build": "npm run build:main && npm run build:preload && npm run build:renderer",
+    "build:main": "cd ./packages/main && vite build",
+    "build:preload": "cd ./packages/preload && vite build",
+    "build:renderer": "cd ./packages/renderer && vite build",
+    "compile": "cross-env MODE=production npm run build && electron-builder build --config .electron-builder.config.js --dir --config.asar=false",
+    "test": "npm run test:main && npm run test:preload && npm run test:renderer && npm run test:e2e",
+    "test:e2e": "npm run build && vitest run",
+    "test:main": "vitest run -r packages/main --passWithNoTests",
+    "test:preload": "vitest run -r packages/preload --passWithNoTests",
+    "test:renderer": "vitest run -r packages/renderer --passWithNoTests",
+    "watch": "node scripts/watch.js",
+    "lint": "eslint . --ext js,ts,tsx",
+    "typecheck:main": "tsc --noEmit -p packages/main/tsconfig.json",
+    "typecheck:preload": "tsc --noEmit -p packages/preload/tsconfig.json",
+    "typecheck:renderer": "tsc --noEmit -p packages/renderer/tsconfig.json",
+    "typecheck": "npm run typecheck:main && npm run typecheck:preload && npm run typecheck:renderer",
     "prepare": "husky install",
     "graphql-codegen": "graphql-codegen --config codegen.yml"
   },
@@ -28,65 +39,6 @@
     ],
     "*.{html,md,yml}": [
       "prettier --ignore-path .eslintignore --single-quote --write"
-    ]
-  },
-  "build": {
-    "productName": "YoutubeVideoSequencer",
-    "appId": "com.ratstudio.YoutubeVideoSequencer",
-    "asar": true,
-    "asarUnpack": "**\\*.{node,dll}",
-    "files": [
-      "dist",
-      "node_modules",
-      "package.json"
-    ],
-    "afterSign": ".erb/scripts/notarize.js",
-    "mac": {
-      "target": {
-        "target": "default",
-        "arch": [
-          "arm64",
-          "x64"
-        ]
-      },
-      "type": "distribution",
-      "hardenedRuntime": true,
-      "entitlements": "assets/entitlements.mac.plist",
-      "entitlementsInherit": "assets/entitlements.mac.plist",
-      "gatekeeperAssess": false
-    },
-    "dmg": {
-      "contents": [
-        {
-          "x": 130,
-          "y": 220
-        },
-        {
-          "x": 410,
-          "y": 220,
-          "type": "link",
-          "path": "/Applications"
-        }
-      ]
-    },
-    "win": {
-      "target": [
-        "portable"
-      ]
-    },
-    "linux": {
-      "target": [
-        "AppImage"
-      ],
-      "category": "Development"
-    },
-    "directories": {
-      "app": "release/app",
-      "buildResources": "assets",
-      "output": "release/build"
-    },
-    "extraResources": [
-      "./assets/**"
     ]
   },
   "repository": {
@@ -127,115 +79,63 @@
   ],
   "homepage": "https://github.com/jdachtera/youtube-video-sequencer-electron#readme",
   "devDependencies": {
-    "@babel/core": "^7.16.12",
-    "@babel/preset-env": "^7.16.11",
-    "@babel/preset-typescript": "^7.16.7",
+    "@babel/core": "^7.17.5",
     "@graphql-codegen/cli": "^2.6.1",
     "@graphql-codegen/introspection": "2.1.1",
     "@graphql-codegen/near-operation-file-preset": "^2.2.4",
     "@graphql-codegen/typed-document-node": "^2.2.3",
     "@graphql-codegen/typescript-document-nodes": "2.2.5",
     "@graphql-codegen/typescript-operations": "^2.3.0",
-    "@teamsupercell/typings-for-css-modules-loader": "^2.5.1",
-    "@testing-library/jest-dom": "^5.16.1",
-    "@types/eslint": "^8.0.0",
+    "@graphql-typed-document-node/core": "^3.1.1",
+    "@types/babel__core": "^7.1.18",
     "@types/file-saver": "^2.0.5",
-    "@types/node": "17.0.19",
-    "@types/terser-webpack-plugin": "^5.0.4",
-    "@types/video.js": "^7.3.29",
-    "@types/wavesurfer.js": "^6.0.0",
-    "@types/webpack": "^5.28.0",
-    "@types/webpack-env": "^1.16.3",
-    "@typescript-eslint/eslint-plugin": "^5.12.1",
-    "@typescript-eslint/parser": "^5.12.1",
-    "babel-loader": "^8.2.3",
-    "babel-preset-env": "^1.7.0",
-    "babel-preset-solid": "^1.3.4",
-    "browserslist-config-erb": "^0.0.3",
-    "chalk": "^4.1.2",
-    "concurrently": "^7.0.0",
-    "core-js": "^3.21.0",
-    "cross-env": "^7.0.3",
-    "css-loader": "^6.6.0",
-    "css-minimizer-webpack-plugin": "^3.3.1",
+    "@typescript-eslint/eslint-plugin": "5.12.1",
+    "@typescript-eslint/parser": "^5.13.0",
+    "cross-env": "7.0.3",
     "csstype": "^3.0.10",
-    "detect-port": "^1.3.0",
-    "electron": "^17.0.0",
-    "electron-builder": "^22.14.5",
-    "electron-devtools-installer": "^3.2.0",
-    "electron-notarize": "^1.1.1",
-    "electron-rebuild": "^3.2.5",
-    "eslint": "^8.0.0",
-    "eslint-config-prettier": "^8.4.0",
-    "eslint-import-resolver-typescript": "^2.5.0",
-    "eslint-import-resolver-webpack": "^0.13.2",
-    "eslint-plugin-compat": "^4.0.0",
+    "electron": "17.1.0",
+    "electron-builder": "22.14.13",
+    "electron-devtools-installer": "3.2.0",
+    "eslint": "8.9.0",
+    "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-import": "^2.25.4",
-    "eslint-plugin-jest": "^26.0.0",
+    "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-promise": "^6.0.0",
     "eslint-plugin-solid": "^0.4.4",
-    "eslint-webpack-plugin": "^3.1.1",
-    "file-loader": "^6.2.0",
-    "html-webpack-plugin": "^5.5.0",
+    "happy-dom": "2.41.0",
     "husky": "^7.0.4",
-    "identity-obj-proxy": "^3.0.0",
-    "jest": "^27.4.5",
-    "jest-canvas-mock": "^2.3.1",
-    "lint-staged": "^12.3.3",
-    "mini-css-extract-plugin": "^2.4.5",
-    "opencollective-postinstall": "^2.0.3",
-    "prettier": "^2.5.1",
-    "react": "^17.0.2",
-    "rimraf": "^3.0.2",
-    "sass": "^1.49.8",
-    "sass-loader": "^12.4.0",
-    "solid-jest": "^0.2.0",
-    "solid-refresh": "^0.4.0",
-    "solid-testing-library": "^0.2.1",
-    "style-loader": "^3.3.1",
-    "terser-webpack-plugin": "^5.3.1",
-    "ts-jest": "^27.1.2",
-    "ts-loader": "^9.2.6",
-    "ts-node": "^10.4.0",
-    "typescript": "^4.5.4",
-    "url-loader": "^4.1.1",
-    "web-vitals": "^2.1.4",
-    "webpack": "^5.65.0",
-    "webpack-bundle-analyzer": "^4.5.0",
-    "webpack-cli": "^4.9.1",
-    "webpack-dev-server": "^4.7.4",
-    "webpack-merge": "^5.8.0"
+    "lint-staged": "^12.3.4",
+    "nano-staged": "0.6.0",
+    "playwright": "1.19.1",
+    "simple-git-hooks": "2.7.0",
+    "typescript": "4.5.5",
+    "vite": "2.8.4",
+    "vitest": "0.5.4"
   },
   "dependencies": {
-    "@apollo/client": "^3.5.8",
+    "@apollo/client": "^3.5.10",
     "@emotion/css": "^11.7.1",
     "@merged/solid-apollo": "^1.6.0",
-    "electron-debug": "^3.2.0",
-    "electron-log": "^4.4.4",
-    "electron-updater": "^4.6.4",
-    "emotion-solid": "^1.1.1",
-    "eslint-plugin-prettier": "^4.0.0",
+    "@types/wavesurfer.js": "^6.0.1",
+    "electron-updater": "4.6.5",
+    "events": "^3.3.0",
     "file-saver": "^2.0.5",
-    "graphql": "^16.3.0",
-    "history": "^5.2.0",
+    "graphql": "^15.8.0",
     "idb": "^7.0.0",
     "polished": "^4.1.4",
+    "prettier": "^2.5.1",
     "regenerator-runtime": "^0.13.9",
     "solid-dismiss": "^1.0.27",
     "solid-icons": "^0.3.3",
-    "solid-js": "^1.3.7",
+    "solid-js": "^1.3.9",
     "tiny-typed-emitter": "^2.1.0",
     "tone": "^14.7.77",
     "ts-debounce": "^4.0.0",
-    "wavesurfer.js": "^6.0.2",
+    "vite-plugin-solid": "^2.2.5",
+    "wavesurfer.js": "^6.0.3",
     "youtube-search-without-api-key": "^1.0.7",
     "ytdl-core": "^4.10.1"
   },
-  "devEngines": {
-    "node": ">=14.x",
-    "npm": ">=7.x"
-  },
-  "browserslist": [],
   "prettier": {
     "overrides": [
       {
@@ -248,6 +148,7 @@
         }
       }
     ],
-    "singleQuote": true
+    "singleQuote": true,
+    "trailingComma": "all"
   }
 }
