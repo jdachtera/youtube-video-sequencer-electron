@@ -1,12 +1,11 @@
 import { createEffect, mergeProps, onCleanup, onMount } from 'solid-js';
 
-import { css } from '@emotion/css';
+import { css, keyframes } from '@emotion/css';
 
 import Wavesurfer from 'wavesurfer.js';
 
 import type { Slice } from '../engine/device/Slice';
 import { createSignalFromEventEmitter } from '../engine/EngineBase';
-import { keyframes } from '@emotion/css';
 
 type WavesurferSliceViewProps = {
   slice: Slice;

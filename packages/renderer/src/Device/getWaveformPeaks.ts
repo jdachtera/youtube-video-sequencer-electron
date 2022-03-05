@@ -1,9 +1,19 @@
-export const getPeaks = (data: Float32Array, samplesPerPx: number) => {
+export const getPeaks = async (
+  data: Float32Array,
+  samplesPerPx: number,
+  cacheKey: string,
+  onProgress: (progress: number) => void,
+  start = 0,
+  end: number = Math.ceil(data.length / samplesPerPx),
+) => {
   const peaks = [];
-  const end = Math.ceil(data.length / samplesPerPx);
 
-  for (let x = 0; x < end; x++) {
-    peaks.push(getPeakAt(data, samplesPerPx, x));
+  for (let x = start; x < end; x++) {
+    peaks.push(getPeakAtCached(data, samplesPerPx, x, cacheKey));
+    if (x % 10000 === 0) {
+      onProgress(x / end);
+      await new Promise(requestAnimationFrame);
+    }
   }
 
   return peaks;
@@ -18,7 +28,24 @@ export const getPeakAtCached = (
   const peaksArray = getOrCreatePeaksCache(cacheKey, samplesPerPx);
 
   if (!peaksArray.has(x)) {
-    peaksArray.set(x, getPeakAt(data, samplesPerPx, x));
+    const multiplicator = 2;
+    const roughSamples = Math.ceil(samplesPerPx / multiplicator / 100) * 100;
+
+    if (roughSamples > 100) {
+      let acc = 0;
+
+      const start = Math.round((x * samplesPerPx) / roughSamples);
+      for (let i = 0; i < multiplicator; i++) {
+        const value = getPeakAtCached(data, roughSamples, start + i, cacheKey);
+        if (value > acc) {
+          acc = value;
+        }
+      }
+
+      peaksArray.set(x, acc);
+    } else {
+      peaksArray.set(x, getPeakAt(data, samplesPerPx, x));
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -54,20 +81,22 @@ export const warmupCache = async (
   cacheKey: string,
   onProgress: (progress: number) => void,
 ) => {
-  const max = 10;
-  onProgress(0);
+  onProgress(1);
 
-  for (let i = 0; i < max; i++) {
-    await new Promise(requestAnimationFrame);
-    onProgress((i + 1) / max);
+  const cachedSteps = Array.from({
+    length: Math.ceil(data.length / 20000000),
+  }).map((_, index) => {
+    return (index + 2) * 100;
+  });
 
-    const samplesPerPx = data.length / (10000 * i);
-
-    const peaksCache = getOrCreatePeaksCache(cacheKey, samplesPerPx);
-    getPeaks(data, samplesPerPx).forEach((peak, index) => {
-      peaksCache.set(index, peak);
+  await cachedSteps.reduce(async (prev, samplesPerPx, i) => {
+    await prev;
+    await getPeaks(data, samplesPerPx, cacheKey, (progress) => {
+      onProgress((i + progress) / cachedSteps.length);
     });
-  }
+  }, Promise.resolve());
+
+  onProgress(1);
 };
 
 export const getOrCreatePeaksCache = (

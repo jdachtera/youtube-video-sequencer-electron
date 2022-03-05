@@ -7,7 +7,6 @@ import { Transport } from 'tone';
 import { css } from '@emotion/css';
 
 import type { SamplerDevice } from '../engine/device/Sampler';
-import { WavesurferView } from './WavesurferView';
 
 import type { Slice } from '../engine/device/Slice';
 import { LCDFrame, LCDLine } from '../UI/LCD';
@@ -16,6 +15,7 @@ import { AkaiButton } from '../UI/AkaiButton';
 import { Waveform } from './Waveform';
 import { createSignalFromEventEmitter } from '../engine/EngineBase';
 import { formatTime } from '../UI/format';
+import { NumberInputWithArrowButtons } from '../UI/NumberInputWithArrowButtons';
 
 export const SamplerView = (props: { sampler: SamplerDevice }) => {
   const [waveformCenter, setWaveformCenter] = createSignal(0);
@@ -126,7 +126,15 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
             <div>{formatTime(length())}s</div>
             <div>{formatTime(position())}s</div>
           </LCDLine>
-          <div>Zoom: {Math.round(zoom() * 100)}%</div>
+          <div>
+            Zoom:{' '}
+            <NumberInputWithArrowButtons
+              value={zoom()}
+              onChange={(zoom) => props.sampler.set({ zoom })}
+              parse={(value) => Math.round(parseFloat(value)) / 100}
+              format={(value) => Math.round(value * 100).toString()}
+            />
+          </div>
           <Waveform
             cacheKey={props.sampler.url}
             buffer={buffer()}
@@ -155,7 +163,7 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
                   position() + zoomedLength * pointerPositionPercentage;
 
                 const newZoom = Math.max(
-                  zoom() * (1 + event.deltaY / window.innerHeight / 100),
+                  zoom() * (1 + event.deltaY / window.innerHeight),
                   1,
                 );
 

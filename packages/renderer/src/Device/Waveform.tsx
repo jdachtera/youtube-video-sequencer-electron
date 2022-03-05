@@ -1,10 +1,10 @@
+import type { JSX } from 'solid-js';
 import {
   createEffect,
   createMemo,
   createSignal,
   onCleanup,
   onMount,
-  JSX,
   splitProps,
   Show,
 } from 'solid-js';
@@ -16,7 +16,7 @@ export const Waveform = (
     start: number;
     end: number;
     cacheKey: string;
-  } & JSX.IntrinsicElements['canvas']
+  } & JSX.IntrinsicElements['canvas'],
 ) => {
   const [props, canvasProps] = splitProps(allProps, [
     'buffer',
@@ -37,6 +37,8 @@ export const Waveform = (
     warmupCache(data, props.cacheKey, setProgress);
   });
 
+  let animationFrame: number;
+
   return (
     <Show when={progress() === 1} fallback={Math.round(progress() * 100)}>
       <Canvas
@@ -49,7 +51,7 @@ export const Waveform = (
 
           const visibleLength = Math.min(
             ((props.end - props.start) / duration) * data.length,
-            data.length
+            data.length,
           );
 
           const samplesPerPx = visibleLength / width;
@@ -58,29 +60,33 @@ export const Waveform = (
           const startY = height / 2;
 
           const startIndex = Math.floor(
-            (props.start / duration) * (data.length / samplesPerPx)
+            (props.start / duration) * (data.length / samplesPerPx),
           );
 
-          ctx.clearRect(0, 0, width, height);
-          ctx.beginPath();
+          cancelAnimationFrame(animationFrame);
 
-          for (let x = 0; x < width; x++) {
-            const y =
-              getPeakAtCached(
-                data,
-                samplesPerPx,
-                x + startIndex,
-                props.cacheKey
-              ) / 128;
+          animationFrame = requestAnimationFrame(async () => {
+            ctx.clearRect(0, 0, width, height);
+            ctx.beginPath();
 
-            ctx.moveTo(x, startY + y * startY);
-            ctx.lineTo(x, startY - y * startY);
-          }
+            for (let x = 0; x < width; x++) {
+              const y =
+                (await getPeakAtCached(
+                  data,
+                  samplesPerPx,
+                  x + startIndex,
+                  props.cacheKey,
+                )) / 128;
 
-          ctx.moveTo(0, startY);
+              ctx.moveTo(x, startY + y * startY);
+              ctx.lineTo(x, startY - y * startY);
+            }
 
-          ctx.closePath();
-          ctx.stroke();
+            ctx.moveTo(0, startY);
+
+            ctx.closePath();
+            ctx.stroke();
+          });
         }}
       />
     </Show>
@@ -91,9 +97,9 @@ const Canvas = (
   allProps: {
     onDraw: (
       context: CanvasRenderingContext2D,
-      dimensions: { width: number; height: number }
+      dimensions: { width: number; height: number },
     ) => void;
-  } & JSX.IntrinsicElements['canvas']
+  } & JSX.IntrinsicElements['canvas'],
 ) => {
   const [props, canvasProps] = splitProps(allProps, ['onDraw']);
   let canvasRef: HTMLCanvasElement | undefined;
@@ -113,12 +119,14 @@ const Canvas = (
   onMount(() => {
     setContext(canvasRef?.getContext('2d'));
 
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     observer.observe(canvasRef!);
 
     setDimensions();
   });
 
   onCleanup(() => {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     observer.unobserve(canvasRef!);
   });
 
