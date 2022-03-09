@@ -57,35 +57,52 @@ export const Waveform = (
           const samplesPerPx = visibleLength / width;
           if (!samplesPerPx) return;
 
-          const startY = height / 2;
-
-          const startIndex = Math.floor(
-            (props.start / duration) * (data.length / samplesPerPx),
-          );
-
           cancelAnimationFrame(animationFrame);
 
-          animationFrame = requestAnimationFrame(async () => {
+          animationFrame = requestAnimationFrame(() => {
+            const startY = height / 2;
+
+            const startIndex = Math.floor(
+              (props.start / duration) * (data.length / samplesPerPx),
+            );
+
+            const numberOfPeaks = Math.min(visibleLength, Math.ceil(width));
+            const peaks = Array.from({
+              length: numberOfPeaks,
+            }).map((_, i): [number, number, number, number] => {
+              const [min, max] = getPeakAtCached(
+                data,
+                samplesPerPx,
+                i + startIndex,
+                props.cacheKey,
+              );
+              const x = (i / numberOfPeaks) * width;
+
+              const minY = startY + (min / 1024) * startY;
+              const maxY = startY + (max / 1024) * startY;
+
+              const absMaxY = Math.abs(min) > Math.abs(max) ? minY : maxY;
+
+              return [x, absMaxY, minY, maxY];
+            });
+
             ctx.clearRect(0, 0, width, height);
-            ctx.beginPath();
 
-            for (let x = 0; x < width; x++) {
-              const y =
-                (await getPeakAtCached(
-                  data,
-                  samplesPerPx,
-                  x + startIndex,
-                  props.cacheKey,
-                )) / 128;
+            drawWaveform(ctx, peaks);
 
-              ctx.moveTo(x, startY + y * startY);
-              ctx.lineTo(x, startY - y * startY);
+            const peaksOpacity =
+              Math.min(1, Math.max(0, Math.log(samplesPerPx / 96)) - 0.5) + 0.5;
+
+            ctx.strokeStyle = `rgba(0,0,0,${peaksOpacity})`;
+
+            drawPeaks(ctx, peaks);
+
+            if (samplesPerPx < 100 / width) {
+              ctx.strokeStyle = `rgb(0,0,0)`;
+              const radius = width / 256;
+
+              drawSampleDots(peaks, ctx, radius);
             }
-
-            ctx.moveTo(0, startY);
-
-            ctx.closePath();
-            ctx.stroke();
           });
         }}
       />
@@ -148,3 +165,51 @@ const Canvas = (
 
   return <canvas {...canvasProps} ref={canvasRef}></canvas>;
 };
+
+function drawSampleDots(
+  peaks: [number, number, number, number][],
+  ctx: CanvasRenderingContext2D,
+  radius: number,
+) {
+  peaks.forEach(([x1, avgMaxY]) => {
+    ctx.beginPath();
+    ctx.arc(x1, avgMaxY, radius, 0, 360);
+    ctx.closePath();
+    ctx.fill();
+  });
+}
+
+function drawPeaks(
+  ctx: CanvasRenderingContext2D,
+  peaks: [number, number, number, number][],
+) {
+  ctx.beginPath();
+  peaks.forEach(([x1, _, minY, maxY]) => {
+    ctx.moveTo(x1, minY);
+    ctx.lineTo(x1, maxY);
+  });
+  ctx.closePath();
+  ctx.stroke();
+}
+
+function drawWaveform(
+  ctx: CanvasRenderingContext2D,
+  peaks: [number, number, number, number][],
+) {
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgb(0,0,0)';
+
+  for (let i = 0; i < peaks.length - 1; i++) {
+    const [x1, y1] = peaks[i];
+    const [x2, y2] = peaks[i + 1];
+
+    const x_mid = (x1 + x2) / 2;
+    const y_mid = (y1 + y2) / 2;
+    const cp_x1 = (x_mid + x1) / 2;
+    const cp_x2 = (x_mid + x2) / 2;
+
+    ctx.quadraticCurveTo(cp_x1, y1, x_mid, y_mid);
+    ctx.quadraticCurveTo(cp_x2, y2, x2, y2);
+  }
+  ctx.stroke();
+}

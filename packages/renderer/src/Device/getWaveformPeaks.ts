@@ -25,6 +25,9 @@ export const getPeakAtCached = (
   x: number,
   cacheKey: string,
 ) => {
+  if (samplesPerPx === 1) {
+    return [data[x], data[x]];
+  }
   const peaksArray = getOrCreatePeaksCache(cacheKey, samplesPerPx);
 
   if (!peaksArray.has(x)) {
@@ -32,17 +35,21 @@ export const getPeakAtCached = (
     const roughSamples = Math.ceil(samplesPerPx / multiplicator / 100) * 100;
 
     if (roughSamples > 100) {
-      let acc = 0;
+      let min = 0;
+      let max = 0;
 
       const start = Math.round((x * samplesPerPx) / roughSamples);
       for (let i = 0; i < multiplicator; i++) {
         const value = getPeakAtCached(data, roughSamples, start + i, cacheKey);
-        if (value > acc) {
-          acc = value;
+        if (value[1] > max) {
+          max = value[1];
+        }
+        if (value[0] < min) {
+          min = value[0];
         }
       }
 
-      peaksArray.set(x, acc);
+      peaksArray.set(x, [min, max]);
     } else {
       peaksArray.set(x, getPeakAt(data, samplesPerPx, x));
     }
@@ -56,25 +63,31 @@ export const getPeakAt = (
   data: Float32Array,
   samplesPerPx: number,
   x: number,
-) => {
-  let absMax = 0;
+): [number, number] => {
+  let max = 0;
+  let min = 0;
 
   for (let i = 0; i < samplesPerPx; i++) {
     const index = Math.floor(x * samplesPerPx) + i;
 
     if (index >= data.length) break;
 
-    const value = Math.abs(data[index]);
+    const value = data[index];
 
-    if (value > absMax) {
-      absMax = value;
+    if (value > max) {
+      max = value;
+    } else if (value < min) {
+      min = value;
     }
   }
 
-  return Math.round(absMax * 128);
+  return [Math.round(min * 1024), Math.round(max * 1024)];
 };
 
-const cache: Map<string, Map<number, Map<number, number>>> = new Map();
+const cache: Map<
+  string,
+  Map<number, Map<number, [number, number]>>
+> = new Map();
 
 export const warmupCache = async (
   data: Float32Array,

@@ -139,7 +139,7 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
             cacheKey={props.sampler.url}
             buffer={buffer()}
             start={position()}
-            end={position() + Math.round((length() / zoom()) * 100) / 100}
+            end={position() + length() / zoom()}
             onWheel={(event) => {
               event.preventDefault();
               const zoomedLength = length() / zoom();
@@ -171,16 +171,6 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
 
                 const newPosition =
                   pointerPosition - pointerPositionPercentage * newZoomedLength;
-
-                // console.log({
-                //   zoomedLength,
-                //   pointerPosition,
-                //   pointerPositionPercentage,
-
-                //   newZoomedLength,
-                //   newZoom,
-                //   newPosition,
-                // });
 
                 props.sampler.set({
                   zoom: newZoom,
