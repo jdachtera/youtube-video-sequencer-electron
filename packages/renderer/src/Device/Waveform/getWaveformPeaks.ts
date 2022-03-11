@@ -1,17 +1,24 @@
-export const getPeaks = async (
-  data: Float32Array,
-  samplesPerPx: number,
-  cacheKey: string,
-  onProgress: (progress: number) => void,
+export const getPeaks = async ({
+  data,
+  samplesPerPx,
+  cacheKey,
+  onProgress,
   start = 0,
-  end: number = Math.ceil(data.length / samplesPerPx),
-) => {
+  end = Math.ceil(data.length / samplesPerPx),
+}: {
+  data: Float32Array;
+  samplesPerPx: number;
+  cacheKey: string;
+  onProgress?: (progress: number) => void;
+  start?: number;
+  end?: number;
+}) => {
   const peaks = [];
 
   for (let x = start; x < end; x++) {
     peaks.push(getPeakAtCached(data, samplesPerPx, x, cacheKey));
-    if (x % 10000 === 0) {
-      onProgress(x / end);
+    if (x % 10000 === 0 && onProgress) {
+      onProgress?.(x / end);
       await new Promise(requestAnimationFrame);
     }
   }
@@ -104,8 +111,13 @@ export const warmupCache = async (
 
   await cachedSteps.reduce(async (prev, samplesPerPx, i) => {
     await prev;
-    await getPeaks(data, samplesPerPx, cacheKey, (progress) => {
-      onProgress((i + progress) / cachedSteps.length);
+    await getPeaks({
+      data,
+      samplesPerPx,
+      cacheKey,
+      onProgress: (progress) => {
+        onProgress((i + progress) / cachedSteps.length);
+      },
     });
   }, Promise.resolve());
 

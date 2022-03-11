@@ -12,14 +12,15 @@ import type { Slice } from '../engine/device/Slice';
 import { LCDFrame, LCDLine } from '../UI/LCD';
 import { LCD } from '../UI/lcdStyles';
 import { AkaiButton } from '../UI/AkaiButton';
-import { Waveform } from './Waveform';
+
 import { createSignalFromEventEmitter } from '../engine/EngineBase';
 import { formatTime } from '../UI/format';
 import { NumberInputWithArrowButtons } from '../UI/NumberInputWithArrowButtons';
 
+import { Waveform } from './Waveform/Waveform';
+
 export const SamplerView = (props: { sampler: SamplerDevice }) => {
   const [waveformCenter, setWaveformCenter] = createSignal(0);
-  const [length, setLength] = createSignal(0);
 
   const zoom = createSignalFromEventEmitter(
     () => props.sampler,
@@ -68,12 +69,7 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
     Transport.on('stop', stopPlayer);
     Transport.on('pause', stopPlayer);
     Transport.on('loopEnd', stopPlayer);
-
-    await props.sampler.hasLoaded();
-
     props.sampler.on('sliceSelected', handleSliceSelected);
-
-    setLength(props.sampler.buffer.duration);
   });
 
   onCleanup(() => {
@@ -123,7 +119,7 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
               justify-content: space-between;
             `}
           >
-            <div>{formatTime(length())}s</div>
+            <div>{formatTime(buffer()?.duration ?? 0)}s</div>
             <div>{formatTime(position())}s</div>
           </LCDLine>
           <div>
@@ -136,49 +132,13 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
             />
           </div>
           <Waveform
-            cacheKey={props.sampler.url}
             buffer={buffer()}
-            start={position()}
-            end={position() + length() / zoom()}
-            onWheel={(event) => {
-              event.preventDefault();
-              const zoomedLength = length() / zoom();
-
-              if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
-                const newPosition = Math.min(
-                  Math.max(
-                    position() +
-                      event.deltaX / window.innerWidth / zoomedLength,
-                    0,
-                  ),
-                  length() - zoomedLength,
-                );
-                props.sampler.set({ position: newPosition });
-              } else {
-                const pointerPositionPercentage =
-                  event.offsetX /
-                  +getComputedStyle(event.currentTarget).width.slice(0, -2);
-
-                const pointerPosition =
-                  position() + zoomedLength * pointerPositionPercentage;
-
-                const newZoom = Math.max(
-                  zoom() * (1 + event.deltaY / window.innerHeight),
-                  1,
-                );
-
-                const newZoomedLength = length() / newZoom;
-
-                const newPosition =
-                  pointerPosition - pointerPositionPercentage * newZoomedLength;
-
-                props.sampler.set({
-                  zoom: newZoom,
-                  position: Math.max(newPosition, 0),
-                });
-              }
-            }}
+            zoom={zoom()}
+            position={position()}
+            cacheKey={props.sampler.url}
+            onStateChange={(state) => props.sampler.set(state)}
             class={css`
+              width: 800px;
               height: 200px;
             `}
           />
