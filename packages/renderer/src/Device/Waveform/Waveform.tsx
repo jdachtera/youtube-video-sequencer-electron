@@ -61,6 +61,8 @@ export const Waveform = (
       ...(zoom !== undefined && { zoom: newZoom }),
     };
 
+    // console.trace(newState);
+
     props.onStateChange(newState);
   };
 
@@ -176,7 +178,10 @@ export const Waveform = (
             event.preventDefault();
             const { width } = scrollDivRef()!.getBoundingClientRect();
             const { scrollLeft, clientWidth } = event.currentTarget;
-            const scrollAmount = scrollLeft / (width - clientWidth);
+
+            const scrollableWidth = width - clientWidth;
+            const scrollAmount =
+              scrollableWidth > 0 ? scrollLeft / scrollableWidth : 0;
             const maxPosition = duration() - duration() / props.zoom;
 
             updateState({
