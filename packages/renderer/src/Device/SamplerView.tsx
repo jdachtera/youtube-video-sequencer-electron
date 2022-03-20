@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { createSignal, onMount, onCleanup } from 'solid-js';
+import { createSignal, onMount, onCleanup, createEffect } from 'solid-js';
 
 import type { Region } from 'wavesurfer.js/src/plugin/regions';
 import { Transport } from 'tone';
@@ -8,12 +8,15 @@ import { css } from '@emotion/css';
 
 import type { SamplerDevice } from '../engine/device/Sampler';
 
-import type { Slice } from '../engine/device/Slice';
+import { Slice } from '../engine/device/Slice';
 import { LCDFrame, LCDLine } from '../UI/LCD';
 import { LCD } from '../UI/lcdStyles';
 import { AkaiButton } from '../UI/AkaiButton';
 
-import { createSignalFromEventEmitter } from '../engine/EngineBase';
+import {
+  createArraySignalFromEventEmitter,
+  createSignalFromEventEmitter,
+} from '../engine/EngineBase';
 import { formatTime } from '../UI/format';
 import { NumberInputWithArrowButtons } from '../UI/NumberInputWithArrowButtons';
 
@@ -26,6 +29,13 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
     () => props.sampler,
     (sampler) => sampler.zoom,
     ['zoomUpdated'],
+  );
+
+  const regions = createArraySignalFromEventEmitter(
+    () => props.sampler,
+    (sampler) => sampler.slices,
+    ({ id, color, start, end }) => ({ id, color, start, end }),
+    ['sliceAdded', 'sliceRemoved', 'sliceUpdated'],
   );
 
   const position = createSignalFromEventEmitter(
@@ -137,6 +147,16 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
             position={position()}
             cacheKey={props.sampler.url}
             onStateChange={(state) => props.sampler.set(state)}
+            regions={regions()}
+            onCreateRegion={(region) => {
+              props.sampler.createSlice(Slice.normalizeData(region));
+            }}
+            onUpdateRegion={(region) => {
+              props.sampler.findSlice(region.id)?.set(region);
+            }}
+            onClickRegion={(region) => {
+              props.sampler.findSlice(region.id)?.play();
+            }}
             class={css`
               width: 800px;
               height: 200px;

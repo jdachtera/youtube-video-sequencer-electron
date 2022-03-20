@@ -153,6 +153,7 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
 
     slice.soloNode.connect(this.output);
     slice.on('change', this.emitChange);
+    slice.on('change', (slice) => this.emit('sliceUpdated', slice));
 
     this.slices = [
       ...this.slices.slice(0, atIndex),
