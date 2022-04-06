@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { createSignal, onMount, onCleanup, createEffect } from 'solid-js';
+import { createSignal, onMount, onCleanup } from 'solid-js';
 
-import type { Region } from 'wavesurfer.js/src/plugin/regions';
 import { Transport } from 'tone';
 
 import { css } from '@emotion/css';
@@ -89,17 +88,6 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
     props.sampler.off('sliceSelected', handleSliceSelected);
   });
 
-  const handleClickRegion = (region: Region) => {
-    const slice = props.sampler.findSlice(region.id);
-
-    if (!slice) return;
-
-    const { duration } = slice.player.buffer;
-    if (duration > 0) {
-      slice.play();
-    }
-  };
-
   return (
     <div
       classList={{
@@ -162,11 +150,6 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
               height: 200px;
             `}
           />
-          {/*<WavesurferView
-            sampler={props.sampler}
-            center={waveformCenter()}
-            onRegionClick={handleClickRegion}
-          />*/}
         </LCD>
         <div
           class={css`

@@ -51,19 +51,6 @@ const Styles = css`
     text-align: left;
   }
 
-  .wavesurfer-region {
-    z-index: 1 !important;
-    /* z-index: 9999 !important; */
-  }
-
-  .wavesurfer-handle {
-    opacity: 0;
-  }
-
-  .wavesurfer wave {
-    color: red !important;
-  }
-
   .video-js {
     width: 500px !important;
   }

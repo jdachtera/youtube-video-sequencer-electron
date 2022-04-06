@@ -118,7 +118,6 @@
     "@i2labs/dns": "^1.0.1",
     "@jdachtera/youtube-search-without-api-key": "^1.0.8",
     "@merged/solid-apollo": "^1.6.0",
-    "@types/wavesurfer.js": "^6.0.1",
     "electron-updater": "4.6.5",
     "events": "^3.3.0",
     "file-saver": "^2.0.5",
@@ -141,7 +140,6 @@
     "util": "^0.12.4",
     "vite-plugin-solid": "^2.2.5",
     "vm-browserify": "^1.1.2",
-    "wavesurfer.js": "^6.0.3",
     "ytdl-core": "^4.10.1",
     "ytdl-core-browser": "^1.0.0"
   }

@@ -11,7 +11,7 @@ import { DeviceWrapper } from '../UI/DeviceWrapper';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { LCDLabel } from '../UI/LCD';
 
-import { WavesurferSliceView } from './WavesurferSliceView';
+import { WaveformSliceView } from './WaveformSliceView';
 
 import type { SerializedSlice, Slice } from '../engine/device/Slice';
 import { NumberInputWithLabel } from '../UI/Knob';
@@ -93,7 +93,7 @@ export const SamplerSliceView = (props: {
             `}
           >
             <LCD>
-              <WavesurferSliceView
+              <WaveformSliceView
                 slice={props.slice}
                 collapsed={!sliceState.collapsed}
                 center={1}
@@ -136,7 +136,7 @@ export const SamplerSliceView = (props: {
                     `}
                   >
                     <LCDLabel>Sample</LCDLabel>
-                    <WavesurferSliceView
+                    <WaveformSliceView
                       collapsed={sliceState.collapsed}
                       slice={props.slice}
                       center={1}
