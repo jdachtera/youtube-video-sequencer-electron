@@ -523,7 +523,6 @@ export class Slice extends EngineBase<SliceEvents> {
     if (!this.player.buffer.loaded) return;
 
     try {
-      console.log('play', { time });
       this.player.stop(time);
       this.player.start(time);
       this.firstFrameTime = time ?? this.player.immediate();

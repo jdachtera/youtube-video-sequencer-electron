@@ -222,7 +222,6 @@ export const SamplerSliceView = (props: {
                             size={12}
                             selectedOption={sliceState.warpmode}
                             onChange={(warpmode) => {
-                              console.log(warpmode);
                               props.slice.set({ warpmode });
                             }}
                           />

@@ -144,8 +144,6 @@ const FrequencyResponseDisplay = (props: { filter: FilterDevice }) => {
 
     const points = frequencyResponse();
 
-    console.log(points);
-
     ctx.clearRect(0, 0, width(), height());
     ctx.beginPath();
 
