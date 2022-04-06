@@ -161,10 +161,16 @@ export class Slice extends EngineBase<SliceEvents> {
 
   public onSequenceEvent = (time: number, step: Step) => {
     if (step.play) {
-      this.player.set({ reverse: step.reverse ? !this.reverse : this.reverse });
+      if (step.reverse) {
+        this.player.set({ reverse: !this.reverse });
+      }
       this.play(time);
     }
-    this.player.playbackRate = this.playbackRate * step.playbackRate;
+    const playbackRate = this.playbackRate * step.playbackRate;
+    if (playbackRate !== this.player.playbackRate) {
+      this.player.playbackRate = playbackRate;
+    }
+
     if (this.player instanceof GrainPlayer) {
       this.player.detune = this.pitch + step.pitch;
     }
@@ -333,7 +339,7 @@ export class Slice extends EngineBase<SliceEvents> {
     const slicedBuffer =
       start < end ? buffer.slice(start, end) : new ToneAudioBuffer();
 
-    this.player.buffer.set(slicedBuffer);
+    this.player.buffer = slicedBuffer;
     this.emit('load');
   }, 10);
 
@@ -517,7 +523,8 @@ export class Slice extends EngineBase<SliceEvents> {
     if (!this.player.buffer.loaded) return;
 
     try {
-      this.stop(time);
+      console.log('play', { time });
+      this.player.stop(time);
       this.player.start(time);
       this.firstFrameTime = time ?? this.player.immediate();
     } catch (e) {
