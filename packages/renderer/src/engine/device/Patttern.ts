@@ -190,7 +190,28 @@ export class Pattern extends EngineBase<
   }
 
   start(time?: TransportTime) {
-    this.sequence.start(time, this.engine.transport.progress);
+    if (time === undefined && this.engine.transport.state === 'started') {
+      const sequenceDuration =
+        this.sequence.toSeconds(this.sequence.subdivision) *
+        this.sequence.length;
+
+      const progress = this.engine.transport.seconds % sequenceDuration;
+
+      const offsetIndex = Math.ceil(
+        (progress / sequenceDuration) * this.sequence.length,
+      );
+
+      const offsetTime =
+        offsetIndex * this.sequence.toSeconds(this.sequence.subdivision) -
+        progress;
+
+      this.sequence.start(
+        this.engine.transport.seconds + offsetTime,
+        offsetIndex,
+      );
+    } else {
+      this.sequence.start(time, 0);
+    }
   }
 
   stop(time?: TransportTime) {
