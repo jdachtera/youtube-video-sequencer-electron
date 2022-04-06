@@ -1,4 +1,5 @@
 import type { Accessor } from 'solid-js';
+import type { DeepReadonly } from 'solid-js/store';
 import { createEffect, createSignal, onCleanup } from 'solid-js';
 import { createStore, reconcile } from 'solid-js/store';
 import type { DefaultListener, ListenerSignature } from 'tiny-typed-emitter';
@@ -54,7 +55,7 @@ export const createSignalFromEventEmitter = <T, E extends TypedEmitter<any>>(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const createStoreFromEventEmitter = <T, E extends TypedEmitter<any>>(
   eventEmitter: Accessor<E> | E,
-  callback: (eventEmitter: E) => T,
+  callback: (eventEmitter: E) => DeepReadonly<T>,
   eventOrEvents: Parameters<E['on']>[0] | Parameters<E['on']>[0][],
 ) => {
   const getEmitter =

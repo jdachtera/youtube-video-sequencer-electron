@@ -7,14 +7,25 @@ const yt = {
   },
   getInfo: async (url: string) => {
     const cacheKey = `video-info-cache-${url}`;
+
+    const now = Date.now();
+
     try {
-      const cache = localStorage.getItem(cacheKey)!;
-      const cachedResult = JSON.parse(cache) as ytdl.videoInfo;
-      if (!cachedResult) throw new Error('No cache found');
-      return cachedResult;
+      const cache = localStorage.getItem(cacheKey);
+      if (!cache) throw new Error('No cache found');
+      const cacheEntry = JSON.parse(cache) as {
+        result?: ytdl.videoInfo;
+        expiresAt?: number;
+      };
+      if (!cacheEntry.result || (cacheEntry.expiresAt ?? 0) <= now)
+        throw new Error('No cache found');
+      return cacheEntry.result;
     } catch {
       const result = await ytdl.getInfo(url);
-      localStorage.setItem(cacheKey, JSON.stringify(result));
+      localStorage.setItem(
+        cacheKey,
+        JSON.stringify({ result, expiresAt: now + 1000 * 60 * 60 * 24 }),
+      );
       return result;
     }
   },

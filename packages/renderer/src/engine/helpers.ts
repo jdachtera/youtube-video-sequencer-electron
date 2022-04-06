@@ -40,20 +40,24 @@ export async function fetchSliceUrlInfo(url: string) {
   if (url.includes('youtube.com')) {
     const result = await window.yt.getInfo(url);
 
-    const audioTracks = result.formats.filter(
-      (entry) => !entry.hasVideo && entry.hasAudio,
-    );
-
-    const sourceFormat = audioTracks
+    const audioTracks = result.formats
+      .filter((entry) => !entry.hasVideo && entry.hasAudio)
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      .sort((a, b) => (a.audioBitrate! > b.audioBitrate! ? 1 : -1))
-      .shift();
+      .sort((a, b) => (a.audioBitrate! > b.audioBitrate! ? 1 : -1));
 
     const title = result.videoDetails.title;
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const sourceUrl = sourceFormat!.url;
 
-    return { sourceUrl, title };
+    for (const sourceFormat of audioTracks) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const sourceUrl = sourceFormat.url;
+      const response = await fetch(sourceUrl, { method: 'HEAD' });
+
+      if (response.ok) {
+        return { sourceUrl, title };
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
   }
 
   return { sourceUrl: url, title: '' };
