@@ -85,7 +85,9 @@ export const WaveformSliceView = (
                100% {
                  left: 100%;
                }
-             `} ${props.slice.end - props.slice.start}s linear;
+             `} ${(props.slice.end - props.slice.start) /
+              props.slice.playbackRate}s
+              linear;
           `]: isPlaying(),
         }}
       />
