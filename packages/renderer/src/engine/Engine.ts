@@ -9,7 +9,7 @@ import { entries } from './helpers';
 
 import type { SerializedSamplerDevice } from './device/Sampler';
 import { SamplerDevice } from './device/Sampler';
-import { getContext, OfflineContext, setContext } from 'tone';
+import { getContext, OfflineContext, setContext, start } from 'tone';
 import { EngineBase } from './EngineBase';
 
 import type { SidePanelTab } from '../panels/SidePanel';
@@ -227,6 +227,8 @@ export class Engine extends EngineBase<EngineEvents> {
         this.emit('draw', time, this.transport.position);
       });
     }, '40hz');
+
+    start();
 
     this.transport.start(time, offset);
   }

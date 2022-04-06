@@ -20,9 +20,21 @@ const config = {
   resolve: {
     alias: {
       '/@/': join(PACKAGE_ROOT, 'src') + '/',
+      stream: 'stream-browserify',
+      vm: 'vm-browserify',
+      dns: '@i2labs/dns',
+      timers: 'timers-browserify',
+
+      //http: 'http-browserify',
+      // https: 'https-browserify',
+      miniget: `${join(PACKAGE_ROOT, 'src')}/miniget.ts`,
     },
   },
-
+  define: {
+    'process.versions.node': '"16.0.0"',
+    'process.env.NODE_ENV': '"development"',
+    'process.nextTick': 'requestAnimationFrame',
+  },
   plugins: [solidPlugin()],
   base: '',
   server: {

@@ -1,5 +1,5 @@
 import { css } from '@emotion/css';
-
+import type { Accessor, JSX } from 'solid-js';
 import {
   createEffect,
   createMemo,
@@ -12,13 +12,12 @@ import {
   onCleanup,
   untrack,
 } from 'solid-js';
-import type { JSX } from 'solid-js';
+
 import { Row } from '../../UI/Grid';
 import { Canvas } from './Canvas';
 import { drawWaveformWithPeaks } from './drawFunctions';
 import { warmupCache } from './getWaveformPeaks';
 import { randomColor } from '../../engine/helpers';
-import type { DeepReadonly } from 'solid-js/store';
 
 export type Region = { id: string; color: string; start: number; end: number };
 
@@ -29,7 +28,7 @@ export const Waveform = (
     zoom: number;
     onStateChange: (state: { position?: number; zoom?: number }) => void;
     cacheKey: string;
-    regions?: DeepReadonly<Region[]>;
+    regions?: Accessor<Region>[];
     onCreateRegion?: (region: Partial<Region> & Pick<Region, 'id'>) => void;
     onUpdateRegion?: (region: Partial<Region> & Pick<Region, 'id'>) => void;
     onClickRegion?: (region: Region, event: MouseEvent) => void;
@@ -256,22 +255,20 @@ export const Waveform = (
             }}
             ref={setScrollDivRef}
           >
-            <For each={props.regions}>
-              {(region) => (
-                <Region
-                  isDragging={region.id === newRegionId()}
-                  region={region}
-                  duration={duration()}
-                  onUpdateRegion={(region) => {
-                    setNewRegionId(undefined);
-                    props.onUpdateRegion?.(region);
-                  }}
-                  onClickRegion={props.onClickRegion}
-                  onDblClickRegion={props.onDblClickRegion}
-                  getPosition={getPosition}
-                />
-              )}
-            </For>
+            {props.regions?.map((region) => (
+              <Region
+                isDragging={region().id === newRegionId()}
+                region={region()}
+                duration={duration()}
+                onUpdateRegion={(region) => {
+                  setNewRegionId(undefined);
+                  props.onUpdateRegion?.(region);
+                }}
+                onClickRegion={props.onClickRegion}
+                onDblClickRegion={props.onDblClickRegion}
+                getPosition={getPosition}
+              />
+            ))}
           </div>
         </Row>
       </Row>
@@ -283,7 +280,7 @@ const regionDragHandles = ['LEFT', 'MIDDLE', 'RIGHT'] as const;
 type RegionDragHandle = typeof regionDragHandles[number];
 
 const Region = (props: {
-  region: DeepReadonly<Region>;
+  region: Region;
   duration: number;
   onUpdateRegion: (region: Partial<Region> & Pick<Region, 'id'>) => void;
   onClickRegion?: (region: Region, event: MouseEvent) => void;

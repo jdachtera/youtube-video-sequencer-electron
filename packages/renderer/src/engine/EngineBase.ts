@@ -1,6 +1,7 @@
-import type { Accessor } from 'solid-js';
+import type { Accessor, Signal } from 'solid-js';
+import type { DeepReadonly } from 'solid-js/store';
 import { createEffect, createSignal, onCleanup } from 'solid-js';
-import { createStore, reconcile, ReconcileOptions } from 'solid-js/store';
+import { createStore, reconcile } from 'solid-js/store';
 import type { DefaultListener, ListenerSignature } from 'tiny-typed-emitter';
 import { TypedEmitter } from 'tiny-typed-emitter';
 
@@ -68,41 +69,32 @@ export const createArraySignalFromEventEmitter = <
   const getEmitter =
     typeof eventEmitter === 'function' ? eventEmitter : () => eventEmitter;
 
-  const [state, setState] = createStore({
-    items: getItems(getEmitter()),
-    mappedItems: getItems(getEmitter()).map(callback),
-  });
+  const [items, setItems] = createSignal(getItems(getEmitter()));
+
+  const itemMap = new Map<A, Signal<T>>();
+
+  const getOrCreateMappedItemSignal = (item: A) => {
+    const maybeSignal = itemMap.get(item);
+    if (maybeSignal) return maybeSignal;
+
+    const signal = createSignal(callback(item));
+
+    itemMap.set(item, signal);
+    return signal;
+  };
 
   const itemAdded = (item: A) => {
-    setState('items', [...state.items, item]);
-    setState('mappedItems', reconcile([...state.mappedItems, callback(item)]));
+    setItems([...items(), item]);
   };
+
   const itemRemoved = (item: A) => {
-    const index = state.items.indexOf(item);
-
-    setState('items', [
-      ...state.items.slice(0, index),
-      ...state.items.slice(index + 1),
-    ]);
-
-    setState(
-      'mappedItems',
-      reconcile([
-        ...state.mappedItems.slice(0, index),
-        ...state.mappedItems.slice(index + 1),
-      ]),
-    );
+    const index = items().indexOf(item);
+    setItems([...items().slice(0, index), ...items().slice(index + 1)]);
+    itemMap.delete(item);
   };
   const itemUpdated = (item: A) => {
-    const index = state.items.indexOf(item);
-    setState(
-      'mappedItems',
-      reconcile([
-        ...state.mappedItems.slice(0, index),
-        callback(item),
-        ...state.mappedItems.slice(index + 1),
-      ]),
-    );
+    const [, setMappedItem] = getOrCreateMappedItemSignal(item);
+    setMappedItem(() => callback(item));
   };
 
   const cleanup = (emitter?: E) => {
@@ -121,14 +113,17 @@ export const createArraySignalFromEventEmitter = <
 
   onCleanup(() => cleanup(getEmitter()));
 
-  const items = () => state.mappedItems;
-  return items;
+  return () =>
+    items().map((item) => () => {
+      const [mappedItem] = getOrCreateMappedItemSignal(item);
+      return mappedItem();
+    });
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const createStoreFromEventEmitter = <T, E extends TypedEmitter<any>>(
   eventEmitter: Accessor<E> | E,
-  callback: (eventEmitter: E) => T,
+  callback: (eventEmitter: E) => DeepReadonly<T>,
   eventOrEvents: Parameters<E['on']>[0] | Parameters<E['on']>[0][],
 ) => {
   const getEmitter =
