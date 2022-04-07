@@ -35,6 +35,7 @@ export type SerializedSlice = {
   volume: number;
   mute: boolean;
   playbackRate: number;
+  grainSize: number;
   pitch: number;
   reverse: boolean;
   color: string;
@@ -75,6 +76,7 @@ export class Slice extends EngineBase<SliceEvents> {
   playbackRate = 1;
   pitch = 1;
   volume = 1;
+  grainSize = 0.1;
 
   firstFrameTime = 0;
   lastFrameTime = 0;
@@ -111,6 +113,7 @@ export class Slice extends EngineBase<SliceEvents> {
     start: slice.start ?? 0,
     end: slice.end ?? 0,
     pitch: slice.pitch ?? 0,
+    grainSize: slice.grainSize ?? 0.1,
     playbackRate: slice.playbackRate ?? slice.playbackSpeed ?? 1,
     reverse: slice.reverse ?? false,
     volume: slice.volume ?? 1,
@@ -173,6 +176,7 @@ export class Slice extends EngineBase<SliceEvents> {
 
     if (this.player instanceof GrainPlayer) {
       this.player.detune = this.pitch + step.pitch;
+      this.player.grainSize = this.grainSize;
     }
 
     this.gainNode.gain.setValueAtTime(this.volume * step.volume, time);
@@ -260,6 +264,9 @@ export class Slice extends EngineBase<SliceEvents> {
             break;
           case 'pitch':
             this.pitch = entry[1] ?? 1;
+            break;
+          case 'grainSize':
+            this.grainSize = entry[1] ?? 0.1;
             break;
           case 'reverse':
             this.reverse = entry[1] ?? false;
@@ -482,6 +489,7 @@ export class Slice extends EngineBase<SliceEvents> {
       volume: this.volume,
       playbackRate: this.playbackRate,
       pitch: this.pitch,
+      grainSize: this.grainSize,
       reverse: this.reverse,
       color: this.color,
       currentPatternIndex: this.currentPatternIndex,
