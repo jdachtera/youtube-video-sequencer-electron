@@ -69,6 +69,7 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
       ) {
         slice.stop();
       } else {
+        slice.stop();
         slice.play();
       }
     }
