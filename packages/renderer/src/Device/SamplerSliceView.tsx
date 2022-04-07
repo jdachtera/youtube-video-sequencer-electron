@@ -29,6 +29,7 @@ import {
 } from '../engine/EngineBase';
 import { SampleSliceChannelControls } from './SampleSliceControls';
 import { SelectWithArrowButtons } from '../UI/SelectWithArrowButtons';
+import { Show } from 'solid-js';
 
 export const SamplerSliceView = (props: {
   slice: Slice;
@@ -191,7 +192,6 @@ export const SamplerSliceView = (props: {
                           parse={parseFormattedTime}
                           format={formatTime}
                         />
-
                         <NumberInputWithLabel
                           label="Playback Speed"
                           size={12}
@@ -205,6 +205,7 @@ export const SamplerSliceView = (props: {
                             props.slice.set({ playbackRate });
                           }}
                         />
+
                         <div
                           class={css`
                             display: flex;
@@ -252,16 +253,31 @@ export const SamplerSliceView = (props: {
                           value={sliceState.volume}
                           onChange={(volume) => props.slice.set({ volume })}
                         />
-                        <NumberInputWithLabel
-                          label="Pitch"
-                          size={12}
-                          min={-2400}
-                          max={2400}
-                          value={sliceState.pitch}
-                          onChange={(pitch) => {
-                            props.slice.set({ pitch });
-                          }}
-                        />
+                        <Show when={sliceState.warpmode == 'stretch'}>
+                          <NumberInputWithLabel
+                            label="Transpose +/-"
+                            size={12}
+                            min={-2400}
+                            max={2400}
+                            value={sliceState.pitch}
+                            onChange={(pitch) => {
+                              props.slice.set({ pitch });
+                            }}
+                          />
+                          <NumberInputWithLabel
+                            label="Grain Size"
+                            size={12}
+                            step={0.00001}
+                            min={0.00000000001}
+                            max={3}
+                            // format={formatPercentage(0)}
+                            // parse={parseFloat}
+                            value={sliceState.grainSize}
+                            onChange={(grainSize) => {
+                              props.slice.set({ grainSize });
+                            }}
+                          />
+                        </Show>
                       </Column>
                     </Row>
                   </Column>
