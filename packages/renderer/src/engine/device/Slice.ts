@@ -164,9 +164,10 @@ export class Slice extends EngineBase<SliceEvents> {
 
   public onSequenceEvent = (time: number, step: Step) => {
     if (step.play) {
-      if (step.reverse) {
-        this.player.set({ reverse: !this.reverse });
+      if (step.reverse !== this.player.reverse) {
+        this.player.set({ reverse: step.reverse });
       }
+
       this.play(time);
     }
     const playbackRate = this.playbackRate * step.playbackRate;
@@ -531,6 +532,15 @@ export class Slice extends EngineBase<SliceEvents> {
     if (!this.player.buffer.loaded) return;
 
     try {
+      if (this.playbackRate !== this.player.playbackRate) {
+        this.player.playbackRate = this.playbackRate;
+      }
+
+      if (this.player instanceof GrainPlayer) {
+        this.player.detune = this.pitch;
+        this.player.grainSize = this.grainSize;
+      }
+
       this.player.stop(time);
       this.player.start(time);
       this.firstFrameTime = time ?? this.player.immediate();
