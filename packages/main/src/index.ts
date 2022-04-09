@@ -26,6 +26,8 @@ app.on('window-all-closed', () => {
   }
 });
 
+app.commandLine.appendSwitch('enable-experimental-web-platform-features');
+
 /**
  * @see https://www.electronjs.org/docs/v14-x-y/api/app#event-activate-macos Event: 'activate'
  */

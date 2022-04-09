@@ -89,6 +89,7 @@
     "@graphql-typed-document-node/core": "^3.1.1",
     "@types/babel__core": "^7.1.18",
     "@types/file-saver": "^2.0.5",
+    "@types/wicg-file-system-access": "^2020.9.5",
     "@typescript-eslint/eslint-plugin": "5.18.0",
     "@typescript-eslint/parser": "^5.13.0",
     "cross-env": "7.0.3",

@@ -10,6 +10,7 @@ import type { SerializedDeviceBase } from './Device';
 import { Device } from './Device';
 import type { DeepPartial } from '../types';
 import { batch } from 'solid-js';
+import { loadFileAsBuffer, resolveFileUrl } from '../localFile';
 
 export type SerializedSamplerDevice = SerializedDeviceBase & {
   name: 'Sampler';
@@ -76,22 +77,32 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
   private async load() {
     this._hasLoaded = false;
 
-    const cachedBlob = await loadCachedVideo(this.url);
+    if (this.url.startsWith('http://file.local')) {
+      const file = await resolveFileUrl(this.url);
+      if (file) {
+        const arrayBuffer = await loadFileAsBuffer(file);
+        const audioBuffer = await getContext().decodeAudioData(arrayBuffer);
 
-    if (cachedBlob) {
-      this.buffer.fromArray(cachedBlob);
+        this.buffer.set(audioBuffer);
+      }
     } else {
-      const base64StringOrBuffer = await this.loadArrayBuffer();
+      const cachedBlob = await loadCachedVideo(this.url);
 
-      const arrayBuffer =
-        typeof base64StringOrBuffer === 'string'
-          ? base64ToArrayBuffer(base64StringOrBuffer)
-          : base64StringOrBuffer;
+      if (cachedBlob) {
+        this.buffer.fromArray(cachedBlob);
+      } else {
+        const base64StringOrBuffer = await this.loadArrayBuffer();
 
-      const audioBuffer = await getContext().decodeAudioData(arrayBuffer);
-      this.buffer.set(audioBuffer);
+        const arrayBuffer =
+          typeof base64StringOrBuffer === 'string'
+            ? base64ToArrayBuffer(base64StringOrBuffer)
+            : base64StringOrBuffer;
 
-      await storeCachedVideo(this.url, this.buffer.toArray());
+        const audioBuffer = await getContext().decodeAudioData(arrayBuffer);
+        this.buffer.set(audioBuffer);
+
+        await storeCachedVideo(this.url, this.buffer.toArray());
+      }
     }
 
     this.emit('load');

@@ -15,8 +15,9 @@ import { YoutubeSearchPanel } from './YoutubeSearchPanel';
 import { css } from '@emotion/css';
 import { SoundsDotComPanel } from './SoundDotComPanel';
 import { createStoreFromEventEmitter } from '../engine/EngineBase';
+import { LocalFilesPanel } from './LocalFilesPanel';
 
-const tabs = ['YouTube', 'SliceDB', 'Sounds.com'] as const;
+const tabs = ['YouTube', 'SliceDB', 'Sounds.com', 'LocalFiles'] as const;
 export type SidePanelTab = typeof tabs[number];
 
 export const SidePanel = (props: { engine: Engine }) => {
@@ -107,6 +108,9 @@ export const SidePanel = (props: { engine: Engine }) => {
           </Match>
           <Match when={sidePanelState.activeTab === 'Sounds.com'}>
             <SoundsDotComPanel engine={props.engine} />
+          </Match>
+          <Match when={sidePanelState.activeTab === 'LocalFiles'}>
+            <LocalFilesPanel engine={props.engine} />
           </Match>
         </Switch>
       </Column>

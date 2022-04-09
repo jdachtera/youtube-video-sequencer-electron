@@ -60,5 +60,11 @@ export async function fetchSliceUrlInfo(url: string) {
     }
   }
 
+  if (url.startsWith('http://local.file')) {
+    const title = url.split('/').pop()!.split('.').slice(0, -1).join('.');
+
+    return { sourceUrl: url, title };
+  }
+
   return { sourceUrl: url, title: '' };
 }
