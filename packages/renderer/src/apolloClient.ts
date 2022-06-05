@@ -1,9 +1,7 @@
-import { ApolloClient } from '@apollo/client/core';
-
-import { HttpLink } from '@apollo/client/link/http';
-import { ApolloLink } from '@apollo/client/link/core';
 import { InMemoryCache } from '@apollo/client/cache';
-
+import { ApolloClient } from '@apollo/client/core';
+import { ApolloLink } from '@apollo/client/link/core';
+import { HttpLink } from '@apollo/client/link/http';
 import { authLink } from './auth';
 
 const httpLink = new HttpLink({

@@ -1,7 +1,7 @@
-import { MoogKnobWithLabel } from '../UI/Knob';
-import type { CompressorDevice } from '../engine/device/Compressor';
 import { Column, Row } from '../UI/Grid';
+import { MoogKnobWithLabel } from '../UI/Knob';
 import { createStoreFromEventEmitter } from '../engine/EngineBase';
+import type { CompressorDevice } from '../engine/device/Compressor';
 
 export const CompressorView = (props: { compressor: CompressorDevice }) => {
   const compressorState = createStoreFromEventEmitter(

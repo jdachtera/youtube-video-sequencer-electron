@@ -1,9 +1,4 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import type { SerializedDeviceBase } from './Device';
-import { Device } from './Device';
-import type { PropertyUpdateEvents } from '../helpers';
-import { entries } from '../helpers';
-
 import {
   Frequency,
   Filter as FilterNode,
@@ -13,7 +8,11 @@ import {
   Add,
 } from 'tone';
 import type { Engine } from '../Engine';
+import type { PropertyUpdateEvents } from '../helpers';
+import { entries } from '../helpers';
 import type { DeepPartial } from '../types';
+import { Device } from './Device';
+import type { SerializedDeviceBase } from './Device';
 import type { Step } from './Patttern';
 
 export type SerializedFilterDevice = SerializedDeviceBase & {

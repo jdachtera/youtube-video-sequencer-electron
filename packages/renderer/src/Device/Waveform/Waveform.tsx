@@ -12,12 +12,11 @@ import {
   onCleanup,
   untrack,
 } from 'solid-js';
-
 import { Row } from '../../UI/Grid';
+import { randomColor } from '../../engine/helpers';
 import { Canvas } from './Canvas';
 import { drawWaveformWithPeaks } from './drawFunctions';
 import { warmupCache } from './getWaveformPeaks';
-import { randomColor } from '../../engine/helpers';
 
 export type Region = { id: string; color: string; start: number; end: number };
 

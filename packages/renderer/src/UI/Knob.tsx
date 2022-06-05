@@ -1,3 +1,4 @@
+import { css } from '@emotion/css';
 import type { Component, ComponentProps, JSX, JSXElement } from 'solid-js';
 import {
   createEffect,
@@ -8,13 +9,11 @@ import {
   untrack,
 } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
-import { css } from '@emotion/css';
-
-import MoogKnobSvg from '../svg/moog_knob.svg';
-import { useAppTheme } from './theme';
-import { Label } from './Label';
-import { NumberInputWithArrowButtons } from '../UI/NumberInputWithArrowButtons';
 import { LCDLabel } from '../UI/LCD';
+import { NumberInputWithArrowButtons } from '../UI/NumberInputWithArrowButtons';
+import MoogKnobSvg from '../svg/moog_knob.svg';
+import { Label } from './Label';
+import { useAppTheme } from './theme';
 
 type KnobProps = {
   value?: number;

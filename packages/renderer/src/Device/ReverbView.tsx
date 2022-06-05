@@ -1,7 +1,7 @@
-import { MoogKnobWithLabel } from '../UI/Knob';
-import type { ReverbDevice } from '../engine/device/Reverb';
 import { Row } from '../UI/Grid';
+import { MoogKnobWithLabel } from '../UI/Knob';
 import { createStoreFromEventEmitter } from '../engine/EngineBase';
+import type { ReverbDevice } from '../engine/device/Reverb';
 
 export const ReverbView = (props: { reverb: ReverbDevice }) => {
   const reverbState = createStoreFromEventEmitter(

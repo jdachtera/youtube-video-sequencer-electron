@@ -1,26 +1,25 @@
-import { createSignal, For, onCleanup, onMount } from 'solid-js';
 import { css } from '@emotion/css';
+import { createSignal, For, onCleanup, onMount } from 'solid-js';
 import { Time } from 'tone';
 import { debounce } from 'ts-debounce';
-
-import { Engine } from '../engine/Engine';
-import { LoginModal } from './LoginModal';
-import type { DeepPartial } from '../engine/types';
-
-import { NumberInputWithArrowButtons } from '../UI/NumberInputWithArrowButtons';
-import { ButtonWithLabel } from '../UI/ButtonWithLabel';
-import { LoadFileButton } from '../UI/LoadFileButton';
 import { ButtonGroup } from '../UI/ButtonGroup';
+import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { Row } from '../UI/Grid';
-import { SamplerDevice } from '../engine/device/Sampler';
-import { DeviceChain } from '../engine/device/DeviceChain';
-import { MixdownButton } from './MixdownButton';
+import { LoadFileButton } from '../UI/LoadFileButton';
+import { NumberInputWithArrowButtons } from '../UI/NumberInputWithArrowButtons';
+import { RangeInput } from '../UI/RangeInput';
 import { camelCaseToSpaced } from '../UI/format';
+import { InputLCD } from '../UI/lcdStyles';
+import { Engine } from '../engine/Engine';
 import {
   createSignalFromEventEmitter,
   createStoreFromEventEmitter,
 } from '../engine/EngineBase';
-import { InputLCD } from '../UI/lcdStyles';
+import { DeviceChain } from '../engine/device/DeviceChain';
+import { SamplerDevice } from '../engine/device/Sampler';
+import type { DeepPartial } from '../engine/types';
+import { LoginModal } from './LoginModal';
+import { MixdownButton } from './MixdownButton';
 
 export const Toolbar = (props: { engine: Engine }) => {
   const engineState = createStoreFromEventEmitter(
@@ -32,6 +31,7 @@ export const Toolbar = (props: { engine: Engine }) => {
       currentPatternIndex: engine.currentPatternIndex,
       zoom: engine.zoom,
       playing: engine.transport.state === 'started',
+      volume: engine.gain.gain.value,
     }),
     [
       'bpmUpdated',
@@ -300,6 +300,15 @@ export const Toolbar = (props: { engine: Engine }) => {
             }}
             labelOnButton={true}
             label={minimized() ? 'Maximize' : 'Minimize'}
+          />
+          <RangeInput
+            min={0}
+            max={110}
+            value={engineState.volume * 100}
+            onChange={(volume) => {
+              props.engine.set({ volume: volume / 100 });
+            }}
+            label="Master Volume"
           />
         </Row>
       </div>

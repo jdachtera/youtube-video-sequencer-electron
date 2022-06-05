@@ -1,12 +1,10 @@
-import type { SerializedDeviceBase } from './Device';
-import { Device } from './Device';
-import type { PropertyUpdateEvents } from '../helpers';
-import { entries } from '../helpers';
-
 import { Distortion as DistortionNode } from 'tone';
 import type { Engine } from '../Engine';
-
+import type { PropertyUpdateEvents } from '../helpers';
+import { entries } from '../helpers';
 import type { DeepPartial } from '../types';
+import { Device } from './Device';
+import type { SerializedDeviceBase } from './Device';
 
 export type SerializedDistortionDevice = SerializedDeviceBase & {
   name: 'Distortion';

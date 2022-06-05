@@ -49,7 +49,6 @@ export const resolveFileUrl = async (url: string) => {
     if (i === pathSegments.length - 1) {
       fileHandle = await currentDirHandle.getFileHandle(pathSegments[i]);
     } else {
-      console.log({ getDirectoryHandle: pathSegments[i] });
       currentDirHandle = await currentDirHandle.getDirectoryHandle(
         pathSegments[i],
       );

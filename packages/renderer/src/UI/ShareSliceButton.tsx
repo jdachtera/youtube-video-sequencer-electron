@@ -1,14 +1,12 @@
+import { css } from '@emotion/css';
 import { createMutation } from '@merged/solid-apollo';
 import Dismiss from 'solid-dismiss';
 import { createSignal, Show } from 'solid-js';
-import { css } from '@emotion/css';
-
 import { useIsLoggedIn } from '../auth';
-
+import { createStoreFromEventEmitter } from '../engine/EngineBase';
 import type { Slice } from '../engine/device/Slice';
 import { AddSliceDocument } from '../panels/Slice.generated';
 import { ButtonWithLabel } from './ButtonWithLabel';
-import { createStoreFromEventEmitter } from '../engine/EngineBase';
 
 export const ShareSliceButton = (props: { slice: Slice }) => {
   const slice = createStoreFromEventEmitter(

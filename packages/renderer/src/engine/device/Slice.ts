@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { batch, createUniqueId } from 'solid-js';
 import {
   Gain,
   getDraw,
@@ -8,24 +9,18 @@ import {
   Time,
   ToneAudioBuffer,
 } from 'tone';
-
+import type { TransportTime } from 'tone/build/esm/core/type/Units';
 import { debounce } from 'ts-debounce';
-
+import type { Engine } from '../Engine';
+import { EngineBase } from '../EngineBase';
 import type { PropertyUpdateEvents } from '../helpers';
 import { entries, randomColor } from '../helpers';
-import type { SamplerDevice } from './Sampler';
-import type { SerializedDeviceChain } from './DeviceChain';
-import { DeviceChain } from './DeviceChain';
-
-import { batch, createUniqueId } from 'solid-js';
 import type { DeepPartial } from '../types';
-import { EngineBase } from '../EngineBase';
-
-import type { Engine } from '../Engine';
-
+import { DeviceChain } from './DeviceChain';
+import type { SerializedDeviceChain } from './DeviceChain';
 import type { SerializedPattern, Step } from './Patttern';
 import { normalizeStepData, Pattern } from './Patttern';
-import type { TransportTime } from 'tone/build/esm/core/type/Units';
+import type { SamplerDevice } from './Sampler';
 
 export type SerializedSlice = {
   id: string;

@@ -1,15 +1,14 @@
 import { createEffect, createSignal, onCleanup, onMount } from 'solid-js';
 import type { FilterRollOff } from 'tone';
-
-import type { FilterDevice } from '../engine/device/Filter';
-import { MoogKnobWithLabel } from '../UI/Knob';
 import { Column, Row } from '../UI/Grid';
+import { MoogKnobWithLabel } from '../UI/Knob';
 import { SelectWithArrowButtons } from '../UI/SelectWithArrowButtons';
 import { LCD } from '../UI/lcdStyles';
 import {
   createSignalFromEventEmitter,
   createStoreFromEventEmitter,
 } from '../engine/EngineBase';
+import type { FilterDevice } from '../engine/device/Filter';
 
 const filterTypes: BiquadFilterType[] = [
   'lowpass',

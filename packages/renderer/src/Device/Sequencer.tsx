@@ -1,3 +1,4 @@
+import { css } from '@emotion/css';
 import type { JSX } from 'solid-js';
 import {
   createSignal,
@@ -8,17 +9,15 @@ import {
   createEffect,
   from,
 } from 'solid-js';
-
-import type { Slice } from '../engine/device/Slice';
-import { css } from '@emotion/css';
-import type { SequencerMode } from './SequencerStep';
-import { SequencerStep } from './SequencerStep';
+import type { DeepReadonly } from 'solid-js/store';
+import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { Row } from '../UI/Grid';
 import { NumberInputWithArrowButtons } from '../UI/NumberInputWithArrowButtons';
-import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { createSignalFromEventEmitter } from '../engine/EngineBase';
 import type { Step } from '../engine/device/Patttern';
-import type { DeepReadonly } from 'solid-js/store';
+import type { Slice } from '../engine/device/Slice';
+import type { SequencerMode } from './SequencerStep';
+import { SequencerStep } from './SequencerStep';
 
 const colors808Knobs = ['#ffffff', '#f1f827', '#f8a125', '#e72e2e'];
 

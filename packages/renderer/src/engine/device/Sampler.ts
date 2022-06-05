@@ -1,16 +1,15 @@
+import { batch } from 'solid-js';
 import { getContext, ToneAudioBuffer } from 'tone';
-import type { SerializedSlice } from './Slice';
-import { Slice } from './Slice';
 import type { Engine } from '../Engine';
-
 import { loadCachedVideo, storeCachedVideo } from '../blobStore';
 import type { PropertyUpdateEvents } from '../helpers';
 import { entries, fetchSliceUrlInfo } from '../helpers';
+import { loadFileAsBuffer, resolveFileUrl } from '../localFile';
+import type { DeepPartial } from '../types';
 import type { SerializedDeviceBase } from './Device';
 import { Device } from './Device';
-import type { DeepPartial } from '../types';
-import { batch } from 'solid-js';
-import { loadFileAsBuffer, resolveFileUrl } from '../localFile';
+import { Slice } from './Slice';
+import type { SerializedSlice } from './Slice';
 
 export type SerializedSamplerDevice = SerializedDeviceBase & {
   name: 'Sampler';

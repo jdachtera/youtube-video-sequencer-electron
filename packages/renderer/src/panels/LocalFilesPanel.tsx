@@ -1,3 +1,4 @@
+import { css } from '@emotion/css';
 import {
   createEffect,
   createResource,
@@ -5,28 +6,26 @@ import {
   For,
   Show,
 } from 'solid-js';
-
-import type { Engine } from '../engine/Engine';
+import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { Column, Row } from '../UI/Grid';
 import { InputLCD } from '../UI/lcdStyles';
-import { css } from '@emotion/css';
-import { Track } from '../engine/Track';
 import { styled } from '../emotion-solid';
-import type { SamplerDevice } from '../engine/device/Sampler';
-import { Slice } from '../engine/device/Slice';
-import { BrowserListItem } from './List';
+import type { Engine } from '../engine/Engine';
+import { Track } from '../engine/Track';
 import type { CachedFileSystemDirectoryHandle } from '../engine/blobStore';
 import {
   loadCachedLocalDirectoryHandles,
   storeCachedLocalDirectoryHandle,
 } from '../engine/blobStore';
-import { ButtonWithLabel } from '../UI/ButtonWithLabel';
+import type { SamplerDevice } from '../engine/device/Sampler';
+import { Slice } from '../engine/device/Slice';
 import type { Result } from '../engine/localFile';
 import {
   traverseFileHandle,
   loadFileAsDataUrl,
   resolveFileUrl,
 } from '../engine/localFile';
+import { BrowserListItem } from './List';
 
 export const LocalFilesPanel = (props: { engine: Engine }) => {
   const [searchTerm, setSearchTerm] = createSignal('');

@@ -1,9 +1,9 @@
 import { css } from '@emotion/css';
+import { For } from 'solid-js';
+import { createSignalFromEventEmitter } from '../engine/EngineBase';
 import type { SamplerDevice } from '../engine/device/Sampler';
 import type { Slice } from '../engine/device/Slice';
-import { For } from 'solid-js';
 import { SamplerSliceView } from './SamplerSliceView';
-import { createSignalFromEventEmitter } from '../engine/EngineBase';
 
 export const SamplerSlicesView = (props: {
   sampler: SamplerDevice;

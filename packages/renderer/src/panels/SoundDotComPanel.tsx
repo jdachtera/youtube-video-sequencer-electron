@@ -1,3 +1,4 @@
+import { css } from '@emotion/css';
 import {
   createEffect,
   createResource,
@@ -6,13 +7,11 @@ import {
   Show,
   Suspense,
 } from 'solid-js';
-
-import type { Engine } from '../engine/Engine';
 import { Column, Row } from '../UI/Grid';
 import { InputLCD } from '../UI/lcdStyles';
-import { css } from '@emotion/css';
-import { Track } from '../engine/Track';
 import { styled } from '../emotion-solid';
+import type { Engine } from '../engine/Engine';
+import { Track } from '../engine/Track';
 import type { SamplerDevice } from '../engine/device/Sampler';
 import { Slice } from '../engine/device/Slice';
 import { BrowserListItem } from './List';

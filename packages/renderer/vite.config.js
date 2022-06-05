@@ -1,14 +1,13 @@
 /* eslint-env node */
 
-import { chrome } from '../../.electron-vendors.cache.json';
-import { join } from 'path';
 import { builtinModules } from 'module';
+import { join } from 'path';
+import solidPlugin from 'vite-plugin-solid';
+import { chrome } from '../../.electron-vendors.cache.json';
 
 const whitelistedBuiltinModules = ['events'];
 
 const PACKAGE_ROOT = __dirname;
-
-import solidPlugin from 'vite-plugin-solid';
 
 /**
  * @type {import('vite').UserConfig}

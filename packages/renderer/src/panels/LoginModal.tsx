@@ -1,6 +1,6 @@
 import { ApolloError } from '@apollo/client/errors';
-import { createSignal, Show, Suspense } from 'solid-js';
 import { createMutation, createQuery, useApollo } from '@merged/solid-apollo';
+import { createSignal, Show, Suspense } from 'solid-js';
 import { authStore, useIsLoggedIn } from '../auth';
 import { LoginDocument, UserDocument } from './User.generated';
 

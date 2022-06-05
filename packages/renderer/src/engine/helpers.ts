@@ -1,7 +1,6 @@
+import fileSaver from 'file-saver';
 import type { ToneAudioBuffer } from 'tone';
 import { encodeWav } from './encodeWav';
-
-import fileSaver from 'file-saver';
 
 type Entry<T> = {
   [K in keyof T]: [K, T[K]];

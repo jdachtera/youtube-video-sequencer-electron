@@ -1,7 +1,7 @@
+import { createMemo, createSignal, onCleanup, onMount } from 'solid-js';
+import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import type { Engine } from '../engine/Engine';
 import { exportBuffer } from '../engine/helpers';
-import { ButtonWithLabel } from '../UI/ButtonWithLabel';
-import { createMemo, createSignal, onCleanup, onMount } from 'solid-js';
 
 export const MixdownButton = (props: { engine: Engine }) => {
   const renderToWavefile = async () => {

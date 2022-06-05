@@ -1,8 +1,6 @@
 import { setContext } from '@apollo/client/link/context';
-import { onError } from '@apollo/client/link/error';
-
 import { ApolloLink } from '@apollo/client/link/core';
-
+import { onError } from '@apollo/client/link/error';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { createSignalFromEventEmitter } from './engine/EngineBase';
 

@@ -1,24 +1,18 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { createSignal, onMount, onCleanup } from 'solid-js';
-
-import { Transport } from 'tone';
-
 import { css } from '@emotion/css';
-
-import type { SamplerDevice } from '../engine/device/Sampler';
-
-import { Slice } from '../engine/device/Slice';
-import { LCDFrame, LCDLine } from '../UI/LCD';
-import { LCD } from '../UI/lcdStyles';
+import { createSignal, onMount, onCleanup } from 'solid-js';
+import { Transport } from 'tone';
 import { AkaiButton } from '../UI/AkaiButton';
-
+import { LCDFrame, LCDLine } from '../UI/LCD';
+import { NumberInputWithArrowButtons } from '../UI/NumberInputWithArrowButtons';
+import { formatTime } from '../UI/format';
+import { LCD } from '../UI/lcdStyles';
 import {
   createArraySignalFromEventEmitter,
   createSignalFromEventEmitter,
 } from '../engine/EngineBase';
-import { formatTime } from '../UI/format';
-import { NumberInputWithArrowButtons } from '../UI/NumberInputWithArrowButtons';
-
+import type { SamplerDevice } from '../engine/device/Sampler';
+import { Slice } from '../engine/device/Slice';
 import { Waveform } from './Waveform/Waveform';
 
 export const SamplerView = (props: { sampler: SamplerDevice }) => {

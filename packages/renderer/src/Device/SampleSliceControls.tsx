@@ -1,14 +1,14 @@
 import { css } from '@emotion/css';
 import { lighten } from 'polished';
-import type { Slice } from '../engine/device/Slice';
-import { createStoreFromEventEmitter } from '../engine/EngineBase';
+import { For } from 'solid-js';
+import { Time } from 'tone';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { DeviceWrapper } from '../UI/DeviceWrapper';
 import { Row } from '../UI/Grid';
-import { InputLCD } from '../UI/lcdStyles';
 import { ScreenPrintBackground } from '../UI/ScreenPrintBackground';
-import { For } from 'solid-js';
-import { Time } from 'tone';
+import { InputLCD } from '../UI/lcdStyles';
+import { createStoreFromEventEmitter } from '../engine/EngineBase';
+import type { Slice } from '../engine/device/Slice';
 
 export const SampleSliceChannelControls = (props: {
   slice: Slice;

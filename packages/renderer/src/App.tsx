@@ -1,20 +1,17 @@
-import { For } from 'solid-js';
-import { ThemeProvider } from './emotion-solid';
-import { Transport } from 'tone';
-import { ApolloProvider } from '@merged/solid-apollo';
-
-import { Engine } from './engine/Engine';
-import { theme } from './UI/theme';
-
-import { apolloClient } from './apolloClient';
-
-import { Toolbar } from './panels/Toolbar';
-import { GlobalStyles } from './UI/GlobalStyles';
-import { DeviceChainView } from './Device/DeviceChainView';
-import { Column, Row } from './UI/Grid';
-import { SidePanel } from './panels/SidePanel';
-import { createSignalFromEventEmitter } from './engine/EngineBase';
 import { css } from '@emotion/css';
+import { ApolloProvider } from '@merged/solid-apollo';
+import { For } from 'solid-js';
+import { Transport } from 'tone';
+import { DeviceChainView } from './Device/DeviceChainView';
+import { GlobalStyles } from './UI/GlobalStyles';
+import { Column, Row } from './UI/Grid';
+import { theme } from './UI/theme';
+import { apolloClient } from './apolloClient';
+import { ThemeProvider } from './emotion-solid';
+import { Engine } from './engine/Engine';
+import { createSignalFromEventEmitter } from './engine/EngineBase';
+import { SidePanel } from './panels/SidePanel';
+import { Toolbar } from './panels/Toolbar';
 
 const engine = new Engine(Transport);
 

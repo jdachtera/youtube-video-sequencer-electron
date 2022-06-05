@@ -1,12 +1,12 @@
-import type { SerializedDeviceBase } from './Device';
-import { Device } from './Device';
+import type { Engine } from '../Engine';
 import type { PropertyUpdateEvents } from '../helpers';
 import { entries } from '../helpers';
-import type { Engine } from '../Engine';
 import type { DeepPartial, SerializedDevice } from '../types';
+import type { SerializedDeviceBase } from './Device';
+import { Device } from './Device';
+import type { Step } from './Patttern';
 import { createDevice } from './createDevice';
 import { normalizeDeviceData } from './normalizeDeviceData';
-import type { Step } from './Patttern';
 
 export type SerializedDeviceChain = SerializedDeviceBase & {
   name: 'DeviceChain';

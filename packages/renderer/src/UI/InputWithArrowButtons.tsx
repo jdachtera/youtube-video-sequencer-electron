@@ -1,9 +1,9 @@
+import { css } from '@emotion/css';
 import type { ComponentProps, JSXElement } from 'solid-js';
 import { splitProps, Show } from 'solid-js';
-import { css } from '@emotion/css';
+import { ButtonWithLabel } from './ButtonWithLabel';
 import { Column, Row } from './Grid';
 import { InputLCD } from './lcdStyles';
-import { ButtonWithLabel } from './ButtonWithLabel';
 
 export const InputWithArrowButtons = (
   allProps: {

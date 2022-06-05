@@ -1,8 +1,7 @@
 import { createResource, createSignal, For, Show, Suspense } from 'solid-js';
-
-import type { Engine } from '../engine/Engine';
 import { Column } from '../UI/Grid';
 import { InputLCD } from '../UI/lcdStyles';
+import type { Engine } from '../engine/Engine';
 import { Track } from '../engine/Track';
 import { BrowserListItem } from './List';
 

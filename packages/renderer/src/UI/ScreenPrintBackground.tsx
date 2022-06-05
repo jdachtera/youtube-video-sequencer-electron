@@ -1,6 +1,6 @@
+import { css } from '@emotion/css';
 import type { JSX } from 'solid-js';
 import { Show, splitProps } from 'solid-js';
-import { css } from '@emotion/css';
 
 export const ScreenPrintBackground = (
   allProps: {

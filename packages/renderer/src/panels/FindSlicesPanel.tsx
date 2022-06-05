@@ -1,3 +1,4 @@
+import { css } from '@emotion/css';
 import { createQuery } from '@merged/solid-apollo';
 import type { JSX } from 'solid-js';
 import {
@@ -8,17 +9,14 @@ import {
   Show,
   splitProps,
 } from 'solid-js';
-import { css } from '@emotion/css';
-
-import { SamplerDevice } from '../engine/device/Sampler';
-import { Slice } from '../engine/device/Slice';
+import { Column } from '../UI/Grid';
 import type { Engine } from '../engine/Engine';
 import { Track } from '../engine/Track';
-import { SlicesDocument, TagsDocument } from './Slice.generated';
-
-import { Column } from '../UI/Grid';
-import { BrowserListItem } from './List';
+import { SamplerDevice } from '../engine/device/Sampler';
+import { Slice } from '../engine/device/Slice';
 import { fetchSliceUrlInfo } from '../engine/helpers';
+import { BrowserListItem } from './List';
+import { SlicesDocument, TagsDocument } from './Slice.generated';
 
 export const Pagination = (
   allProps: {

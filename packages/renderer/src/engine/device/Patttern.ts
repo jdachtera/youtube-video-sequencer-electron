@@ -1,5 +1,4 @@
 import { Sequence, Time } from 'tone';
-
 import type { TransportTime } from 'tone/build/esm/core/type/Units';
 import type { Engine } from '../Engine';
 import { EngineBase } from '../EngineBase';

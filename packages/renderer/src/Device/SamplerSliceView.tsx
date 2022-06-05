@@ -1,5 +1,13 @@
 import { css } from '@emotion/css';
-
+import { Show } from 'solid-js';
+import { ButtonWithLabel } from '../UI/ButtonWithLabel';
+import { DeviceWrapper } from '../UI/DeviceWrapper';
+import { Column, Flex, Row } from '../UI/Grid';
+import { NumberInputWithLabel } from '../UI/Knob';
+import { LCDLabel } from '../UI/LCD';
+import { SameHeightContainer } from '../UI/SameHeightContainer';
+import { SelectWithArrowButtons } from '../UI/SelectWithArrowButtons';
+import { ShareSliceButton } from '../UI/ShareSliceButton';
 import {
   parseFormattedTime,
   formatTime,
@@ -7,29 +15,16 @@ import {
   formattedTimeStep,
 } from '../UI/format';
 import { LCD } from '../UI/lcdStyles';
-import { DeviceWrapper } from '../UI/DeviceWrapper';
-import { ButtonWithLabel } from '../UI/ButtonWithLabel';
-import { LCDLabel } from '../UI/LCD';
-
-import { WaveformSliceView } from './WaveformSliceView';
-
-import type { SerializedSlice, Slice } from '../engine/device/Slice';
-import { NumberInputWithLabel } from '../UI/Knob';
-
-import { ShareSliceButton } from '../UI/ShareSliceButton';
-import { PatternEditor } from './PatternEditor';
-import { DeviceChainView } from './DeviceChainView';
-import { Column, Flex, Row } from '../UI/Grid';
-import { exportBuffer } from '../engine/helpers';
-
-import { SameHeightContainer } from '../UI/SameHeightContainer';
 import {
   createSignalFromEventEmitter,
   createStoreFromEventEmitter,
 } from '../engine/EngineBase';
+import type { SerializedSlice, Slice } from '../engine/device/Slice';
+import { exportBuffer } from '../engine/helpers';
+import { DeviceChainView } from './DeviceChainView';
+import { PatternEditor } from './PatternEditor';
 import { SampleSliceChannelControls } from './SampleSliceControls';
-import { SelectWithArrowButtons } from '../UI/SelectWithArrowButtons';
-import { Show } from 'solid-js';
+import { WaveformSliceView } from './WaveformSliceView';
 
 export const SamplerSliceView = (props: {
   slice: Slice;

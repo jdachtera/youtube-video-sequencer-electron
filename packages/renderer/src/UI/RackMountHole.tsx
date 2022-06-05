@@ -1,5 +1,5 @@
-import type { PropsWithChildren } from 'solid-js';
 import { css } from '@emotion/css';
+import type { PropsWithChildren } from 'solid-js';
 
 export const RackMountHole = (
   props: PropsWithChildren<{

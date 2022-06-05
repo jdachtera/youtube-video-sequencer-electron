@@ -1,3 +1,4 @@
+import { css } from '@emotion/css';
 import {
   createEffect,
   createSignal,
@@ -6,16 +7,15 @@ import {
   Switch,
   untrack,
 } from 'solid-js';
-import type { Engine } from '../engine/Engine';
-import { FindSlicesPanel } from './FindSlicesPanel';
-import { Column, Row } from '../UI/Grid';
-import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { ButtonGroup } from '../UI/ButtonGroup';
-import { YoutubeSearchPanel } from './YoutubeSearchPanel';
-import { css } from '@emotion/css';
-import { SoundsDotComPanel } from './SoundDotComPanel';
+import { ButtonWithLabel } from '../UI/ButtonWithLabel';
+import { Column, Row } from '../UI/Grid';
+import type { Engine } from '../engine/Engine';
 import { createStoreFromEventEmitter } from '../engine/EngineBase';
+import { FindSlicesPanel } from './FindSlicesPanel';
 import { LocalFilesPanel } from './LocalFilesPanel';
+import { SoundsDotComPanel } from './SoundDotComPanel';
+import { YoutubeSearchPanel } from './YoutubeSearchPanel';
 
 const tabs = ['YouTube', 'SliceDB', 'Sounds.com', 'LocalFiles'] as const;
 export type SidePanelTab = typeof tabs[number];

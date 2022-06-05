@@ -1,25 +1,24 @@
 /* eslint-disable max-classes-per-file */
-import type { Time, TransportTime } from 'tone/build/esm/core/type/Units';
+import { batch } from 'solid-js';
+import { Gain, getContext, OfflineContext, setContext, start } from 'tone';
 import type { Transport } from 'tone/build/esm/core/clock/Transport';
+import type { Time, TransportTime } from 'tone/build/esm/core/type/Units';
+import type { SidePanelTab } from '../panels/SidePanel';
+import { EngineBase } from './EngineBase';
 import type { SerializedTrack } from './Track';
 import { Track } from './Track';
-import type { DeepPartial } from './types';
-import type { PropertyUpdateEvents } from './helpers';
-import { entries } from './helpers';
-
 import type { SerializedSamplerDevice } from './device/Sampler';
 import { SamplerDevice } from './device/Sampler';
-import { getContext, OfflineContext, setContext, start } from 'tone';
-import { EngineBase } from './EngineBase';
-
-import type { SidePanelTab } from '../panels/SidePanel';
-import { batch } from 'solid-js';
+import type { PropertyUpdateEvents } from './helpers';
+import { entries } from './helpers';
+import type { DeepPartial } from './types';
 
 export type SerializedEngine = {
   zoom: number;
   bpm: number;
   swing: number;
   tracks: SerializedTrack[];
+  volume: number;
   viewMode: {
     channel: boolean;
     slice: boolean;
@@ -45,6 +44,8 @@ type EngineEvents = {
 
 export class Engine extends EngineBase<EngineEvents> {
   public tracks: Track[] = [];
+
+  public gain = new Gain();
 
   public currentPatternIndex = 0;
 
@@ -75,6 +76,7 @@ export class Engine extends EngineBase<EngineEvents> {
       bpm: parsedData.bpm ?? 120,
       swing: parsedData.swing ?? 0,
       zoom: parsedData.zoom ?? 1,
+      volume: parsedData.volume ?? 1,
       viewMode: {
         channel: parsedData?.viewMode?.channel ?? true,
         sequencer: parsedData?.viewMode?.sequencer ?? true,
@@ -127,6 +129,7 @@ export class Engine extends EngineBase<EngineEvents> {
     this.transport.on('stop', () => {
       this.emit('stop');
     });
+    this.gain.toDestination();
   }
 
   emitChange = () => this.emit('change', this);
@@ -140,6 +143,7 @@ export class Engine extends EngineBase<EngineEvents> {
   }
   createTrack(serializedTrack: SerializedTrack) {
     const track = new Track(this, serializedTrack);
+
     this.tracks = [...this.tracks, track];
 
     track.on('change', this.emitChange);
@@ -191,6 +195,9 @@ export class Engine extends EngineBase<EngineEvents> {
             (serializedTrack) => this.createTrack(serializedTrack),
           );
           break;
+        case 'volume':
+          this.gain.gain.value = entry[1] ?? 1;
+          break;
         case 'viewMode':
           this.viewMode = {
             ...this.viewMode,
@@ -216,6 +223,7 @@ export class Engine extends EngineBase<EngineEvents> {
       bpm: this.transport.bpm.value,
       swing: this.transport.swing,
       zoom: this.zoom,
+      volume: this.gain.gain.value,
     };
   }
 

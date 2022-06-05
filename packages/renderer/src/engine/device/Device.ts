@@ -1,11 +1,9 @@
 import type { DefaultListener, ListenerSignature } from 'tiny-typed-emitter';
 import { Gain } from 'tone';
-
 import type { Engine } from '../Engine';
 import { EngineBase } from '../EngineBase';
 import type { PropertyUpdateEvents } from '../helpers';
 import { entries } from '../helpers';
-
 import type { SerializedDevice } from '../types';
 import type { Step } from './Patttern';
 

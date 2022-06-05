@@ -1,10 +1,10 @@
-import type { PropertyUpdateEvents } from './helpers';
-import { entries } from './helpers';
+import type { Engine } from './Engine';
+import { EngineBase } from './EngineBase';
 import type { SerializedDeviceChain } from './device/DeviceChain';
 import { DeviceChain } from './device/DeviceChain';
-import type { Engine } from './Engine';
+import type { PropertyUpdateEvents } from './helpers';
+import { entries } from './helpers';
 import type { DeepPartial } from './types';
-import { EngineBase } from './EngineBase';
 
 export type SerializedTrack = {
   chain: SerializedDeviceChain;
@@ -46,7 +46,7 @@ export class Track extends EngineBase<TrackEvents> {
           this.chain = new DeviceChain(this.engine, entry[1]!);
 
           this.chain.on('change', this.emitChange);
-          this.chain.output.toDestination();
+          this.chain.output.connect(this.engine.gain);
           break;
       }
     });

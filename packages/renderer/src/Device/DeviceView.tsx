@@ -1,26 +1,22 @@
-import { Match, Switch } from 'solid-js';
-import { DeviceChainView } from './DeviceChainView';
-
 import { css } from '@emotion/css';
-import type { Device } from '../engine/device/Device';
-import { DeviceChain } from '../engine/device/DeviceChain';
-import { FilterDevice } from '../engine/device/Filter';
-import { SamplerDevice } from '../engine/device/Sampler';
-import { DistortionDevice } from '../engine/device/Distortion';
-import { CompressorDevice } from '../engine/device/Compressor';
-import { PingPongDelayDevice } from '../engine/device/PingPongDelay';
-
-import { PingPongDelayView } from './PingPongDelayView';
-
-import { SamplerView } from './SamplerView';
-import { FilterView } from './FilterView';
-
-import { DistortionView } from './DistortionView';
-import { CompressorView } from './CompressorView';
-import { ReverbDevice } from '../engine/device/Reverb';
-import { ReverbView } from './ReverbView';
+import { Match, Switch } from 'solid-js';
 import { DeviceWrapper } from '../UI/DeviceWrapper';
 import { createSignalFromEventEmitter } from '../engine/EngineBase';
+import { CompressorDevice } from '../engine/device/Compressor';
+import type { Device } from '../engine/device/Device';
+import { DeviceChain } from '../engine/device/DeviceChain';
+import { DistortionDevice } from '../engine/device/Distortion';
+import { FilterDevice } from '../engine/device/Filter';
+import { PingPongDelayDevice } from '../engine/device/PingPongDelay';
+import { ReverbDevice } from '../engine/device/Reverb';
+import { SamplerDevice } from '../engine/device/Sampler';
+import { CompressorView } from './CompressorView';
+import { DeviceChainView } from './DeviceChainView';
+import { DistortionView } from './DistortionView';
+import { FilterView } from './FilterView';
+import { PingPongDelayView } from './PingPongDelayView';
+import { ReverbView } from './ReverbView';
+import { SamplerView } from './SamplerView';
 
 export const DeviceView = (props: {
   device: Device;

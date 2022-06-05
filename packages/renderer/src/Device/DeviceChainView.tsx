@@ -1,4 +1,4 @@
-import type { JSX } from 'solid-js';
+import { css } from '@emotion/css';
 import {
   createSignal,
   For,
@@ -7,20 +7,9 @@ import {
   Show,
   splitProps,
 } from 'solid-js';
-
-import { DeviceView } from './DeviceView';
-import { createDevice } from '../engine/device/createDevice';
-
-import type { DeviceChain } from '../engine/device/DeviceChain';
-
-import type { SerializedDevice } from '../engine/types';
-
-import { DeviceWrapper, DummyDevice } from '../UI/DeviceWrapper';
+import type { JSX } from 'solid-js';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
-import { normalizeDeviceData } from '../engine/device/normalizeDeviceData';
-import { css } from '@emotion/css';
-import { SamplerDevice } from '../engine/device/Sampler';
-import { SamplerSlicesView } from './SamplerSlicesView';
+import { DeviceWrapper, DummyDevice } from '../UI/DeviceWrapper';
 import { Column, Row } from '../UI/Grid';
 import { SameHeightContainer } from '../UI/SameHeightContainer';
 import { SelectWithArrowButtons } from '../UI/SelectWithArrowButtons';
@@ -28,6 +17,13 @@ import {
   createSignalFromEventEmitter,
   createStoreFromEventEmitter,
 } from '../engine/EngineBase';
+import type { DeviceChain } from '../engine/device/DeviceChain';
+import { SamplerDevice } from '../engine/device/Sampler';
+import { createDevice } from '../engine/device/createDevice';
+import { normalizeDeviceData } from '../engine/device/normalizeDeviceData';
+import type { SerializedDevice } from '../engine/types';
+import { DeviceView } from './DeviceView';
+import { SamplerSlicesView } from './SamplerSlicesView';
 
 const deviceNames: SerializedDevice['name'][] = [
   // 'DeviceChain',

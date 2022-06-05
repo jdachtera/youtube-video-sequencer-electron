@@ -1,7 +1,4 @@
-import type { Step } from '../engine/device/Patttern';
-import { camelCaseToSpaced } from '../UI/format';
-
-import { RangeInput } from '../UI/RangeInput';
+import { css } from '@emotion/css';
 import type { JSX } from 'solid-js';
 import {
   createEffect,
@@ -12,9 +9,10 @@ import {
   splitProps,
   Switch,
 } from 'solid-js';
-import { css } from '@emotion/css';
-
+import { RangeInput } from '../UI/RangeInput';
+import { camelCaseToSpaced } from '../UI/format';
 import { useAppTheme } from '../UI/theme';
+import type { Step } from '../engine/device/Patttern';
 
 export const sequencerModes: (keyof Step)[] = [
   'play',

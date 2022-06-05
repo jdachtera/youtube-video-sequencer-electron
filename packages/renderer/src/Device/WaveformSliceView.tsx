@@ -1,9 +1,7 @@
-import { mergeProps } from 'solid-js';
-
 import { css, keyframes } from '@emotion/css';
-
-import type { Slice } from '../engine/device/Slice';
+import { mergeProps } from 'solid-js';
 import { createSignalFromEventEmitter } from '../engine/EngineBase';
+import type { Slice } from '../engine/device/Slice';
 import { Waveform } from './Waveform/Waveform';
 
 type WaveformSliceViewProps = {

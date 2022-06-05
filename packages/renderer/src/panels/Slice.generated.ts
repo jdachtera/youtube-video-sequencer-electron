@@ -1,6 +1,6 @@
+import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core';
 import type * as Types from '../../types/graphql.generated.types';
 
-import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = {

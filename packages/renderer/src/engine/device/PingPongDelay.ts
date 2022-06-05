@@ -1,12 +1,11 @@
-import type { SerializedDeviceBase } from './Device';
-import { Device } from './Device';
+import { PingPongDelay as PingPongDelayNode } from 'tone';
+import type { NormalRange, Time } from 'tone/build/esm/core/type/Units';
+import type { Engine } from '../Engine';
 import type { PropertyUpdateEvents } from '../helpers';
 import { entries } from '../helpers';
-
-import { PingPongDelay as PingPongDelayNode } from 'tone';
-import type { Engine } from '../Engine';
-import type { NormalRange, Time } from 'tone/build/esm/core/type/Units';
 import type { DeepPartial } from '../types';
+import { Device } from './Device';
+import type { SerializedDeviceBase } from './Device';
 
 export type SerializedPingPongDelayDevice = SerializedDeviceBase & {
   name: 'PingPongDelay';

@@ -1,27 +1,25 @@
+import { css } from '@emotion/css';
 import type { JSX } from 'solid-js';
 import { createSignal, Show, splitProps } from 'solid-js';
-
-import type { Slice } from '../engine/device/Slice';
-import { subdivisions, subdivisionTypes } from '../engine/types';
-import { Sequencer } from './Sequencer';
-
-import { SelectWithArrowButtons } from '../UI/SelectWithArrowButtons';
-import { NumberInputWithArrowButtons } from '../UI/NumberInputWithArrowButtons';
-import { ScreenPrintBackground } from '../UI/ScreenPrintBackground';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { Column, Flex, Row } from '../UI/Grid';
-import { css } from '@emotion/css';
-import type { SequencerMode } from './SequencerStep';
-import { sequencerModes } from './SequencerStep';
+import { NumberInputWithArrowButtons } from '../UI/NumberInputWithArrowButtons';
+import { ScreenPrintBackground } from '../UI/ScreenPrintBackground';
+import { SelectWithArrowButtons } from '../UI/SelectWithArrowButtons';
+import {
+  createSignalFromEventEmitter,
+  createStoreFromEventEmitter,
+} from '../engine/EngineBase';
 import type { FollowupAction } from '../engine/device/Patttern';
 import {
   followupActionTypes,
   normalizeFollowupActionData,
 } from '../engine/device/Patttern';
-import {
-  createSignalFromEventEmitter,
-  createStoreFromEventEmitter,
-} from '../engine/EngineBase';
+import type { Slice } from '../engine/device/Slice';
+import { subdivisions, subdivisionTypes } from '../engine/types';
+import { Sequencer } from './Sequencer';
+import type { SequencerMode } from './SequencerStep';
+import { sequencerModes } from './SequencerStep';
 
 const sequencerModeLabels = {
   play: '▶',
