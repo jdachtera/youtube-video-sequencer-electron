@@ -39,15 +39,6 @@ jobs:
         id: tag
         run: echo "::set-output name=last-tag::$(git describe --tags --abbrev=0 || git rev-list --max-parents=0 ${{github.ref}})"
 
-      - name: Generate release notes
-        uses: ./.github/actions/release-notes
-        id: release-note
-        with:
-          from: ${{ steps.tag.outputs.last-tag }}
-          to: ${{ github.ref }}
-          include-commit-body: true
-          include-abbreviated-commit: true
-
       - name: Get version from current date
         id: version
         run: echo "::set-output name=build-version::$(node -e "try{console.log(require('./.electron-builder.config.js').extraMetadata.version)}catch(e){console.error(e);process.exit(1)}")"
