@@ -23,7 +23,6 @@ jobs:
   draft:
     runs-on: ubuntu-latest
     outputs:
-      release-note: ${{ steps.release-note.outputs.release-note }}
       version: ${{ steps.version.outputs.build-version }}
 
     steps:
@@ -64,7 +63,6 @@ jobs:
           draft: true
           tag_name: v${{ steps.version.outputs.build-version }}
           name: v${{ steps.version.outputs.build-version }}
-          body: ${{ steps.release-note.outputs.release-note }}
 
   upload_artifacts:
     needs: [draft]
@@ -85,13 +83,6 @@ jobs:
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
-
-      # The easiest way to transfer release notes to a compiled application is create `release-notes.md` in the build resources.
-      # See https://github.com/electron-userland/electron-builder/issues/1511#issuecomment-310160119
-      - name: Prepare release notes
-        env:
-          RELEASE_NOTE: ${{ needs.draft.outputs.release-note }}
-        run: echo "$RELEASE_NOTE" >> ./buildResources/release-notes.md
 
       # Compile app and upload artifacts
       - name: Compile & release Electron app
