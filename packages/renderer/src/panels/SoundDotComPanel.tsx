@@ -11,8 +11,6 @@ import { Column, Row } from '../UI/Grid';
 import { InputLCD } from '../UI/lcdStyles';
 import { styled } from '../emotion-solid';
 import type { Engine } from '../engine/Engine';
-import { Track } from '../engine/Track';
-import type { SamplerDevice } from '../engine/device/Sampler';
 import { Slice } from '../engine/device/Slice';
 import { BrowserListItem } from './List';
 
@@ -179,24 +177,12 @@ export const SoundsDotComPanel = (props: { engine: Engine }) => {
                       }}
                       onAdd={async () => {
                         event?.preventDefault();
-                        const track = props.engine.createTrack(
-                          Track.normalizeData({
-                            chain: {
-                              devices: [
-                                { name: 'Sampler', url: item.preview_mp3 },
-                              ],
-                            },
-                          }),
-                        );
 
-                        await track.hasLoaded();
-
-                        const sampler = track.chain.devices[0] as SamplerDevice;
-                        sampler.set({ title: item.name, collapsed: false });
-                        sampler.createSlice(
+                        props.engine.createSliceTrack(
                           Slice.normalizeData({
+                            url: item.preview_mp3,
                             start: 0,
-                            end: sampler.buffer.duration,
+                            end: +item.duration,
                           }),
                         );
                       }}

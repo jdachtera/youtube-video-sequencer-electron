@@ -6,6 +6,22 @@ type Entry<T> = {
   [K in keyof T]: [K, T[K]];
 }[keyof T];
 
+type KeyValue<T> = {
+  [P in keyof T]: {
+    key: P;
+    value: T[P];
+  };
+}[keyof T];
+
+export function keyValueEntries<T>(obj: T) {
+  return Object.entries(obj).map(([key, value]) => ({
+    key,
+    value,
+  })) as unknown as KeyValue<{
+    [key in keyof T]-?: T[key];
+  }>[];
+}
+
 export function entries<T>(obj: T): Entry<T>[] {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
   return Object.entries(obj) as any;

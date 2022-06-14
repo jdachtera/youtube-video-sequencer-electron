@@ -11,8 +11,6 @@ import {
 } from 'solid-js';
 import { Column } from '../UI/Grid';
 import type { Engine } from '../engine/Engine';
-import { Track } from '../engine/Track';
-import { SamplerDevice } from '../engine/device/Sampler';
 import { Slice } from '../engine/device/Slice';
 import { fetchSliceUrlInfo } from '../engine/helpers';
 import { BrowserListItem } from './List';
@@ -214,43 +212,18 @@ export const FindSlicesPanel = (props: { engine: Engine }) => {
                       }}
                       onAdd={async () => {
                         const {
-                          sourceUrl,
                           id,
+                          sourceUrl,
                           start,
                           end,
-                          title,
                           playbackSpeed,
                           reverse,
                         } = slice;
-                        const track =
-                          props.engine.findTrack(
-                            (track) =>
-                              !!track.chain.findDevice(
-                                (device) =>
-                                  device instanceof SamplerDevice &&
-                                  device.url === sourceUrl,
-                              ),
-                          ) ??
-                          props.engine.createTrack(
-                            Track.normalizeData({
-                              chain: {
-                                name: 'DeviceChain',
-                                devices: [{ name: 'Sampler', url: sourceUrl }],
-                              },
-                            }),
-                          );
 
-                        const sampler = track.chain.findDevice(
-                          (device): device is SamplerDevice =>
-                            device instanceof SamplerDevice,
-                        ) as SamplerDevice;
-
-                        await sampler.hasLoaded();
-
-                        sampler.createSlice(
+                        props.engine.createSliceTrack(
                           Slice.normalizeData({
                             id,
-                            name: title,
+                            url: sourceUrl,
                             start,
                             end,
                             playbackRate: playbackSpeed,

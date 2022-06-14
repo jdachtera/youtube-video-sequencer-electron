@@ -2,7 +2,6 @@ import { createResource, createSignal, For, Show, Suspense } from 'solid-js';
 import { Column } from '../UI/Grid';
 import { InputLCD } from '../UI/lcdStyles';
 import type { Engine } from '../engine/Engine';
-import { Track } from '../engine/Track';
 import { BrowserListItem } from './List';
 
 export const YoutubeSearchPanel = (props: { engine: Engine }) => {
@@ -65,13 +64,8 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
                   name={item.title}
                   thumbnail={item.snippet.thumbnails.url as string}
                   onAdd={() => {
-                    props.engine.createTrack(
-                      Track.normalizeData({
-                        chain: {
-                          devices: [{ name: 'Sampler', url: item.url }],
-                        },
-                      }),
-                    );
+                    const sampler = props.engine.getOrCreateSampler(item.url);
+                    props.engine.setCurrentSampler(sampler);
                   }}
                 />
               )}

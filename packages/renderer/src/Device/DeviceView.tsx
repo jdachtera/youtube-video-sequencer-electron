@@ -9,14 +9,16 @@ import { DistortionDevice } from '../engine/device/Distortion';
 import { FilterDevice } from '../engine/device/Filter';
 import { PingPongDelayDevice } from '../engine/device/PingPongDelay';
 import { ReverbDevice } from '../engine/device/Reverb';
-import { SamplerDevice } from '../engine/device/Sampler';
+import { SequencerDevice } from '../engine/device/Sequencer';
+import { Slice } from '../engine/device/Slice';
 import { CompressorView } from './CompressorView';
 import { DeviceChainView } from './DeviceChainView';
 import { DistortionView } from './DistortionView';
 import { FilterView } from './FilterView';
+import { PatternEditor } from './PatternEditor';
 import { PingPongDelayView } from './PingPongDelayView';
 import { ReverbView } from './ReverbView';
-import { SamplerView } from './SamplerView';
+import { SamplerSliceView } from './SamplerSliceView';
 
 export const DeviceView = (props: {
   device: Device;
@@ -118,9 +120,14 @@ export const DeviceView = (props: {
                   {(device) => <ReverbView reverb={device}></ReverbView>}
                 </Match>
                 <Match
-                  when={props.device instanceof SamplerDevice && props.device}
+                  when={props.device instanceof SequencerDevice && props.device}
                 >
-                  {(device) => <SamplerView sampler={device}></SamplerView>}
+                  {(device) => <PatternEditor sequencer={device} />}
+                </Match>
+                <Match when={props.device instanceof Slice && props.device}>
+                  {(device) => (
+                    <SamplerSliceView slice={device}></SamplerSliceView>
+                  )}
                 </Match>
               </Switch>
             </div>

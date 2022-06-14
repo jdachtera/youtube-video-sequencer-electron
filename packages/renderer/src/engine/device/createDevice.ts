@@ -6,17 +6,20 @@ import { DistortionDevice } from './Distortion';
 import { FilterDevice } from './Filter';
 import { PingPongDelayDevice } from './PingPongDelay';
 import { ReverbDevice } from './Reverb';
-import { SamplerDevice } from './Sampler';
+import { SequencerDevice } from './Sequencer';
+import { Slice } from './Slice';
 
 export const createDevice = (
   engine: Engine,
   serializedDevice: SerializedDevice,
 ) => {
   switch (serializedDevice.name) {
+    case 'Sequencer':
+      return new SequencerDevice(engine, serializedDevice);
+    case 'Slice':
+      return new Slice(engine, serializedDevice);
     case 'DeviceChain':
       return new DeviceChain(engine, serializedDevice);
-    case 'Sampler':
-      return new SamplerDevice(engine, serializedDevice);
     case 'Filter':
       return new FilterDevice(engine, serializedDevice);
     case 'PingPongDelay':

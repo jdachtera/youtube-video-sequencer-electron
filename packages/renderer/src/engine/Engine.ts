@@ -7,8 +7,10 @@ import type { SidePanelTab } from '../panels/SidePanel';
 import { EngineBase } from './EngineBase';
 import type { SerializedTrack } from './Track';
 import { Track } from './Track';
-import type { SerializedSamplerDevice } from './device/Sampler';
+import type { SerializedSampler } from './device/Sampler';
 import { SamplerDevice } from './device/Sampler';
+import type { SerializedSlice } from './device/Slice';
+import { Slice } from './device/Slice';
 import type { PropertyUpdateEvents } from './helpers';
 import { entries } from './helpers';
 import type { DeepPartial } from './types';
@@ -18,6 +20,7 @@ export type SerializedEngine = {
   bpm: number;
   swing: number;
   tracks: SerializedTrack[];
+  samplers: SerializedSampler[];
   volume: number;
   viewMode: {
     channel: boolean;
@@ -33,6 +36,7 @@ export type SerializedEngine = {
 };
 
 type EngineEvents = {
+  currentSamplerChanged: (sampler?: SamplerDevice) => void;
   trackAdded: (track: Track) => void;
   trackRemoved: (track: Track) => void;
   change: (engine: Engine) => void;
@@ -45,9 +49,14 @@ type EngineEvents = {
 export class Engine extends EngineBase<EngineEvents> {
   public tracks: Track[] = [];
 
+  public samplers: SamplerDevice[] = [];
+  public currentSampler?: SamplerDevice;
+
   public gain = new Gain();
 
   public currentPatternIndex = 0;
+
+  public currentSamplerIndex = 0;
 
   zoom = 1;
 
@@ -68,15 +77,16 @@ export class Engine extends EngineBase<EngineEvents> {
   drawInterval = 0;
 
   static normalizeData = (
-    parsedData: DeepPartial<
-      SerializedEngine & { samplers: SerializedSamplerDevice[] }
-    >,
+    parsedData: DeepPartial<SerializedEngine>,
   ): SerializedEngine => {
     return {
       bpm: parsedData.bpm ?? 120,
       swing: parsedData.swing ?? 0,
       zoom: parsedData.zoom ?? 1,
       volume: parsedData.volume ?? 1,
+      samplers: (parsedData.samplers ?? []).map((serializedSampler) =>
+        SamplerDevice.normalizeData(serializedSampler),
+      ),
       viewMode: {
         channel: parsedData?.viewMode?.channel ?? true,
         sequencer: parsedData?.viewMode?.sequencer ?? true,
@@ -92,28 +102,10 @@ export class Engine extends EngineBase<EngineEvents> {
     };
   };
 
-  static normalizeTracks(
-    parsedData: DeepPartial<
-      SerializedEngine & { samplers: SerializedSamplerDevice[] }
-    >,
-  ) {
-    return [
-      ...(Array.isArray(parsedData.tracks) ? parsedData.tracks : [])
-        .filter(
-          (maybeTrack): maybeTrack is DeepPartial<SerializedTrack> =>
-            !!maybeTrack,
-        )
-        .map((track) => Track.normalizeData({ ...track })),
-
-      ...(Array.isArray(parsedData.samplers) ? parsedData.samplers : []).map(
-        (sampler): SerializedTrack =>
-          Track.normalizeData({
-            chain: {
-              devices: [SamplerDevice.normalizeData({ ...sampler })],
-            },
-          }),
-      ),
-    ];
+  static normalizeTracks(parsedData: DeepPartial<SerializedEngine>) {
+    return (Array.isArray(parsedData.tracks) ? parsedData.tracks : []).map(
+      (track) => Track.normalizeData(track),
+    );
   }
 
   constructor(public transport: Transport) {
@@ -135,12 +127,17 @@ export class Engine extends EngineBase<EngineEvents> {
   emitChange = () => this.emit('change', this);
 
   async hasLoaded() {
-    await Promise.all(
-      this.tracks.map(async (track) => {
-        await track.hasLoaded();
-      }),
-    );
+    await Promise.all(this.tracks.map((track) => track.hasLoaded()));
   }
+
+  setCurrentSampler(sampler?: SamplerDevice) {
+    if (sampler === this.currentSampler) return;
+
+    this.currentSampler?.unload();
+    this.currentSampler = sampler;
+    this.emit('currentSamplerChanged', sampler);
+  }
+
   createTrack(serializedTrack: SerializedTrack) {
     const track = new Track(this, serializedTrack);
 
@@ -150,6 +147,16 @@ export class Engine extends EngineBase<EngineEvents> {
     this.emit('trackAdded', track);
 
     return track;
+  }
+
+  createSliceTrack(serializedSlice: SerializedSlice) {
+    this.createTrack(
+      Track.normalizeData({
+        chain: {
+          devices: [{ name: 'Sequencer' }, serializedSlice],
+        },
+      }),
+    );
   }
 
   findTrack(predicate: (track: Track) => boolean): Track | undefined {
@@ -220,6 +227,7 @@ export class Engine extends EngineBase<EngineEvents> {
     return {
       viewMode: this.viewMode,
       tracks: this.tracks.map((track) => track.serialize()),
+      samplers: this.samplers.map((sampler) => sampler.serialize()),
       bpm: this.transport.bpm.value,
       swing: this.transport.swing,
       zoom: this.zoom,
@@ -248,23 +256,38 @@ export class Engine extends EngineBase<EngineEvents> {
   getMaxSequenceLength() {
     return (
       this.tracks
-        .flatMap((track) =>
-          track.chain.devices
-            .filter(
-              (device): device is SamplerDevice =>
-                device instanceof SamplerDevice,
-            )
-            .flatMap((sampler) =>
-              sampler.slices.map(
-                (slice) =>
-                  slice.serialize().patterns[this.currentPatternIndex].steps
-                    .length,
-              ),
-            ),
+        .map((track) =>
+          track.chain.devices.filter(
+            (device): device is Slice => device instanceof Slice,
+          ),
         )
         .sort()
-        .pop() ?? 16
+        .pop()?.length ?? 16
     );
+  }
+
+  getOrCreateSampler(url: string) {
+    const existingSampler = this.samplers.find(
+      (sampler) => sampler.url === url,
+    );
+
+    if (existingSampler) return existingSampler;
+
+    console.trace(url);
+
+    const newSampler = new SamplerDevice(
+      this,
+      SamplerDevice.normalizeData({ url }),
+    );
+
+    this.samplers = [...this.samplers, newSampler];
+
+    this.emit(
+      'samplersUpdated',
+      this.samplers.map((sampler) => sampler.serialize()),
+    );
+
+    return newSampler;
   }
 
   async renderToBuffer(timeToRender: number) {

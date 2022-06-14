@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { css } from '@emotion/css';
-import { createSignal, onMount, onCleanup } from 'solid-js';
+import { createSignal, onMount, onCleanup, createEffect } from 'solid-js';
 import { Transport } from 'tone';
 import { AkaiButton } from '../UI/AkaiButton';
 import { LCDFrame, LCDLine } from '../UI/LCD';
@@ -37,11 +37,13 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
     ['positionUpdated'],
   );
 
-  const buffer = createSignalFromEventEmitter(
-    () => props.sampler,
-    (sampler) => sampler.buffer.get(),
-    ['load'],
-  );
+  const [buffer, setBuffer] = createSignal<AudioBuffer | undefined>();
+  createEffect(() => {
+    (async () => {
+      await props.sampler.hasLoaded();
+      setBuffer(props.sampler.buffer.get());
+    })();
+  });
 
   const stopPlayer = () => {
     props.sampler.stop();
@@ -91,12 +93,16 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
           border-radius: 8px;
           background: radial-gradient(#bdbdbd 0%, #f3f3f3c4 100%);
           display: flex;
-
+          flex: 1;
           margin: 0px 10px;
         `]: true,
       }}
     >
-      <LCDFrame>
+      <LCDFrame
+        class={css`
+          flex: 1;
+        `}
+      >
         <LCD>
           <LCDLine
             class={css`
@@ -131,9 +137,11 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
             cacheKey={props.sampler.url}
             onStateChange={(state) => props.sampler.set(state)}
             regions={regions()}
-            onCreateRegion={(region) => {
-              props.sampler.createSlice(Slice.normalizeData(region));
-            }}
+            onCreateRegion={(region) =>
+              props.sampler.engine.createSliceTrack(
+                Slice.normalizeData({ ...region, url: props.sampler.url }),
+              )
+            }
             onUpdateRegion={(region) => {
               props.sampler.findSlice(region.id)?.set(region);
             }}
@@ -159,6 +167,10 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
           <AkaiButton onClick={() => setZoom(3)} />
           <AkaiButton onClick={() => setZoom(4)} />
           <AkaiButton onClick={() => setZoom(5)} />
+          <AkaiButton
+            label="x"
+            onClick={() => props.sampler.engine.setCurrentSampler(undefined)}
+          />
         </div>
       </LCDFrame>
     </div>

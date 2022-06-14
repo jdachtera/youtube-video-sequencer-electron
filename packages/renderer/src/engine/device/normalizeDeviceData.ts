@@ -5,14 +5,17 @@ import { DistortionDevice } from './Distortion';
 import { FilterDevice } from './Filter';
 import { PingPongDelayDevice } from './PingPongDelay';
 import { ReverbDevice } from './Reverb';
-import { SamplerDevice } from './Sampler';
+import { SequencerDevice } from './Sequencer';
+import { Slice } from './Slice';
 
 export const normalizeDeviceData = (device: DeepPartial<SerializedDevice>) => {
   switch (device.name) {
     case 'DeviceChain':
       return DeviceChain.normalizeData(device);
-    case 'Sampler':
-      return SamplerDevice.normalizeData(device);
+    case 'Sequencer':
+      return SequencerDevice.normalizeData(device);
+    case 'Slice':
+      return Slice.normalizeData(device);
     case 'Filter':
       return FilterDevice.normalizeData(device);
     case 'PingPongDelay':

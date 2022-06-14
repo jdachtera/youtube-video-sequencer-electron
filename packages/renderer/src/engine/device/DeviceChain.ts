@@ -1,4 +1,4 @@
-import type { Engine } from '../Engine';
+import type { Engine } from 'engine/Engine';
 import type { PropertyUpdateEvents } from '../helpers';
 import { entries } from '../helpers';
 import type { DeepPartial, SerializedDevice } from '../types';
@@ -39,8 +39,9 @@ export class DeviceChain extends Device<DeviceChainEvents> {
       .filter((maybeDevice): maybeDevice is SerializedDevice => !!maybeDevice),
   });
 
-  constructor(engine: Engine, serializedChain: SerializedDeviceChain) {
+  constructor(public engine: Engine, serializedChain: SerializedDeviceChain) {
     super(engine);
+
     this.set(serializedChain);
   }
 

@@ -18,12 +18,10 @@ import {
   createStoreFromEventEmitter,
 } from '../engine/EngineBase';
 import type { DeviceChain } from '../engine/device/DeviceChain';
-import { SamplerDevice } from '../engine/device/Sampler';
 import { createDevice } from '../engine/device/createDevice';
 import { normalizeDeviceData } from '../engine/device/normalizeDeviceData';
 import type { SerializedDevice } from '../engine/types';
 import { DeviceView } from './DeviceView';
-import { SamplerSlicesView } from './SamplerSlicesView';
 
 const deviceNames: SerializedDevice['name'][] = [
   // 'DeviceChain',
@@ -125,9 +123,7 @@ export const DeviceChainView = (
                   createDevice(
                     props.deviceChain.engine,
                     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                    normalizeDeviceData({
-                      name: selectedDeviceName(),
-                    })!,
+                    normalizeDeviceData({ name: selectedDeviceName() })!,
                   ),
                 );
               }}
@@ -136,15 +132,6 @@ export const DeviceChainView = (
           <DummyDevice />
         </Row>
 
-        <Row>
-          <For each={devices()}>
-            {(device) =>
-              device instanceof SamplerDevice ? (
-                <SamplerSlicesView sampler={device} />
-              ) : null
-            }
-          </For>
-        </Row>
         <Show when={props.renderDummy}>
           <DummyDevice />
         </Show>

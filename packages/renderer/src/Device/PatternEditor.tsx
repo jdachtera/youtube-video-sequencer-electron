@@ -1,4 +1,5 @@
 import { css } from '@emotion/css';
+import type { SequencerDevice } from 'engine/device/Sequencer';
 import type { JSX } from 'solid-js';
 import { createSignal, Show, splitProps } from 'solid-js';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
@@ -15,7 +16,6 @@ import {
   followupActionTypes,
   normalizeFollowupActionData,
 } from '../engine/device/Patttern';
-import type { Slice } from '../engine/device/Slice';
 import { subdivisions, subdivisionTypes } from '../engine/types';
 import { Sequencer } from './Sequencer';
 import type { SequencerMode } from './SequencerStep';
@@ -31,20 +31,20 @@ const sequencerModeLabels = {
 
 export const PatternEditor = (
   allProps: {
-    slice: Slice;
+    sequencer: SequencerDevice;
   } & JSX.IntrinsicElements['div'],
 ) => {
-  const [props, divProps] = splitProps(allProps, ['slice']);
+  const [props, divProps] = splitProps(allProps, ['sequencer']);
 
-  const sliceState = createStoreFromEventEmitter(
-    () => props.slice,
-    (slice) => ({
-      collapsed: slice.collapsed,
-      numberOfPatterns: slice.patterns.length,
-      autoSelectPattern: slice.autoSelectPattern,
-      selectedPatternIndex: slice.autoSelectPattern
-        ? slice.currentPatternIndex
-        : slice.selectedPatternIndex,
+  const sequencerState = createStoreFromEventEmitter(
+    () => props.sequencer,
+    (sequencer) => ({
+      collapsed: sequencer.collapsed,
+      numberOfPatterns: sequencer.patterns.length,
+      autoSelectPattern: sequencer.autoSelectPattern,
+      selectedPatternIndex: sequencer.autoSelectPattern
+        ? sequencer.currentPatternIndex
+        : sequencer.selectedPatternIndex,
     }),
     [
       'collapsedUpdated',
@@ -56,8 +56,8 @@ export const PatternEditor = (
   );
 
   const selectedPattern = createSignalFromEventEmitter(
-    () => props.slice,
-    (slice) => slice.patterns[sliceState.selectedPatternIndex],
+    () => props.sequencer,
+    (slice) => slice.patterns[sequencerState.selectedPatternIndex],
     ['patternAdded', 'patternRemoved', 'patternUpdated'],
   );
 
@@ -79,13 +79,13 @@ export const PatternEditor = (
       {...divProps}
       classList={{
         [css`
-          flex-direction: ${sliceState.collapsed ? 'row' : 'column'};
+          flex-direction: ${sequencerState.collapsed ? 'row' : 'column'};
         `]: true,
       }}
     >
       <Column>
         <ScreenPrintBackground
-          hidden={sliceState.collapsed}
+          hidden={sequencerState.collapsed}
           background={'rgba(255,255,255,0.2)'}
         >
           <Row
@@ -97,9 +97,9 @@ export const PatternEditor = (
               label={'Clone'}
               labelOnButton={true}
               onClick={() => {
-                props.slice.createPattern(
+                props.sequencer.createPattern(
                   selectedPattern().serialize(),
-                  sliceState.selectedPatternIndex + 1,
+                  sequencerState.selectedPatternIndex + 1,
                 );
               }}
             />
@@ -114,7 +114,7 @@ export const PatternEditor = (
               label={'Duplicate'}
               labelOnButton={true}
               onClick={() => {
-                props.slice.getPattern()?.set({
+                props.sequencer.getPattern()?.set({
                   steps: [
                     ...selectedPatternState().steps,
                     ...selectedPatternState().steps.map((step) => ({
@@ -167,7 +167,7 @@ export const PatternEditor = (
         </ScreenPrintBackground>
 
         <ScreenPrintBackground
-          hidden={sliceState.collapsed}
+          hidden={sequencerState.collapsed}
           background={'rgba(255,255,255,0.2)'}
         >
           <Row
@@ -176,7 +176,7 @@ export const PatternEditor = (
             `}
           >
             <FollowupActionControls
-              numberOfPatterns={sliceState.numberOfPatterns}
+              numberOfPatterns={sequencerState.numberOfPatterns}
               followupAction={selectedPatternState().followupAction}
               onChange={(followupAction) => {
                 selectedPattern()?.set({
@@ -198,7 +198,7 @@ export const PatternEditor = (
             onChange={(steps) => {
               selectedPattern()?.set({ steps });
             }}
-            slice={props.slice}
+            sequencer={props.sequencer}
           />
         </ScreenPrintBackground>
       </Show>

@@ -66,7 +66,7 @@ export const styled =
 
           const classList = {
             [className]: true,
-            ...ownProps.classList,
+            ...props.classList,
             ...Object.fromEntries(
               classNames.map((className) => [className, true]),
             ),

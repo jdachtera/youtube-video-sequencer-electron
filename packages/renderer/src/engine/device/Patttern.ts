@@ -5,7 +5,7 @@ import { EngineBase } from '../EngineBase';
 import type { PropertyUpdateEvents } from '../helpers';
 import { entries, randomColor } from '../helpers';
 import type { DeepPartial, subdivisionTypes } from '../types';
-import type { Slice } from './Slice';
+import type { SequencerDevice } from './Sequencer';
 
 export type FollowupActionBase = {
   linked: boolean;
@@ -79,10 +79,13 @@ export class Pattern extends EngineBase<
   subdivisionType: typeof subdivisionTypes[number] = 'n';
   followupAction?: FollowupAction;
 
-  public constructor(public slice: Slice, pattern: SerializedPattern) {
+  public constructor(
+    public sequencer: SequencerDevice,
+    pattern: SerializedPattern,
+  ) {
     super();
 
-    this.engine = slice.engine;
+    this.engine = sequencer.engine;
 
     this.set(pattern);
   }
@@ -100,13 +103,11 @@ export class Pattern extends EngineBase<
           followupAction: normalizeFollowupActionData(pattern.followupAction),
           subdivision: pattern.subdivision ?? 16,
           subdivisionType: pattern.subdivisionType ?? 'n',
-          steps: (pattern.steps ?? [])
-            .filter((maybeStep): maybeStep is DeepPartial<Step> => !!maybeStep)
-            .map((step) => normalizeStepData(step)),
+          steps: (pattern.steps ?? []).map((step) => normalizeStepData(step)),
         };
 
-  set(slicePartial: Partial<SerializedPattern>) {
-    entries(slicePartial).forEach((entry) => {
+  set(patternPartial: Partial<SerializedPattern>) {
+    entries(patternPartial).forEach((entry) => {
       if (!entry) return;
 
       switch (entry[0]) {
@@ -165,7 +166,7 @@ export class Pattern extends EngineBase<
     }
 
     this.sequence = new Sequence({
-      callback: this.slice.onSequenceEvent,
+      callback: this.sequencer.onSequenceEvent,
       events: this.steps,
       subdivision,
     });
@@ -185,7 +186,7 @@ export class Pattern extends EngineBase<
   }
 
   remove() {
-    this.slice.removePattern(this);
+    this.sequencer.removePattern(this);
   }
 
   start(time?: TransportTime) {

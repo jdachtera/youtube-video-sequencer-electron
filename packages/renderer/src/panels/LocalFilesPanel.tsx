@@ -11,14 +11,11 @@ import { Column, Row } from '../UI/Grid';
 import { InputLCD } from '../UI/lcdStyles';
 import { styled } from '../emotion-solid';
 import type { Engine } from '../engine/Engine';
-import { Track } from '../engine/Track';
 import type { CachedFileSystemDirectoryHandle } from '../engine/blobStore';
 import {
   loadCachedLocalDirectoryHandles,
   storeCachedLocalDirectoryHandle,
 } from '../engine/blobStore';
-import type { SamplerDevice } from '../engine/device/Sampler';
-import { Slice } from '../engine/device/Slice';
 import type { Result } from '../engine/localFile';
 import {
   traverseFileHandle,
@@ -162,24 +159,10 @@ export const LocalFilesPanel = (props: { engine: Engine }) => {
                 }}
                 onAdd={async () => {
                   event?.preventDefault();
-                  const track = props.engine.createTrack(
-                    Track.normalizeData({
-                      chain: {
-                        devices: [{ name: 'Sampler', url: item.url }],
-                      },
-                    }),
-                  );
 
-                  await track.hasLoaded();
+                  const sampler = props.engine.getOrCreateSampler(item.url);
 
-                  const sampler = track.chain.devices[0] as SamplerDevice;
-                  sampler.set({ title: item.name, collapsed: false });
-                  sampler.createSlice(
-                    Slice.normalizeData({
-                      start: 0,
-                      end: sampler.buffer.duration,
-                    }),
-                  );
+                  props.engine.setCurrentSampler(sampler);
                 }}
               />
             )}

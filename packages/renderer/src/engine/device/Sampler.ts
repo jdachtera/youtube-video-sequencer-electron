@@ -1,36 +1,33 @@
 import { batch } from 'solid-js';
 import { getContext, ToneAudioBuffer } from 'tone';
 import type { Engine } from '../Engine';
+import { EngineBase } from '../EngineBase';
 import { loadCachedVideo, storeCachedVideo } from '../blobStore';
 import type { PropertyUpdateEvents } from '../helpers';
 import { entries, fetchSliceUrlInfo } from '../helpers';
 import { loadFileAsBuffer, resolveFileUrl } from '../localFile';
 import type { DeepPartial } from '../types';
-import type { SerializedDeviceBase } from './Device';
-import { Device } from './Device';
-import { Slice } from './Slice';
-import type { SerializedSlice } from './Slice';
+import type { Device } from './Device';
+import type { Slice } from './Slice';
 
-export type SerializedSamplerDevice = SerializedDeviceBase & {
+export type SerializedSampler = {
   name: 'Sampler';
   title: string;
   url: string;
   zoom: number;
   position: number;
-  slices: SerializedSlice[];
 };
 
 type SamplerDeviceEvents = {
   sliceAdded: (slice: Slice) => void;
   sliceRemoved: (slice: Slice) => void;
   sliceUpdated: (slice: Slice) => void;
-  slicePlaybackStarted: () => void;
   sliceSelected: (slice?: Slice) => void;
   load: () => void;
   change: (sampler: SamplerDevice) => void;
-} & PropertyUpdateEvents<SerializedSamplerDevice>;
+} & PropertyUpdateEvents<SerializedSampler>;
 
-export class SamplerDevice extends Device<SamplerDeviceEvents> {
+export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
   name = 'Sampler';
   buffer = new ToneAudioBuffer();
   slices: Slice[] = [];
@@ -40,40 +37,35 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
   title = '';
   selectedSlice?: Slice;
 
+  private isLoading = false;
+
   private _hasLoaded = false;
 
   static normalizeData = (
-    sampler: DeepPartial<SerializedSamplerDevice>,
-  ): SerializedSamplerDevice => ({
+    sampler: DeepPartial<SerializedSampler>,
+  ): SerializedSampler => ({
     name: 'Sampler',
-    collapsed: sampler.collapsed ?? false,
-    color: 'gray',
+
     title: sampler.title ?? '',
-    inputGain: sampler.inputGain ?? 1,
-    volume: sampler.volume ?? 1,
     url: sampler.url ?? '',
     position: sampler.position ?? 0,
     zoom: sampler.zoom ?? 1,
-    slices: (Array.isArray(sampler.slices) ? sampler.slices : [])
-      .filter(
-        (maybeStep): maybeStep is DeepPartial<SerializedSlice> => !!maybeStep,
-      )
-      .map(Slice.normalizeData),
   });
 
-  constructor(engine: Engine, serializedSampler: SerializedSamplerDevice) {
-    super(engine);
+  constructor(public engine: Engine, serializedSampler: SerializedSampler) {
+    super();
     this.setMaxListeners(1000);
 
     this.on('sliceAdded', this.emitChange);
     this.on('sliceRemoved', this.emitChange);
-
     this.set(serializedSampler);
   }
 
   emitChange = () => this.emit('change', this);
 
   private async load() {
+    console.log('load');
+    this.isLoading = true;
     this._hasLoaded = false;
 
     if (this.url.startsWith('http://file.local')) {
@@ -105,11 +97,14 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
     }
 
     this.emit('load');
+    this.isLoading = false;
     this._hasLoaded = true;
   }
 
   hasLoaded = async () => {
     if (this._hasLoaded) return;
+
+    if (!this.isLoading) this.load();
 
     await new Promise<void>((resolve) =>
       this.once('load', () => {
@@ -124,14 +119,13 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
     return await window.yt.fetchVideo(sourceUrl);
   }
 
-  set(samplerPartial: Partial<SerializedSamplerDevice>) {
+  set(samplerPartial: Partial<SerializedSampler>) {
     batch(() => {
       entries(samplerPartial).forEach((entry) => {
         if (!entry) return;
         switch (entry[0]) {
           case 'url':
             this.url = entry[1] ?? '';
-            this.load();
             break;
           case 'zoom':
             this.zoom = entry[1] ?? 1;
@@ -142,40 +136,28 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
           case 'title':
             this.title = entry[1] ?? '';
             break;
-          case 'slices':
-            this.slices.forEach((slice) => this.removeSlice(slice));
-            entry[1]?.forEach((serializedSlice) =>
-              this.createSlice(serializedSlice),
-            );
-            break;
         }
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         this.emit(`${entry[0]}Updated` as any, entry[1]);
       });
-
-      super.set(samplerPartial);
     });
   }
 
-  createSlice(serializedSlice: SerializedSlice, atIndex = this.slices.length) {
-    const slice = new Slice(this, serializedSlice);
-
-    slice.soloNode.connect(this.output);
-    slice.on('change', this.emitChange);
-    slice.on('change', (slice) => this.emit('sliceUpdated', slice));
-
-    this.slices = [
-      ...this.slices.slice(0, atIndex),
-      slice,
-      ...this.slices.slice(atIndex),
-    ];
-    this.emit('sliceAdded', slice);
-    return serializedSlice;
-  }
+  emitSliceUpdated = (slice: Slice) => {
+    this.emit('sliceUpdated', slice);
+  };
 
   findSlice(id: string) {
     return this.slices.find((slice) => slice.id === id);
+  }
+
+  addSlice(slice: Slice) {
+    this.slices = [...this.slices, slice];
+    this.emit('sliceAdded', slice);
+    slice.on('change', (device: Device) =>
+      this.emitSliceUpdated(device as Slice),
+    );
   }
 
   selectSlice(slice: Slice) {
@@ -184,14 +166,7 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
   }
 
   removeSlice(slice: Slice) {
-    slice.dispose();
-    slice.removeAllListeners();
-    const index = this.slices.indexOf(slice);
-
-    this.slices = [
-      ...this.slices.slice(0, index),
-      ...this.slices.slice(index + 1),
-    ];
+    this.slices = this.slices.filter((s) => s !== slice);
     this.emit('sliceRemoved', slice);
   }
 
@@ -199,24 +174,24 @@ export class SamplerDevice extends Device<SamplerDeviceEvents> {
     this.slices.forEach((slice) => slice.stop());
   }
 
+  unload() {
+    this.buffer.dispose();
+    this.buffer = new ToneAudioBuffer();
+    this._hasLoaded = false;
+    this.isLoading = false;
+  }
+
   dispose() {
-    super.dispose();
-    this.slices.forEach((slice) => this.removeSlice(slice));
     this.buffer.dispose();
   }
 
-  serialize(): SerializedSamplerDevice {
+  serialize(): SerializedSampler {
     return {
       name: 'Sampler',
-      collapsed: this.collapsed,
-      color: this.color,
-      volume: this.output.gain.value,
-      inputGain: this.input.gain.value,
       title: this.title,
       url: this.url,
       zoom: this.zoom,
       position: this.position,
-      slices: [...this.slices.values()].map((slice) => slice.serialize()),
     };
   }
 }

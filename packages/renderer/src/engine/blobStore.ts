@@ -14,6 +14,10 @@ let db: IDBPDatabase<{
     key: number;
     value: CachedFileSystemDirectoryHandle;
   };
+  'audio-buffers': {
+    key: string;
+    value: { hash: string; buffer: Float32Array | Float32Array[] };
+  };
 }>;
 
 const dbVersion = 2;
@@ -32,6 +36,10 @@ const getDatabase = async () => {
             autoIncrement: true,
           });
         }
+
+        if (oldVersion < 3) {
+          db.createObjectStore('audio-buffers');
+        }
       },
     });
   }
@@ -47,6 +55,17 @@ export const storeCachedVideo = async (
   data: Float32Array | Float32Array[],
 ) => {
   return (await getDatabase()).put('video-cache', data, url);
+};
+
+export const loadAudioBuffer = async (id: string) => {
+  return (await getDatabase()).get('audio-buffers', id);
+};
+
+export const storeAudioBuffer = async (
+  id: string,
+  data: { hash: string; buffer: Float32Array | Float32Array[] },
+) => {
+  return (await getDatabase()).put('audio-buffers', data, id);
 };
 
 export const loadCachedLocalDirectoryHandles = async () => {

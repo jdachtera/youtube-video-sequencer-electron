@@ -1,8 +1,9 @@
 import { css } from '@emotion/css';
 import { ApolloProvider } from '@merged/solid-apollo';
-import { For } from 'solid-js';
+import { For, Show } from 'solid-js';
 import { Transport } from 'tone';
-import { DeviceChainView } from './Device/DeviceChainView';
+import { SamplerView } from './Device/SamplerView';
+import { TrackView } from './Device/TrackView';
 import { GlobalStyles } from './UI/GlobalStyles';
 import { Column, Row } from './UI/Grid';
 import { theme } from './UI/theme';
@@ -28,6 +29,12 @@ export function App() {
     'zoomUpdated',
   );
 
+  const selectedSampler = createSignalFromEventEmitter(
+    engine,
+    (engine) => engine.currentSampler,
+    'currentSamplerChanged',
+  );
+
   return (
     <ThemeProvider theme={theme}>
       <ApolloProvider client={apolloClient}>
@@ -47,23 +54,23 @@ export function App() {
 
           <Row overflow={'hidden'} flex={1}>
             <SidePanel engine={engine} />
-            <Column
-              overflow={'auto'}
-              flex={1}
-              class={css`
-                zoom: ${zoom()};
-              `}
-            >
-              <For each={tracks()}>
-                {(track) => (
-                  <Column>
-                    <DeviceChainView
-                      deviceChain={track.chain}
-                      renderDummy={false}
-                    />
-                  </Column>
-                )}
-              </For>
+            <Column overflow={'hidden'} flex={1}>
+              <Row>
+                <Show when={selectedSampler()}>
+                  {(sampler) => <SamplerView sampler={sampler} />}
+                </Show>
+              </Row>
+              <Column
+                flex={1}
+                overflow={'auto'}
+                class={css`
+                  zoom: ${zoom()};
+                `}
+              >
+                <For each={tracks()}>
+                  {(track) => <TrackView track={track} />}
+                </For>
+              </Column>
             </Column>
           </Row>
         </Column>

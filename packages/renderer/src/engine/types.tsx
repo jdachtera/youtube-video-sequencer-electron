@@ -4,10 +4,12 @@ import type { SerializedDistortionDevice } from './device/Distortion';
 import type { SerializedFilterDevice } from './device/Filter';
 import type { SerializedPingPongDelayDevice } from './device/PingPongDelay';
 import type { SerializedReverbDevice } from './device/Reverb';
-import type { SerializedSamplerDevice } from './device/Sampler';
+import type { SerializedSequencerDevice } from './device/Sequencer';
+import type { SerializedSlice } from './device/Slice';
 
 export type SerializedDevice =
-  | SerializedSamplerDevice
+  | SerializedSequencerDevice
+  | SerializedSlice
   | SerializedDeviceChain
   | SerializedFilterDevice
   | SerializedPingPongDelayDevice
@@ -15,7 +17,9 @@ export type SerializedDevice =
   | SerializedDistortionDevice
   | SerializedCompressorDevice;
 
-export type DeepPartial<T> = T extends object
+export type DeepPartial<T> = T extends Array<unknown>
+  ? DeepPartial<T[number]>[]
+  : T extends object
   ? {
       [P in keyof T]?: DeepPartial<T[P]>;
     }
@@ -27,3 +31,7 @@ export const subdivisions = [
 ];
 
 export const subdivisionTypes = ['n', 't', 'n.'] as const;
+
+type test = {
+  bla: { b: 1 }[];
+};

@@ -10,7 +10,6 @@ export const LoadFileButton = (
     'label',
     'class',
     'classList',
-    'className',
   ]);
 
   return (
