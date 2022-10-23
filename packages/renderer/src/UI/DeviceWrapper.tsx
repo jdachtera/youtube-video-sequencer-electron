@@ -1,5 +1,5 @@
 import { css } from '@emotion/css';
-import { BiCompass } from 'solid-icons/bi';
+import { BiRegularCompass } from 'solid-icons/bi';
 import type { JSX } from 'solid-js';
 import { splitProps, Show } from 'solid-js';
 import { styled } from '../emotion-solid';
@@ -40,7 +40,7 @@ export const DeviceWrapper = (
     >
       <RackEar onClick={(event) => props.onClickLeftRackEar?.(event)} />
       <Show when={props.showLogo}>
-        <BiCompass
+        <BiRegularCompass
           color="lavender"
           size="64px"
           class="custom-icon"

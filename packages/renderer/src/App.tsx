@@ -56,7 +56,7 @@ export function App() {
             <SidePanel engine={engine} />
             <Column overflow={'hidden'} flex={1}>
               <Row>
-                <Show when={selectedSampler()}>
+                <Show keyed when={selectedSampler()}>
                   {(sampler) => <SamplerView sampler={sampler} />}
                 </Show>
               </Row>

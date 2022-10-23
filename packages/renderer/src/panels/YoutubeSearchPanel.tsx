@@ -73,7 +73,7 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
           </ul>
         </Column>
       </Suspense>
-      <Show when={selectedVideoInfo()}>
+      <Show keyed when={selectedVideoInfo()}>
         {(item) => (
           <video
             ref={playerRef}

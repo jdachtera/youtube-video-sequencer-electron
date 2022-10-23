@@ -195,7 +195,7 @@ export const SoundsDotComPanel = (props: { engine: Engine }) => {
         </ul>
       </Column>
 
-      <Show when={selectedResult()}>
+      <Show keyed when={selectedResult()}>
         {(item) => (
           <audio
             ref={playerRef}

@@ -169,7 +169,7 @@ export const LocalFilesPanel = (props: { engine: Engine }) => {
           </For>
         </ul>
       </Column>
-      <Show when={selectedResult()}>
+      <Show keyed when={selectedResult()}>
         {(item) => {
           const [dataUrl] = createResource(async () => {
             const file = await resolveFileUrl(item.url);

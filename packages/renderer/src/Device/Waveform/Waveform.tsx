@@ -1,24 +1,20 @@
 import { css } from '@emotion/css';
 import type { Accessor, JSX } from 'solid-js';
 import {
+  For,
   createEffect,
   createMemo,
   createSignal,
   splitProps,
   Show,
-  For,
-  batch,
   createUniqueId,
-  onCleanup,
-  untrack,
 } from 'solid-js';
 import { Row } from '../../UI/Grid';
 import { randomColor } from '../../engine/helpers';
 import { Canvas } from './Canvas';
+import { Region } from './Region';
 import { drawWaveformWithPeaks } from './drawFunctions';
 import { warmupCache } from './getWaveformPeaks';
-
-export type Region = { id: string; color: string; start: number; end: number };
 
 export const Waveform = (
   allProps: {
@@ -51,7 +47,7 @@ export const Waveform = (
   const duration = createMemo(() => allProps.buffer?.duration ?? 0);
   const [progress, setProgress] = createSignal(0);
 
-  const [newRegionId, setNewRegionId] = createSignal<string>();
+  const [newRegion, setNewRegion] = createSignal<Region>();
 
   createEffect(() => {
     const data = rawData();
@@ -215,9 +211,7 @@ export const Waveform = (
               scrollableWidth > 0 ? scrollLeft / scrollableWidth : 0;
             const maxPosition = duration() - duration() / props.zoom;
 
-            updateState({
-              position: maxPosition * scrollAmount,
-            });
+            updateState({ position: maxPosition * scrollAmount });
           }}
         >
           <div
@@ -228,173 +222,63 @@ export const Waveform = (
             onMouseDown={(event) => {
               if (props.regions === undefined) return;
               event.preventDefault();
-
               const mouseDownPosition = getPosition(event.clientX);
-              const handleMouseMove = (event: MouseEvent) => {
-                event.preventDefault();
-                scrollDivRef()?.removeEventListener(
-                  'mousemove',
-                  handleMouseMove,
-                );
-                const id = createUniqueId();
-                const color = randomColor();
+
+              const onMouseMove = (event: MouseEvent) => {
                 const mouseMovePosition = getPosition(event.clientX);
 
-                const region = {
-                  id,
-                  color,
-                  start: Math.min(mouseDownPosition, mouseMovePosition),
-                  end: Math.max(mouseDownPosition, mouseMovePosition),
-                };
+                const createdRegion = newRegion();
+                if (!createdRegion) {
+                  const id = createUniqueId();
+                  const color = randomColor();
 
-                setNewRegionId(id);
-                props.onCreateRegion?.(region);
+                  const region = {
+                    id,
+                    color,
+                    start: Math.min(mouseDownPosition, mouseMovePosition),
+                    end: Math.max(mouseDownPosition, mouseMovePosition),
+                  };
+
+                  setNewRegion(region);
+                  props.onCreateRegion?.(region);
+                } else {
+                  const region = {
+                    ...createdRegion,
+                    start: Math.min(mouseDownPosition, mouseMovePosition),
+                    end: Math.max(mouseDownPosition, mouseMovePosition),
+                  };
+
+                  props.onUpdateRegion?.(region);
+                }
               };
-              scrollDivRef()?.addEventListener('mousemove', handleMouseMove);
+
+              const onMouseUp = () => {
+                setNewRegion(undefined);
+                scrollDivRef()?.removeEventListener('mousemove', onMouseMove);
+                scrollDivRef()?.removeEventListener('mouseup', onMouseUp);
+              };
+
+              scrollDivRef()?.addEventListener('mousemove', onMouseMove);
+              scrollDivRef()?.addEventListener('mouseup', onMouseUp);
             }}
             ref={setScrollDivRef}
           >
-            {props.regions?.map((region) => (
-              <Region
-                isDragging={region().id === newRegionId()}
-                region={region()}
-                duration={duration()}
-                onUpdateRegion={(region) => {
-                  setNewRegionId(undefined);
-                  props.onUpdateRegion?.(region);
-                }}
-                onClickRegion={props.onClickRegion}
-                onDblClickRegion={props.onDblClickRegion}
-                getPosition={getPosition}
-              />
-            ))}
+            <For each={props.regions}>
+              {(region) => (
+                <Region
+                  region={region()}
+                  duration={duration()}
+                  onUpdateRegion={(region) => props.onUpdateRegion?.(region)}
+                  onClickRegion={props.onClickRegion}
+                  onDblClickRegion={props.onDblClickRegion}
+                  getPosition={getPosition}
+                />
+              )}
+            </For>
           </div>
         </Row>
       </Row>
     </Show>
-  );
-};
-
-const regionDragHandles = ['LEFT', 'MIDDLE', 'RIGHT'] as const;
-type RegionDragHandle = typeof regionDragHandles[number];
-
-const Region = (props: {
-  region: Region;
-  duration: number;
-  onUpdateRegion: (region: Partial<Region> & Pick<Region, 'id'>) => void;
-  onClickRegion?: (region: Region, event: MouseEvent) => void;
-  onDblClickRegion?: (region: Region, event: MouseEvent) => void;
-  getPosition: (clientX: number) => number;
-  isDragging?: boolean;
-}) => {
-  const [dragHandle, setDragHandle] = createSignal<RegionDragHandle>('LEFT');
-  const [initialRegion, setInitialRegion] = createSignal(
-    untrack(() => ({ ...props.region })),
-  );
-  const [isDragging, setIsDragging] = createSignal(
-    untrack(() => props.isDragging ?? false),
-  );
-
-  const [offset, setOffset] = createSignal(0);
-
-  const handleMouseMove = (event: MouseEvent) => {
-    event.preventDefault();
-    const position = props.getPosition(event.clientX);
-
-    switch (dragHandle()) {
-      case 'LEFT':
-        props.onUpdateRegion({
-          id: props.region.id,
-          start: Math.min(position, initialRegion().end),
-          end: Math.max(position, initialRegion().end),
-        });
-        break;
-      case 'RIGHT':
-        props.onUpdateRegion({
-          id: props.region.id,
-          start: Math.min(position, initialRegion().start),
-          end: Math.max(position, initialRegion().start),
-        });
-        break;
-      case 'MIDDLE':
-        props.onUpdateRegion({
-          id: props.region.id,
-          start: position - offset(),
-          end:
-            position - offset() + (initialRegion().end - initialRegion().start),
-        });
-    }
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  const cleanup = () => {
-    window.removeEventListener('mousemove', handleMouseMove);
-    window.removeEventListener('mouseup', handleMouseUp);
-  };
-
-  createEffect(() => {
-    if (isDragging()) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-    } else {
-      cleanup();
-    }
-  });
-
-  onCleanup(() => cleanup());
-
-  return (
-    <div
-      class={css`
-        display: flex;
-        justify-content: space-between;
-        position: absolute;
-        top: 0;
-        height: 100%;
-        opacity: 0.7;
-      `}
-      style={{
-        width: `${
-          ((props.region.end - props.region.start) / props.duration) * 100
-        }%`,
-        left: `${(props.region.start / props.duration) * 100}%`,
-        'background-color': props.region.color,
-      }}
-    >
-      <For each={regionDragHandles}>
-        {(handleName) => (
-          <div
-            class={css`
-              border-left: 5px rgba(0, 0, 0, 0) solid;
-              height: 100%;
-              cursor: ${handleName === 'MIDDLE' ? 'move' : 'col-resize'};
-              ${handleName === 'MIDDLE' ? 'flex: 1' : ''}
-            `}
-            onMouseDown={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              batch(() => {
-                setDragHandle(handleName);
-                setInitialRegion({ ...props.region });
-                setOffset(
-                  handleName === 'MIDDLE'
-                    ? props.getPosition(event.clientX) - props.region.start
-                    : 0,
-                );
-                setIsDragging(true);
-              });
-            }}
-            onClick={props.onClickRegion && [props.onClickRegion, props.region]}
-            onDblClick={
-              props.onDblClickRegion && [props.onDblClickRegion, props.region]
-            }
-          ></div>
-        )}
-      </For>
-    </div>
   );
 };
 

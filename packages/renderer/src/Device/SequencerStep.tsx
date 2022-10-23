@@ -186,6 +186,7 @@ export const SequencerStep = (allProps: SequencerStepProps) => {
     >
       <Switch>
         <Match
+          keyed
           when={
             (props.mode === 'play' || props.mode === 'reverse') && props.mode
           }
@@ -204,6 +205,7 @@ export const SequencerStep = (allProps: SequencerStepProps) => {
           )}
         </Match>
         <Match
+          keyed
           when={
             (props.mode === 'playbackRate' ||
               props.mode === 'pitch' ||

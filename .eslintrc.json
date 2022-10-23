@@ -45,6 +45,7 @@
      * Just for beauty
      */
     "quotes": ["warn", "single"],
-    "prettier/prettier": ["error"]
+    "prettier/prettier": ["error"],
+    "import/no-unresolved": 1
   }
 }

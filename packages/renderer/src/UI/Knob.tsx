@@ -174,8 +174,8 @@ const MoogKnob = (
           style={{
             position: 'relative',
             padding: '10px',
-            width: size(),
-            height: size(),
+            width: `${size()}px`,
+            height: `${size()}px`,
           }}
         >
           <div style={{ position: 'relative' }}>
@@ -210,7 +210,7 @@ const MoogKnob = (
                 border-radius: 100%;
                 box-shadow: 4px 4px 8px 4px rgba(0, 0, 0, 0.4);
               `}
-            ></div>
+            />
             <div
               class={css`
                 position: absolute;

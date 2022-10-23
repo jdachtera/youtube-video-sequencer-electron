@@ -13,7 +13,7 @@ type KeyValue<T> = {
   };
 }[keyof T];
 
-export function keyValueEntries<T>(obj: T) {
+export function keyValueEntries<T extends Record<string, unknown>>(obj: T) {
   return Object.entries(obj).map(([key, value]) => ({
     key,
     value,
@@ -22,7 +22,7 @@ export function keyValueEntries<T>(obj: T) {
   }>[];
 }
 
-export function entries<T>(obj: T): Entry<T>[] {
+export function entries<T extends Record<string, unknown>>(obj: T): Entry<T>[] {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
   return Object.entries(obj) as any;
 }

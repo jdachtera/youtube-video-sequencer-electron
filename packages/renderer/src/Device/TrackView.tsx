@@ -28,12 +28,16 @@ export const TrackView = (props: { track: Track }) => {
   );
 
   return (
-    <Row>
+    <Row classList={{ Track: true }}>
       <DeviceWrapper
         hidden={!viewMode.channel}
         onClickLeftRackEar={() =>
           props.track.set({ collapsed: !trackState.collapsed })
         }
+        onClickRightRackEar={() => {
+          if (!confirm('Really remove track?')) return;
+          props.track.engine.removeTrack(props.track);
+        }}
         background={trackState.color}
       >
         <ScreenPrintBackground background={'rgba(255,255,255,0.2)'}>

@@ -240,7 +240,7 @@ export const FindSlicesPanel = (props: { engine: Engine }) => {
         </ul>
       </Column>
 
-      <Show when={sourceInfo()}>
+      <Show keyed when={sourceInfo()}>
         {(item) => (
           <audio
             ref={playerRef}
@@ -253,7 +253,7 @@ export const FindSlicesPanel = (props: { engine: Engine }) => {
               src={`${item.sourceUrl}#t=${selectedResult()?.start ?? 0},${
                 selectedResult()?.end ?? 0
               }`}
-            ></source>
+            />
           </audio>
         )}
       </Show>

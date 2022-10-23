@@ -35,9 +35,7 @@ export const DeviceView = (props: {
         return (
           <DeviceWrapper
             background={props.device.color}
-            classList={{
-              device: true,
-            }}
+            classList={{ device: true }}
             onClickLeftRackEar={() => {
               props.device.set({ collapsed: !props.device.collapsed });
             }}
@@ -72,62 +70,60 @@ export const DeviceView = (props: {
             >
               <Switch>
                 <Match
+                  keyed
                   when={props.device instanceof FilterDevice && props.device}
                 >
-                  {(device) => <FilterView filter={device}></FilterView>}
+                  {(device) => <FilterView filter={device} />}
                 </Match>
                 <Match
+                  keyed
                   when={
                     props.device instanceof PingPongDelayDevice && props.device
                   }
                 >
-                  {(device) => (
-                    <PingPongDelayView
-                      pingPongDelay={device}
-                    ></PingPongDelayView>
-                  )}
+                  {(device) => <PingPongDelayView pingPongDelay={device} />}
                 </Match>
                 <Match
+                  keyed
                   when={
                     props.device instanceof DistortionDevice && props.device
                   }
                 >
-                  {(device) => (
-                    <DistortionView distortion={device}></DistortionView>
-                  )}
+                  {(device) => <DistortionView distortion={device} />}
                 </Match>
                 <Match
+                  keyed
                   when={
                     props.device instanceof DistortionDevice && props.device
                   }
                 >
-                  {(device) => (
-                    <DistortionView distortion={device}></DistortionView>
-                  )}
+                  {(device) => <DistortionView distortion={device} />}
                 </Match>
                 <Match
+                  keyed
                   when={
                     props.device instanceof CompressorDevice && props.device
                   }
                 >
-                  {(device) => (
-                    <CompressorView compressor={device}></CompressorView>
-                  )}
+                  {(device) => <CompressorView compressor={device} />}
                 </Match>
                 <Match
+                  keyed
                   when={props.device instanceof ReverbDevice && props.device}
                 >
-                  {(device) => <ReverbView reverb={device}></ReverbView>}
+                  {(device) => <ReverbView reverb={device} />}
                 </Match>
                 <Match
+                  keyed
                   when={props.device instanceof SequencerDevice && props.device}
                 >
                   {(device) => <PatternEditor sequencer={device} />}
                 </Match>
-                <Match when={props.device instanceof Slice && props.device}>
-                  {(device) => (
-                    <SamplerSliceView slice={device}></SamplerSliceView>
-                  )}
+                <Match
+                  keyed
+                  when={props.device instanceof Slice && props.device}
+                >
+                  {(device) => <SamplerSliceView slice={device} />}
                 </Match>
               </Switch>
             </div>
@@ -135,10 +131,8 @@ export const DeviceView = (props: {
         );
       }}
     >
-      <Match when={props.device instanceof DeviceChain && props.device}>
-        {(deviceChain) => (
-          <DeviceChainView deviceChain={deviceChain}></DeviceChainView>
-        )}
+      <Match keyed when={props.device instanceof DeviceChain && props.device}>
+        {(deviceChain) => <DeviceChainView deviceChain={deviceChain} />}
       </Match>
     </Switch>
   );

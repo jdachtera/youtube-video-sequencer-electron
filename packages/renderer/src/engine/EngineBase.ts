@@ -123,7 +123,11 @@ export const createArraySignalFromEventEmitter = <
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const createStoreFromEventEmitter = <T, E extends TypedEmitter<any>>(
+export const createStoreFromEventEmitter = <
+  T extends Record<string, unknown>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  E extends TypedEmitter<any>,
+>(
   eventEmitter: Accessor<E> | E,
   callback: (eventEmitter: E) => T,
   eventOrEvents: Parameters<E['on']>[0] | Parameters<E['on']>[0][],

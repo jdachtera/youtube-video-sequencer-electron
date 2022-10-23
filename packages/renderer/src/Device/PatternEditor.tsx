@@ -223,11 +223,11 @@ export const FollowupActionControls = (props: {
         }}
       />
 
-      <Show when={props.followupAction}>
+      <Show keyed when={props.followupAction}>
         {(followupAction) => {
           return (
             <>
-              <Show when={followupAction.type !== 'no'}>
+              <Show keyed when={followupAction.type !== 'no'}>
                 <ButtonWithLabel
                   label={'Linked'}
                   labelOnButton
@@ -239,7 +239,7 @@ export const FollowupActionControls = (props: {
                   }}
                 />
               </Show>
-              <Show when={!followupAction.linked && followupAction}>
+              <Show keyed when={!followupAction.linked && followupAction}>
                 {(followupAction) => (
                   <NumberInputWithArrowButtons
                     label={'Time'}
@@ -254,7 +254,7 @@ export const FollowupActionControls = (props: {
                   />
                 )}
               </Show>
-              <Show when={followupAction.linked && followupAction}>
+              <Show keyed when={followupAction.linked && followupAction}>
                 {(followupAction) => (
                   <NumberInputWithArrowButtons
                     label={'Multiplicator'}
@@ -269,7 +269,10 @@ export const FollowupActionControls = (props: {
                   />
                 )}
               </Show>
-              <Show when={followupAction.type === 'jump' && followupAction}>
+              <Show
+                keyed
+                when={followupAction.type === 'jump' && followupAction}
+              >
                 {(followupAction) => (
                   <NumberInputWithArrowButtons
                     label={'Target'}
