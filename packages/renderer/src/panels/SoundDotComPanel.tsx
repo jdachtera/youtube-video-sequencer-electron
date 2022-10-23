@@ -17,7 +17,7 @@ import { BrowserListItem } from './List';
 const types = ['One-shot', 'Loop'] as const;
 
 export const SoundsDotComPanel = (props: { engine: Engine }) => {
-  const [searchTerm, setSearchTerm] = createSignal('breakbeat');
+  const [searchTerm, setSearchTerm] = createSignal('Kick');
 
   const [selectedType, setSelectedType] =
     createSignal<typeof types[number]>('One-shot');

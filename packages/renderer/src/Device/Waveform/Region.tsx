@@ -1,5 +1,5 @@
 import { css } from '@emotion/css';
-import { createEffect, onCleanup } from 'solid-js';
+import { createEffect, onCleanup, For } from 'solid-js';
 import { createStore } from 'solid-js/store';
 
 export type Region = { id: string; color: string; start: number; end: number };
@@ -54,15 +54,16 @@ export const Region = (props: {
     }
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = (event: MouseEvent) => {
     setState({ initialRegion: undefined });
+    onClickRegion(event);
   };
 
   const onDragHandleMouseDown = (
     event: MouseEvent,
     dragHandle: RegionDragHandle,
   ) => {
-    event.stopImmediatePropagation();
+    event.stopPropagation();
     setState({
       dragHandle,
       initialRegion: props.region,
@@ -87,6 +88,10 @@ export const Region = (props: {
     }
   });
 
+  const onClickRegion = (event: MouseEvent) => {
+    props.onClickRegion?.(props.region, event);
+  };
+
   onCleanup(() => cleanup());
 
   return (
@@ -107,24 +112,21 @@ export const Region = (props: {
         'background-color': props.region.color,
       }}
     >
-      <RegionDragHandle
-        handleName={'LEFT'}
-        onMouseDown={onDragHandleMouseDown}
-      />
-      <RegionDragHandle
-        handleName={'MIDDLE'}
-        onMouseDown={onDragHandleMouseDown}
-      />
-      <RegionDragHandle
-        handleName={'RIGHT'}
-        onMouseDown={onDragHandleMouseDown}
-      />
+      <For each={regionDragHandles}>
+        {(dragHandle) => (
+          <RegionDragHandle
+            handleName={dragHandle}
+            onMouseDown={onDragHandleMouseDown}
+          />
+        )}
+      </For>
     </div>
   );
 };
 
 const RegionDragHandle = (props: {
   onMouseDown: (event: MouseEvent, handleName: RegionDragHandle) => void;
+
   handleName: RegionDragHandle;
 }) => {
   return (

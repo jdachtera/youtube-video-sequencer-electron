@@ -5,7 +5,7 @@ import type { Engine } from '../engine/Engine';
 import { BrowserListItem } from './List';
 
 export const YoutubeSearchPanel = (props: { engine: Engine }) => {
-  const [searchTerm, setSearchTerm] = createSignal('breakbeat');
+  const [searchTerm, setSearchTerm] = createSignal('Short Beat');
 
   const [results] = createResource(
     () => searchTerm(),

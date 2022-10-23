@@ -269,8 +269,12 @@ export const Waveform = (
                   region={region()}
                   duration={duration()}
                   onUpdateRegion={(region) => props.onUpdateRegion?.(region)}
-                  onClickRegion={props.onClickRegion}
-                  onDblClickRegion={props.onDblClickRegion}
+                  onClickRegion={(region, event) =>
+                    props.onClickRegion?.(region, event)
+                  }
+                  onDblClickRegion={(region, event) =>
+                    props.onDblClickRegion?.(region, event)
+                  }
                   getPosition={getPosition}
                 />
               )}
