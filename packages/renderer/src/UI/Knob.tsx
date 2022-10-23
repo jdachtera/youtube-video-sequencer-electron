@@ -1,5 +1,5 @@
 import { css } from '@emotion/css';
-import type { Component, ComponentProps, JSX, JSXElement } from 'solid-js';
+import type { ComponentProps, JSX, JSXElement } from 'solid-js';
 import {
   createEffect,
   createMemo,
@@ -8,7 +8,6 @@ import {
   splitProps,
   untrack,
 } from 'solid-js';
-import { Dynamic } from 'solid-js/web';
 import { LCDLabel } from '../UI/LCD';
 import { NumberInputWithArrowButtons } from '../UI/NumberInputWithArrowButtons';
 import MoogKnobSvg from '../svg/moog_knob.svg';
@@ -16,6 +15,8 @@ import { Label } from './Label';
 import { useAppTheme } from './theme';
 
 type KnobProps = {
+  image: string;
+  size: number;
   value?: number;
   min?: number;
   max?: number;
@@ -26,11 +27,6 @@ type KnobProps = {
   initialRotation?: number;
   onChange: (newValue: number) => void;
   style?: JSX.CSSProperties;
-  component: Component<{
-    onWheel: (event: WheelEvent) => void;
-    onMouseDown: (event: MouseEvent) => void;
-    rotation: number;
-  }>;
 };
 
 export const Knob = (props: KnobProps) => {
@@ -114,7 +110,7 @@ export const Knob = (props: KnobProps) => {
   });
 
   return (
-    <Dynamic
+    <div
       onWheel={(event: WheelEvent) => {
         event.preventDefault();
         handleChange(
@@ -128,9 +124,84 @@ export const Knob = (props: KnobProps) => {
         setLastPosition({ x: event.x, y: event.y });
         setIsDragging(true);
       }}
-      rotation={rotation()}
-      component={props.component}
-    />
+      style={{
+        position: 'relative',
+        padding: '10px',
+        width: `${props.size}px`,
+        height: `${props.size}px`,
+      }}
+    >
+      <div style={{ position: 'relative' }}>
+        <img
+          src={props.image}
+          width={props.size}
+          class={css`
+            width: ${props.size}px;
+            height: ${props.size}px;
+            display: block;
+            margin: 0 auto;
+          `}
+          style={{
+            transform: `rotate(${rotation()}deg)`,
+            margin: '0',
+            width: '100%',
+            height: '100%',
+          }}
+        />
+        <div
+          class={css`
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+            order: 1px outset #555;
+            border-radius: 100%;
+            box-shadow: 4px 4px 8px 4px rgba(0, 0, 0, 0.4);
+          `}
+        />
+        <div
+          class={css`
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+          `}
+        >
+          <div
+            class={css`
+              background: conic-gradient(
+                from 16deg at 50% 50%,
+                rgba(189, 189, 189, 1) 0%,
+                rgba(255, 255, 255, 0.71) 24%,
+                rgba(189, 189, 189, 1) 49%,
+                rgba(255, 255, 255, 0.6) 75%,
+                rgba(191, 191, 191, 1) 100%
+              );
+              //background-image: conic-gradient(#eee, #ddd, #aaa, #eee, #ddd, #aaa, #eee);
+              z-index: 999;
+              //width: 48px;
+              //height: 48px;
+              width: 55%;
+              height: 55%;
+              border-radius: 100%;
+              pointer-events: none;
+              border: 1px inset #eee;
+              box-shadow: 2px 1px 8px 3px rgba(0, 0, 0, 0.2);
+            `}
+          />
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -167,95 +238,15 @@ const MoogKnob = (
   return (
     <Knob
       {...knobProps}
+      size={size()}
+      image={MoogKnobSvg}
       initialRotation={30}
-      component={(props: { rotation: number }) => (
-        <div
-          {...props}
-          style={{
-            position: 'relative',
-            padding: '10px',
-            width: `${size()}px`,
-            height: `${size()}px`,
-          }}
-        >
-          <div style={{ position: 'relative' }}>
-            <img
-              src={MoogKnobSvg}
-              width={size()}
-              class={css`
-                width: ${size()}px;
-                height: ${size()}px;
-                display: block;
-                margin: 0 auto;
-              `}
-              style={{
-                transform: `rotate(${props.rotation}deg)`,
-                margin: '0',
-                width: '100%',
-                height: '100%',
-              }}
-            />
-            <div
-              class={css`
-                position: absolute;
-                left: 0;
-                right: 0;
-                top: 0;
-                bottom: 0;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                pointer-events: none;
-                order: 1px outset #555;
-                border-radius: 100%;
-                box-shadow: 4px 4px 8px 4px rgba(0, 0, 0, 0.4);
-              `}
-            />
-            <div
-              class={css`
-                position: absolute;
-                left: 0;
-                right: 0;
-                top: 0;
-                bottom: 0;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                pointer-events: none;
-              `}
-            >
-              <div
-                class={css`
-                  background: conic-gradient(
-                    from 16deg at 50% 50%,
-                    rgba(189, 189, 189, 1) 0%,
-                    rgba(255, 255, 255, 0.71) 24%,
-                    rgba(189, 189, 189, 1) 49%,
-                    rgba(255, 255, 255, 0.6) 75%,
-                    rgba(191, 191, 191, 1) 100%
-                  );
-                  //background-image: conic-gradient(#eee, #ddd, #aaa, #eee, #ddd, #aaa, #eee);
-                  z-index: 999;
-                  //width: 48px;
-                  //height: 48px;
-                  width: 55%;
-                  height: 55%;
-                  border-radius: 100%;
-                  pointer-events: none;
-                  border: 1px inset #eee;
-                  box-shadow: 2px 1px 8px 3px rgba(0, 0, 0, 0.2);
-                `}
-              />
-            </div>
-          </div>
-        </div>
-      )}
     />
   );
 };
 
 export const MoogKnobWithLabel = (
-  props: Omit<KnobProps, 'component'> & {
+  props: Omit<KnobProps, 'image' | 'size'> & {
     label?: JSXElement;
     size?: number;
   },
@@ -289,7 +280,7 @@ export const MoogKnobWithLabel = (
           max-height: ${size()}px;
         `}
       >
-        <MoogKnob {...knobProps} size={size()} />
+        <MoogKnob {...knobProps} image={MoogKnobSvg} size={size()} />
       </div>
       {/*
       <input
