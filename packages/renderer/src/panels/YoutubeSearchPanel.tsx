@@ -23,16 +23,11 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
 
     const result = await window.yt.getInfo(item.url);
 
-    const videoTracks = result.formats.filter(
-      (entry) => entry.hasVideo && entry.hasAudio,
-    );
+    const format = result.chooseFormat({
+      type: 'audio',
+    });
 
-    const sourceFormat = videoTracks
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      .sort((a, b) => (a.bitrate! < b.bitrate! ? 1 : -1))
-      .shift();
-
-    return sourceFormat?.url;
+    return format.url;
   });
 
   let playerRef: HTMLVideoElement | undefined;

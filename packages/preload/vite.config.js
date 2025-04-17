@@ -24,7 +24,6 @@ const config = {
     rollupOptions: {
       external: [
         'electron',
-        'ytdl-core',
         'youtube-search-without-api-key',
         ...builtinModules.flatMap((p) => [p, `node:${p}`]),
       ],

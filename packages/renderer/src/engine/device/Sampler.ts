@@ -89,6 +89,7 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
             ? base64ToArrayBuffer(base64StringOrBuffer)
             : base64StringOrBuffer;
 
+        if (!arrayBuffer) return;
         const audioBuffer = await getContext().decodeAudioData(arrayBuffer);
         this.buffer.set(audioBuffer);
 
@@ -114,9 +115,9 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
   };
 
   private async loadArrayBuffer() {
-    const { sourceUrl, title } = await fetchSliceUrlInfo(this.url);
+    const { buffer, title } = await fetchSliceUrlInfo(this.url);
     this.set({ title });
-    return await window.yt.fetchVideo(sourceUrl);
+    return buffer;
   }
 
   set(samplerPartial: Partial<SerializedSampler>) {

@@ -21,6 +21,8 @@ const ALLOWED_ORIGINS_AND_PERMISSIONS = new Map<
     | 'fullscreen'
     | 'openExternal'
     | 'unknown'
+    | 'clipboard-sanitized-write'
+    | 'window-placement'
   >
 >(
   import.meta.env.DEV && import.meta.env.VITE_DEV_SERVER_URL

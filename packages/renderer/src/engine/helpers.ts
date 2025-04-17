@@ -55,24 +55,22 @@ export async function fetchSliceUrlInfo(url: string) {
   if (url.includes('youtube.com')) {
     const result = await window.yt.getInfo(url);
 
-    const audioTracks = result.formats
-      .filter((entry) => !entry.hasVideo && entry.hasAudio)
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      .sort((a, b) => (a.audioBitrate! > b.audioBitrate! ? 1 : -1));
+    const format = result.chooseFormat({
+      type: 'audio',
+    });
 
-    const title = result.videoDetails.title;
+    if (!format.url) throw new Error('No url found');
 
-    for (const sourceFormat of audioTracks) {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const sourceUrl = sourceFormat.url;
-      const response = await fetch(sourceUrl, { method: 'HEAD' });
+    const response = await fetch(format.url);
 
-      if (response.ok) {
-        return { sourceUrl, title };
-      }
+    const buffer = await response.arrayBuffer();
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
+    if (!buffer) throw new Error('Download failed');
+
+    return {
+      title: result.basic_info.title,
+      buffer,
+    };
   }
 
   if (url.startsWith('http://local.file')) {
