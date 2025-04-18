@@ -18,18 +18,6 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
   const [selectedResult, setSelectedResult] =
     createSignal<NonNullable<ReturnType<typeof results>>[number]>();
 
-  const [selectedVideoInfo] = createResource(selectedResult, async (item) => {
-    if (!item) return;
-
-    const result = await window.yt.getInfo(item.url);
-
-    const format = result.chooseFormat({
-      type: 'audio',
-    });
-
-    return format.url;
-  });
-
   let playerRef: HTMLVideoElement | undefined;
 
   return (
@@ -68,17 +56,11 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
           </ul>
         </Column>
       </Suspense>
-      <Show keyed when={selectedVideoInfo()}>
+      <Show keyed when={selectedResult()}>
         {(item) => (
-          <video
-            ref={playerRef}
-            muted={false}
-            width={'100%'}
+          <iframe
             height={(360 / 640) * 300}
-            src={item}
-            autoplay
-            preload="metadata"
-            controls
+            src={`https://www.youtube.com/embed/${item.id.videoId}?autoplay=1&origin=${location.origin}&vq=tiny`}
           />
         )}
       </Show>

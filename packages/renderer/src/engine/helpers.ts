@@ -55,15 +55,7 @@ export async function fetchSliceUrlInfo(url: string) {
   if (url.includes('youtube.com')) {
     const result = await window.yt.getInfo(url);
 
-    const format = result.chooseFormat({
-      type: 'audio',
-    });
-
-    if (!format.url) throw new Error('No url found');
-
-    const response = await fetch(format.url);
-
-    const buffer = await response.arrayBuffer();
+    const buffer = await window.yt.fetchVideo(url);
 
     if (!buffer) throw new Error('Download failed');
 

@@ -3,12 +3,11 @@ import { search } from '@jdachtera/youtube-search-without-api-key';
 import type { VideoInfo } from 'youtubei.js/dist/src/parser/youtube';
 import type { Stream } from 'stream';
 
-const yt = {
-  async search(term: string) {
-    return await search(term);
-  },
-  getInfo: async (url: string) => {
-    const innertube = await Innertube.create({
+let innertubePromise: Promise<Innertube> | null = null;
+
+const getInnerTube = () => {
+  if (!innertubePromise) {
+    innertubePromise = Innertube.create({
       fetch: async (request: RequestInfo | URL, init?: RequestInit) => {
         // Modify the request
         // and send it to the proxy
@@ -17,11 +16,26 @@ const yt = {
         return fetch(request, init);
       },
     });
+  }
 
-    const parsedUrl = new URL(url);
-    const videoId = parsedUrl.searchParams.get('v');
+  return innertubePromise;
+};
 
-    if (!videoId) throw new Error('No video id found');
+const extractVideoId = (url: string) => {
+  const parsedUrl = new URL(url);
+  const videoId = parsedUrl.searchParams.get('v');
+  if (!videoId) throw new Error('No video id found');
+  return videoId;
+};
+
+const yt = {
+  async search(term: string) {
+    return await search(term);
+  },
+  getInfo: async (url: string) => {
+    const innertube = await getInnerTube();
+    const videoId = extractVideoId(url);
+
     const cacheKey = `video-info-cache-${videoId}`;
 
     const now = Date.now();
@@ -39,7 +53,6 @@ const yt = {
     } catch {
       const result = await innertube.getInfo(videoId);
 
-      console.log({ result });
       localStorage.setItem(
         cacheKey,
         JSON.stringify({ result, expiresAt: now + 1000 * 60 * 60 * 24 }),
@@ -49,9 +62,16 @@ const yt = {
   },
 
   fetchVideo: async (url: string): Promise<ArrayBuffer | string> => {
-    const response = await fetch(url);
+    const videoId = extractVideoId(url);
 
-    const buffer = await response.arrayBuffer();
+    const innertube = await getInnerTube();
+    const stream = await innertube.download(videoId, {
+      type: 'audio',
+      quality: 'bestefficiency',
+      format: 'mp4',
+    });
+
+    const buffer = await new Response(stream).arrayBuffer();
 
     return buffer;
   },
