@@ -1,5 +1,5 @@
 import { css } from '@emotion/css';
-import { createSignal, For, onCleanup, onMount } from 'solid-js';
+import { createSignal, For, onCleanup, onMount, Show } from 'solid-js';
 import { Time } from 'tone';
 import { debounce } from 'ts-debounce';
 import { ButtonGroup } from '../UI/ButtonGroup';
@@ -89,11 +89,21 @@ export const Toolbar = (props: { engine: Engine }) => {
   };
 
   const clear = () => {
+    if (
+      !window.confirm(
+        'Clear the entire project? Everything in the rack will be removed.',
+      )
+    ) {
+      return;
+    }
     props.engine.dispose();
   };
 
+  const [lastSaved, setLastSaved] = createSignal<number>();
+
   const saveToLocalStorage = debounce((engine: Engine) => {
     localStorage.setItem('track', JSON.stringify(engine.serialize()));
+    setLastSaved(Date.now());
   }, 500);
 
   const exportJSON = () => {
@@ -180,11 +190,15 @@ export const Toolbar = (props: { engine: Engine }) => {
           />
 
           <ButtonGroup>
-            <LoadFileButton label={'Load'} onChange={loadJSON} accept=".json" />
+            <LoadFileButton
+              label={'Import'}
+              onChange={loadJSON}
+              accept=".json"
+            />
             <ButtonWithLabel
               onClick={exportJSON}
               labelOnButton={true}
-              label={'Save'}
+              label={'Export'}
             />
             <MixdownButton engine={props.engine} />
             <ButtonWithLabel
@@ -193,6 +207,21 @@ export const Toolbar = (props: { engine: Engine }) => {
               label={'Clear all'}
             />
           </ButtonGroup>
+
+          <Show when={lastSaved()}>
+            <span
+              title="Your work is autosaved locally in this app"
+              class={css`
+                align-self: center;
+                margin: 0 6px;
+                font-size: 10px;
+                color: #8a8;
+                white-space: nowrap;
+              `}
+            >
+              ● Autosaved
+            </span>
+          </Show>
 
           <Row
             classList={{
