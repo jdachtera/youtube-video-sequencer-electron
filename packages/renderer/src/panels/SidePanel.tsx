@@ -14,10 +14,9 @@ import type { Engine } from '../engine/Engine';
 import { createStoreFromEventEmitter } from '../engine/EngineBase';
 import { FindSlicesPanel } from './FindSlicesPanel';
 import { LocalFilesPanel } from './LocalFilesPanel';
-import { SoundsDotComPanel } from './SoundDotComPanel';
 import { YoutubeSearchPanel } from './YoutubeSearchPanel';
 
-const tabs = ['YouTube', 'SliceDB', 'Sounds.com', 'LocalFiles'] as const;
+const tabs = ['YouTube', 'SliceDB', 'LocalFiles'] as const;
 export type SidePanelTab = typeof tabs[number];
 
 export const SidePanel = (props: { engine: Engine }) => {
@@ -105,9 +104,6 @@ export const SidePanel = (props: { engine: Engine }) => {
           </Match>
           <Match when={sidePanelState.activeTab === 'SliceDB'}>
             <FindSlicesPanel engine={props.engine} />
-          </Match>
-          <Match when={sidePanelState.activeTab === 'Sounds.com'}>
-            <SoundsDotComPanel engine={props.engine} />
           </Match>
           <Match when={sidePanelState.activeTab === 'LocalFiles'}>
             <LocalFilesPanel engine={props.engine} />

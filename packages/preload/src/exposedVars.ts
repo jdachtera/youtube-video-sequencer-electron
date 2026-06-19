@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ipcRenderer } from 'electron';
 import yt from './youtube';
-import soundsDotCom from './sounds';
 
 export type ExposedVars = typeof exposedVars;
 
@@ -32,7 +31,6 @@ const exposedVars = {
     },
   },
   yt,
-  soundsDotCom,
 };
 
 export default exposedVars;
