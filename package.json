@@ -126,6 +126,9 @@
       "solid-icons": "1.0.4",
       "prettier": "2.8.0",
       "caniuse-lite": "^1.0.30001799"
+    },
+    "patchedDependencies": {
+      "youtubei.js@17.0.1": "patches/youtubei.js@17.0.1.patch"
     }
   },
   "dependencies": {
