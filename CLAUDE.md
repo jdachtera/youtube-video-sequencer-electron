@@ -55,6 +55,9 @@ then `yarn build`, so keep `yarn.lock` in sync and the build green.
   the other breaks `build:renderer`. Keep `solid-js`, `vite-plugin-solid`
   (2.6.1, peer-compatible with solid 1.6), and the `babel-preset-solid`
   resolution moving together.
-- The Electron **GUI cannot run** in headless/root containers
-  (`Running as root without --no-sandbox`); rely on `yarn build` to validate
-  changes there, not `yarn start`.
+- The Electron **GUI won't launch via `yarn start`** in headless/root
+  containers (`Running as root without --no-sandbox`). To actually see the UI
+  there, use **`yarn screenshot`** — it builds, launches the app under Xvfb
+  with `--no-sandbox`, drives it with `playwright-core`, and writes a PNG.
+  (Outbound HTTPS may be blocked by the sandbox network policy, so the YouTube
+  panel can render empty — that's environmental, not a bug.)

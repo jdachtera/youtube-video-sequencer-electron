@@ -4,6 +4,10 @@ dist
 *.local
 thumbs.db
 
+# Screenshots produced by `yarn screenshot`
+/screenshot.png
+/electron-screenshot.png
+
 .eslintcache
 
 yarn-error.log
