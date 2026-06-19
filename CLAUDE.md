@@ -49,6 +49,18 @@ then `pnpm build`, so keep `pnpm-lock.yaml` in sync and the build green.
 
 ## Toolchain notes / gotchas
 
+- **Electron is pinned to 42** (Node 24 / Chromium 148). `.electron-vendors.cache.json`
+  feeds the vite build targets and `.browserslistrc`; regenerate both with
+  `node scripts/update-electron-vendors.js` after an Electron bump. Because the
+  Solid babel transform resolves `.browserslistrc`, `caniuse-lite` must be new
+  enough to know the Chromium version — it's pinned via `pnpm.overrides` for that
+  reason. `mainWindow.ts` sets `sandbox: false` so the preload keeps Node access.
+- **macOS packaging is unsigned** (`mac.identity: null` in
+  `.electron-builder.config.js`). `pnpm compile` (or `electron-builder --mac`)
+  builds a `.app`/`.dmg`/`.zip` for arm64 + x64; first launch needs right-click →
+  Open to clear Gatekeeper. Distribution needs an Apple Developer ID + notarization.
+  electron-builder must run on macOS to produce Mac artifacts.
+
 - **Vite 4 + rollup 3** are required: older `youtubei.js` used
   `import ... assert { type: 'json' }` (import assertions), which the older
   vite 3 / rollup 2 parser could not handle. `youtubei.js` is pinned to **v17**

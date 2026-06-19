@@ -30,7 +30,7 @@ const config = {
     },
   },
   define: {
-    'process.versions.node': '"16.0.0"',
+    'process.versions.node': '"24.0.0"',
     'process.env.NODE_ENV': '"development"',
     'process.nextTick': 'requestAnimationFrame',
   },

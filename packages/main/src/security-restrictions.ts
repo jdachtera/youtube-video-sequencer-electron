@@ -8,22 +8,9 @@ import { URL } from 'url';
  */
 const ALLOWED_ORIGINS_AND_PERMISSIONS = new Map<
   string,
-  Set<
-    | 'clipboard-read'
-    | 'media'
-    | 'display-capture'
-    | 'mediaKeySystem'
-    | 'geolocation'
-    | 'notifications'
-    | 'midi'
-    | 'midiSysex'
-    | 'pointerLock'
-    | 'fullscreen'
-    | 'openExternal'
-    | 'unknown'
-    | 'clipboard-sanitized-write'
-    | 'window-placement'
-  >
+  // Electron's permission union grows across versions; keep this as a plain
+  // string set so the allowlist (empty by default) doesn't have to track it.
+  Set<string>
 >(
   import.meta.env.DEV && import.meta.env.VITE_DEV_SERVER_URL
     ? [[new URL(import.meta.env.VITE_DEV_SERVER_URL).origin, new Set()]]

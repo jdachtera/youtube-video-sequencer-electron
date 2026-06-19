@@ -8,6 +8,10 @@ async function createWindow() {
     show: false, // Use 'ready-to-show' event to show window
     webPreferences: {
       nodeIntegration: true,
+      // Keep the renderer/preload unsandboxed: the preload relies on Node
+      // built-ins (and bundles youtubei.js). Newer Electron sandboxes renderers
+      // by default, so set this explicitly to preserve behaviour across the bump.
+      sandbox: false,
       webSecurity: false,
       webviewTag: false, // The webview tag is not recommended. Consider alternatives like iframe or Electron's BrowserView. https://www.electronjs.org/docs/latest/api/webview-tag#warning
       preload: join(__dirname, '../../preload/dist/index.cjs'),

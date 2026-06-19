@@ -3,8 +3,7 @@
   "description": "Youtube video Sequencer",
   "private": true,
   "engines": {
-    "node": ">=v16.13",
-    "npm": ">=8.1"
+    "node": ">=20.0.0"
   },
   "main": "packages/main/dist/index.cjs",
   "scripts": {
@@ -91,14 +90,14 @@
     "@types/babel__core": "^7.1.20",
     "@types/estree": "^1.0.7",
     "@types/file-saver": "^2.0.5",
-    "@types/node": "^18.11.11",
+    "@types/node": "^22.10.0",
     "@types/wicg-file-system-access": "^2020.9.5",
     "@typescript-eslint/eslint-plugin": "5.45.1",
     "@typescript-eslint/parser": "^5.45.1",
     "cross-env": "7.0.3",
     "csstype": "^3.1.1",
-    "electron": "^22.0.0",
-    "electron-builder": "23.6.0",
+    "electron": "^42.4.1",
+    "electron-builder": "^26.15.3",
     "electron-devtools-installer": "3.2.0",
     "eslint": "8.29.0",
     "eslint-config-prettier": "^8.5.0",
@@ -125,7 +124,8 @@
       "tone": "14.7.77",
       "@emotion/css": "11.10.5",
       "solid-icons": "1.0.4",
-      "prettier": "2.8.0"
+      "prettier": "2.8.0",
+      "caniuse-lite": "^1.0.30001799"
     }
   },
   "dependencies": {
@@ -134,7 +134,7 @@
     "@i2labs/dns": "^1.0.1",
     "@jdachtera/youtube-search-without-api-key": "^1.0.8",
     "@merged/solid-apollo": "^1.7.1",
-    "electron-updater": "5.3.0",
+    "electron-updater": "^6.8.9",
     "events": "^3.3.0",
     "file-saver": "^2.0.5",
     "graphql": "^16.6.0",
