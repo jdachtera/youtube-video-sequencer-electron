@@ -16,6 +16,7 @@ import { App } from './App';
       zoom: () => {
         //
       },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any;
   }
 
