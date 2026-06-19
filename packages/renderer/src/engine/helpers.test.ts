@@ -49,11 +49,11 @@ describe('fetchSliceUrlInfo', () => {
 
   it('derives a title from local file urls without touching the network', async () => {
     const result = await fetchSliceUrlInfo(
-      'http://local.file/dir/Cool Sample.wav',
+      'http://file.local:1/dir/Cool Sample.wav',
     );
 
     expect(result).toEqual({
-      sourceUrl: 'http://local.file/dir/Cool Sample.wav',
+      sourceUrl: 'http://file.local:1/dir/Cool Sample.wav',
       title: 'Cool Sample',
     });
   });

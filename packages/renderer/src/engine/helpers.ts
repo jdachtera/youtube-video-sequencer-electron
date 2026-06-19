@@ -65,7 +65,7 @@ export async function fetchSliceUrlInfo(url: string) {
     };
   }
 
-  if (url.startsWith('http://local.file')) {
+  if (url.startsWith('http://file.local')) {
     const title = url.split('/').pop()!.split('.').slice(0, -1).join('.');
 
     return { sourceUrl: url, title };
