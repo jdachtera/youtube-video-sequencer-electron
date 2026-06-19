@@ -1,6 +1,5 @@
 import { Innertube } from 'youtubei.js';
 import { search } from '@jdachtera/youtube-search-without-api-key';
-import type { VideoInfo } from 'youtubei.js/dist/src/parser/youtube';
 
 let innertubePromise: Promise<Innertube> | null = null;
 
@@ -31,7 +30,7 @@ const yt = {
   async search(term: string) {
     return await search(term);
   },
-  getInfo: async (url: string) => {
+  getInfo: async (url: string): Promise<{ basic_info: { title: string } }> => {
     const innertube = await getInnerTube();
     const videoId = extractVideoId(url);
 
@@ -43,14 +42,19 @@ const yt = {
       const cache = localStorage.getItem(cacheKey);
       if (!cache) throw new Error('No cache found');
       const cacheEntry = JSON.parse(cache) as {
-        result?: VideoInfo;
+        result?: { basic_info: { title: string } };
         expiresAt?: number;
       };
       if (!cacheEntry.result || (cacheEntry.expiresAt ?? 0) <= now)
         throw new Error('No cache found');
       return cacheEntry.result;
     } catch {
-      const result = await innertube.getInfo(videoId);
+      const info = await innertube.getInfo(videoId);
+
+      // Return a plain, structured-clone-safe object: the full VideoInfo is a
+      // class instance whose methods/getters can't cross the context bridge
+      // (that threw "An object could not be cloned"). Only the title is used.
+      const result = { basic_info: { title: info.basic_info?.title ?? '' } };
 
       localStorage.setItem(
         cacheKey,
