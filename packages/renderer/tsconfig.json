@@ -25,6 +25,7 @@
   "exclude": [
     "node_modules/@types/eslint-scope/node_modules/@types/eslint/helpers.d.ts",
     "node_modules/@types/react/index.d.ts",
+    "vitest.config.ts",
     "test",
     "release/build",
     "release/app/dist",

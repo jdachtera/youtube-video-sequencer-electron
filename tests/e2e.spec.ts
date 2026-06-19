@@ -1,12 +1,23 @@
-import type { ElectronApplication } from 'playwright';
-import { _electron as electron } from 'playwright';
+import type { ElectronApplication } from 'playwright-core';
+import { _electron as electron } from 'playwright-core';
 import { afterAll, beforeAll, expect, test } from 'vitest';
 import '../packages/preload/contracts.d.ts';
 
 let electronApp: ElectronApplication;
 
 beforeAll(async () => {
-  electronApp = await electron.launch({ args: ['.'] });
+  electronApp = await electron.launch({
+    // `--no-sandbox` is required to run Electron as root (CI/containers).
+    // `--ignore-certificate-errors` lets the renderer reach HTTPS hosts through
+    // the sandbox's TLS-intercepting proxy (whose CA Chromium doesn't trust).
+    args: [
+      '.',
+      '--no-sandbox',
+      '--disable-gpu',
+      '--disable-dev-shm-usage',
+      '--ignore-certificate-errors',
+    ],
+  });
 });
 
 afterAll(async () => {
