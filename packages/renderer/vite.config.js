@@ -55,7 +55,7 @@ const config = {
       ],
     },
     emptyOutDir: true,
-    brotliSize: false,
+    reportCompressedSize: false,
   },
   test: {
     environment: 'happy-dom',

@@ -61,11 +61,17 @@ then `pnpm build`, so keep `pnpm-lock.yaml` in sync and the build green.
   Open to clear Gatekeeper. Distribution needs an Apple Developer ID + notarization.
   electron-builder must run on macOS to produce Mac artifacts.
 
-- **Vite 4 + rollup 3** are required: older `youtubei.js` used
-  `import ... assert { type: 'json' }` (import assertions), which the older
-  vite 3 / rollup 2 parser could not handle. `youtubei.js` is pinned to **v17**
-  (v13 crashed on YouTube's current signature deciphering); its bundled `.d.ts`
-  use TS 5.0 `export type *`, so all three packages set `skipLibCheck`.
+- **Build toolchain is Vite 6 / Rollup 4 / esbuild 0.25 / Vitest 3.** This
+  matters for `youtubei.js`: v17 imports its `package.json` with the newer
+  `with { type: 'json' }` import-attributes syntax, which esbuild ≤ 0.18 (Vite 4)
+  could not parse — so `pnpm start`'s dev path failed. Vite 6's esbuild parses
+  `with` natively, so no dependency patch is needed. `youtubei.js` is pinned to
+  **v17** (v13 crashed on YouTube's current signature deciphering); its bundled
+  `.d.ts` use TS 5.0 `export type *`, so all three packages set `skipLibCheck`.
+- **`solid-js` stays pinned at 1.6.3.** `vite-plugin-solid` (2.11) peer-wants
+  solid ≥ 1.7, but the `babel-preset-solid` 1.6.16 `pnpm.overrides` pin controls
+  the actual transform, so the build stays solid-1.6-compatible (the peer warning
+  is advisory). Don't bump `solid-js` without moving `babel-preset-solid` with it.
 - **Audio download goes through `yt-dlp`, not `youtubei.js`.** Modern YouTube
   withholds stream URLs from JS extractors (SABR streaming + bot checks), so
   `youtubei.js` is metadata-only. `packages/main/src/youtubeDownload.ts` runs
@@ -75,12 +81,12 @@ then `pnpm build`, so keep `pnpm-lock.yaml` in sync and the build green.
   out of `preload/src/youtube.ts` — that module is also bundled into the
   renderer (the `index.tsx` web fallback), which can't import `electron`.
 - **SolidJS JSX compiler must match the runtime.** `solid-js` is pinned to
-  **1.6.3**, so `babel-preset-solid` is pinned to **1.6.16** via the
-  `resolutions` field in `package.json`. Newer `babel-preset-solid` emits
-  `setStyleProperty`, which solid-js 1.6 does not export — bumping one without
-  the other breaks `build:renderer`. Keep `solid-js`, `vite-plugin-solid`
-  (2.6.1, peer-compatible with solid 1.6), and the `babel-preset-solid`
-  resolution moving together.
+  **1.6.3**, so `babel-preset-solid` is pinned to **1.6.16** via `pnpm.overrides`.
+  Newer `babel-preset-solid` emits `setStyleProperty`, which solid-js 1.6 does
+  not export — bumping one without the other breaks `build:renderer`. The
+  override holds `babel-preset-solid` at 1.6.16 even though `vite-plugin-solid`
+  (2.11) would otherwise pull a newer one; keep `solid-js` and the
+  `babel-preset-solid` override moving together.
 - The Electron **GUI won't launch via `pnpm start`** in headless/root
   containers (`Running as root without --no-sandbox`). To actually see the UI
   there, use **`pnpm screenshot`** — it builds, launches the app under Xvfb
