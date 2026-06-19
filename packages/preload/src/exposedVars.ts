@@ -59,6 +59,9 @@ const exposedVars = {
     // Inspect / clear the on-disk audio cache (main process).
     getCacheSize: (): Promise<number> => ipcRenderer.invoke('yt:cache-size'),
     clearCache: (): Promise<number> => ipcRenderer.invoke('yt:clear-cache'),
+    // Resolve a local, seekable URL for previewing a video (main process).
+    getPreviewUrl: (url: string): Promise<string> =>
+      ipcRenderer.invoke('yt:preview', url),
   },
 };
 

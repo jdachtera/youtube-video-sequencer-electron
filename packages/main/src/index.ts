@@ -1,12 +1,15 @@
 import { app } from 'electron';
 import './security-restrictions';
 import { restoreOrCreateWindow } from './mainWindow';
+import { registerPreviewServer } from './previewServer';
 import { registerYoutubeDownload } from './youtubeDownload';
 
 /**
- * Expose the yt-dlp-backed audio download bridge to the renderer.
+ * Expose the yt-dlp-backed audio download + seekable video preview bridges to
+ * the renderer.
  */
 registerYoutubeDownload();
+registerPreviewServer();
 
 /**
  * Prevent multiple instances

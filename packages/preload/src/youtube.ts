@@ -86,6 +86,11 @@ const yt = {
   // Overridden in exposedVars.ts; the browser fallback has no on-disk cache.
   getCacheSize: async (): Promise<number> => 0,
   clearCache: async (): Promise<number> => 0,
+
+  // Overridden in exposedVars.ts; no local preview server in the browser.
+  getPreviewUrl: async (_url: string): Promise<string> => {
+    throw new Error('Video preview is only available in the desktop app.');
+  },
 };
 
 export default yt;

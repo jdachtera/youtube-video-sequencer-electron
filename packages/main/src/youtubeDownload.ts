@@ -63,7 +63,9 @@ let ensurePromise: Promise<string> | null = null;
  * stack follows redirects and honours the system proxy and certificate store,
  * unlike a raw `https` request.
  */
-const ensureBinary = (onProgress?: ProgressReporter): Promise<string> => {
+export const ensureBinary = (
+  onProgress?: ProgressReporter,
+): Promise<string> => {
   const dest = binaryPath();
   if (existsSync(dest)) return Promise.resolve(dest);
   if (ensurePromise) return ensurePromise;

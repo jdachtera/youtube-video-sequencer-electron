@@ -4,7 +4,6 @@ import {
   createSignal,
   ErrorBoundary,
   For,
-  onCleanup,
   Show,
   Suspense,
 } from 'solid-js';
@@ -46,37 +45,29 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
 
   const [selectedResult, setSelectedResult] = createSignal<Result>();
 
-  // Audio preview via the same yt-dlp path used for downloads (so previewing
-  // also warms the on-disk cache). The embedded YouTube <iframe> player can't
-  // play in-app — it fails CORS fetching the stream.
-  let audioRef: HTMLAudioElement | undefined;
+  // Seekable video preview served by the local streaming server in the main
+  // process (the embedded YouTube <iframe> player can't play in-app — it fails
+  // CORS fetching the stream).
+  let videoRef: HTMLVideoElement | undefined;
   const [previewUrl, setPreviewUrl] = createSignal<string>();
   const [loadingUrl, setLoadingUrl] = createSignal<string>();
 
-  const setPreviewSource = (objectUrl?: string) => {
-    const previous = previewUrl();
-    if (previous) URL.revokeObjectURL(previous);
-    setPreviewUrl(objectUrl);
-  };
-
-  onCleanup(() => setPreviewSource(undefined));
-
   const preview = async (item: Result) => {
     // Re-selecting the current item toggles playback.
-    if (selectedResult() === item && audioRef) {
-      if (audioRef.paused) void audioRef.play().catch(() => undefined);
-      else audioRef.pause();
+    if (selectedResult() === item && videoRef) {
+      if (videoRef.paused) void videoRef.play().catch(() => undefined);
+      else videoRef.pause();
       return;
     }
 
     setSelectedResult(item);
-    setPreviewSource(undefined);
+    setPreviewUrl(undefined);
     setLoadingUrl(item.url);
 
     try {
-      const buffer = await window.yt.fetchVideo(item.url);
+      const localUrl = await window.yt.getPreviewUrl(item.url);
       if (selectedResult() !== item) return; // selection moved on while loading
-      setPreviewSource(URL.createObjectURL(new Blob([buffer])));
+      setPreviewUrl(localUrl);
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown error';
       notify(`Couldn't preview "${item.title}": ${reason}`, 'error');
@@ -152,13 +143,14 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
             >
               {loadingUrl() === item.url ? 'Loading preview…' : item.title}
             </div>
-            <audio
-              ref={audioRef}
+            <video
+              ref={videoRef}
               src={previewUrl()}
               autoplay
               controls
               class={css`
                 width: 100%;
+                background: #000;
               `}
             />
           </div>
