@@ -1,5 +1,6 @@
 import { batch } from 'solid-js';
 import { getContext, ToneAudioBuffer } from 'tone';
+import { notify } from '../../notifications';
 import type { Engine } from '../Engine';
 import { EngineBase } from '../EngineBase';
 import type { PropertyUpdateEvents } from '../helpers';
@@ -63,37 +64,44 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
   emitChange = () => this.emit('change', this);
 
   private async load() {
-    console.log('load');
     this.isLoading = true;
     this._hasLoaded = false;
 
-    if (this.url.startsWith('http://file.local')) {
-      const file = await resolveFileUrl(this.url);
-      if (file) {
+    try {
+      if (this.url.startsWith('http://file.local')) {
+        const file = await resolveFileUrl(this.url);
+        if (!file) throw new Error('the local file could not be opened');
+
         const arrayBuffer = await loadFileAsBuffer(file);
         const audioBuffer = await getContext().decodeAudioData(arrayBuffer);
+        this.buffer.set(audioBuffer);
+      } else {
+        // Remote sources are cached as compressed files on disk by the main
+        // process; fetch the bytes (cache hit or fresh yt-dlp download) and
+        // decode them here.
+        const base64StringOrBuffer = await this.loadArrayBuffer();
 
+        const arrayBuffer =
+          typeof base64StringOrBuffer === 'string'
+            ? base64ToArrayBuffer(base64StringOrBuffer)
+            : base64StringOrBuffer;
+
+        if (!arrayBuffer) throw new Error('no audio was returned');
+
+        const audioBuffer = await getContext().decodeAudioData(arrayBuffer);
         this.buffer.set(audioBuffer);
       }
-    } else {
-      // Remote sources are cached as compressed files on disk by the main
-      // process; fetch the bytes (cache hit or fresh yt-dlp download) and decode
-      // them here.
-      const base64StringOrBuffer = await this.loadArrayBuffer();
-
-      const arrayBuffer =
-        typeof base64StringOrBuffer === 'string'
-          ? base64ToArrayBuffer(base64StringOrBuffer)
-          : base64StringOrBuffer;
-
-      if (!arrayBuffer) return;
-      const audioBuffer = await getContext().decodeAudioData(arrayBuffer);
-      this.buffer.set(audioBuffer);
+    } catch (error) {
+      // Surface the failure instead of leaving the slice spinning forever.
+      const reason = error instanceof Error ? error.message : 'unknown error';
+      notify(`Couldn't load "${this.title || this.url}": ${reason}`, 'error');
+    } finally {
+      // Always resolve waiters (hasLoaded) even on failure so the UI doesn't
+      // hang; the buffer simply stays empty and the slice won't play.
+      this.emit('load');
+      this.isLoading = false;
+      this._hasLoaded = true;
     }
-
-    this.emit('load');
-    this.isLoading = false;
-    this._hasLoaded = true;
   }
 
   hasLoaded = async () => {

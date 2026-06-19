@@ -6,6 +6,7 @@ import { SamplerView } from './Device/SamplerView';
 import { TrackView } from './Device/TrackView';
 import { GlobalStyles } from './UI/GlobalStyles';
 import { Column, Row } from './UI/Grid';
+import { Toaster } from './UI/Toaster';
 import { theme } from './UI/theme';
 import { apolloClient } from './apolloClient';
 import { ThemeProvider } from './emotion-solid';
@@ -39,6 +40,7 @@ export function App() {
     <ThemeProvider theme={theme}>
       <ApolloProvider client={apolloClient}>
         <GlobalStyles />
+        <Toaster />
 
         <Column
           class={css`
