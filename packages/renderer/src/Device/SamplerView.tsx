@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { css } from '@emotion/css';
-import { createSignal, onMount, onCleanup, createEffect } from 'solid-js';
+import { createSignal, onMount, onCleanup, createEffect, Show } from 'solid-js';
 import { Transport } from 'tone';
 import { AkaiButton } from '../UI/AkaiButton';
 import { LCDFrame, LCDLine } from '../UI/LCD';
@@ -17,6 +17,27 @@ import { Waveform } from './Waveform/Waveform';
 
 export const SamplerView = (props: { sampler: SamplerDevice }) => {
   const [waveformCenter, setWaveformCenter] = createSignal(0);
+
+  // Local view state so the sampler editor isn't a fixed, oversized panel:
+  // it can be collapsed to its header and its height dragged.
+  const [collapsed, setCollapsed] = createSignal(false);
+  const [waveHeight, setWaveHeight] = createSignal(180);
+
+  const startResize = (event: MouseEvent) => {
+    event.preventDefault();
+    const startY = event.clientY;
+    const startHeight = waveHeight();
+    const onMove = (moveEvent: MouseEvent) =>
+      setWaveHeight(
+        Math.max(80, Math.min(600, startHeight + (moveEvent.clientY - startY))),
+      );
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
 
   const zoom = createSignalFromEventEmitter(
     () => props.sampler,
@@ -87,16 +108,14 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
 
   return (
     <div
-      classList={{
-        [css`
-          border: 2px oustet white;
-          border-radius: 8px;
-          background: radial-gradient(#bdbdbd 0%, #f3f3f3c4 100%);
-          display: flex;
-          flex: 1;
-          margin: 0px 10px;
-        `]: true,
-      }}
+      class={css`
+        border: 2px outset white;
+        border-radius: 8px;
+        background: radial-gradient(#bdbdbd 0%, #f3f3f3c4 100%);
+        display: flex;
+        flex: 1;
+        margin: 0px 10px;
+      `}
     >
       <LCDFrame
         class={css`
@@ -108,70 +127,120 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
             class={css`
               display: flex;
               justify-content: space-between;
+              align-items: center;
+              gap: 8px;
             `}
           >
-            {props.sampler.url}
+            <span
+              class={css`
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+              `}
+            >
+              {props.sampler.title || props.sampler.url}
+            </span>
+            <span
+              class={css`
+                display: flex;
+                gap: 4px;
+                flex-shrink: 0;
+              `}
+            >
+              <AkaiButton
+                label={collapsed() ? '▸' : '▾'}
+                onClick={() => setCollapsed((value) => !value)}
+              />
+              <AkaiButton
+                label="x"
+                onClick={() =>
+                  props.sampler.engine.setCurrentSampler(undefined)
+                }
+              />
+            </span>
           </LCDLine>
-          <LCDLine
+
+          <Show when={!collapsed()}>
+            <LCDLine
+              class={css`
+                display: flex;
+                justify-content: space-between;
+              `}
+            >
+              <div>{formatTime(buffer()?.duration ?? 0)}s</div>
+              <div>{formatTime(position())}s</div>
+            </LCDLine>
+            <div>
+              Zoom:{' '}
+              <NumberInputWithArrowButtons
+                value={zoom()}
+                onChange={(zoom) => props.sampler.set({ zoom })}
+                parse={(value) => Math.round(parseFloat(value)) / 100}
+                format={(value) => Math.round(value * 100).toString()}
+              />
+            </div>
+            <Waveform
+              buffer={buffer()}
+              zoom={zoom()}
+              position={position()}
+              cacheKey={props.sampler.url}
+              onStateChange={(state) => props.sampler.set(state)}
+              regions={regions()}
+              onCreateRegion={(region) =>
+                props.sampler.engine.createSliceTrack(
+                  Slice.normalizeData({ ...region, url: props.sampler.url }),
+                )
+              }
+              onUpdateRegion={(region) => {
+                props.sampler.findSlice(region.id)?.set(region);
+              }}
+              onClickRegion={(region) => {
+                props.sampler.findSlice(region.id)?.play();
+              }}
+              class={css`
+                width: 100%;
+                height: ${waveHeight()}px;
+              `}
+            />
+            {/* Drag to resize the waveform height. */}
+            <div
+              onMouseDown={startResize}
+              class={css`
+                height: 8px;
+                cursor: row-resize;
+                margin: 2px 0 -4px;
+                border-radius: 3px;
+                background: repeating-linear-gradient(
+                  90deg,
+                  #888,
+                  #888 2px,
+                  transparent 2px,
+                  transparent 5px
+                );
+                opacity: 0.5;
+                &:hover {
+                  opacity: 0.9;
+                }
+              `}
+            />
+          </Show>
+        </LCD>
+        <Show when={!collapsed()}>
+          <div
             class={css`
               display: flex;
-              justify-content: space-between;
+              justify-content: space-evenly;
+              margin-top: 20px;
+              padding: 0 5px;
             `}
           >
-            <div>{formatTime(buffer()?.duration ?? 0)}s</div>
-            <div>{formatTime(position())}s</div>
-          </LCDLine>
-          <div>
-            Zoom:{' '}
-            <NumberInputWithArrowButtons
-              value={zoom()}
-              onChange={(zoom) => props.sampler.set({ zoom })}
-              parse={(value) => Math.round(parseFloat(value)) / 100}
-              format={(value) => Math.round(value * 100).toString()}
-            />
+            <AkaiButton onClick={() => setZoom(1)} />
+            <AkaiButton onClick={() => setZoom(2)} />
+            <AkaiButton onClick={() => setZoom(3)} />
+            <AkaiButton onClick={() => setZoom(4)} />
+            <AkaiButton onClick={() => setZoom(5)} />
           </div>
-          <Waveform
-            buffer={buffer()}
-            zoom={zoom()}
-            position={position()}
-            cacheKey={props.sampler.url}
-            onStateChange={(state) => props.sampler.set(state)}
-            regions={regions()}
-            onCreateRegion={(region) =>
-              props.sampler.engine.createSliceTrack(
-                Slice.normalizeData({ ...region, url: props.sampler.url }),
-              )
-            }
-            onUpdateRegion={(region) => {
-              props.sampler.findSlice(region.id)?.set(region);
-            }}
-            onClickRegion={(region) => {
-              props.sampler.findSlice(region.id)?.play();
-            }}
-            class={css`
-              width: 800px;
-              height: 200px;
-            `}
-          />
-        </LCD>
-        <div
-          class={css`
-            display: flex;
-            justify-content: space-evenly;
-            margin-top: 20px;
-            padding: 0 5px;
-          `}
-        >
-          <AkaiButton onClick={() => setZoom(1)} />
-          <AkaiButton onClick={() => setZoom(2)} />
-          <AkaiButton onClick={() => setZoom(3)} />
-          <AkaiButton onClick={() => setZoom(4)} />
-          <AkaiButton onClick={() => setZoom(5)} />
-          <AkaiButton
-            label="x"
-            onClick={() => props.sampler.engine.setCurrentSampler(undefined)}
-          />
-        </div>
+        </Show>
       </LCDFrame>
     </div>
   );
