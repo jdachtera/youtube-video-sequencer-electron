@@ -4,12 +4,14 @@ import {
   createSignal,
   ErrorBoundary,
   For,
+  onCleanup,
   Show,
   Suspense,
 } from 'solid-js';
 import { Column } from '../UI/Grid';
 import { InputLCD } from '../UI/lcdStyles';
 import type { Engine } from '../engine/Engine';
+import { notify } from '../notifications';
 import { BrowserListItem } from './List';
 
 const messageStyle = css`
@@ -40,10 +42,48 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
     },
   );
 
-  const [selectedResult, setSelectedResult] =
-    createSignal<NonNullable<ReturnType<typeof results>>[number]>();
+  type Result = NonNullable<ReturnType<typeof results>>[number];
 
-  let playerRef: HTMLVideoElement | undefined;
+  const [selectedResult, setSelectedResult] = createSignal<Result>();
+
+  // Audio preview via the same yt-dlp path used for downloads (so previewing
+  // also warms the on-disk cache). The embedded YouTube <iframe> player can't
+  // play in-app — it fails CORS fetching the stream.
+  let audioRef: HTMLAudioElement | undefined;
+  const [previewUrl, setPreviewUrl] = createSignal<string>();
+  const [loadingUrl, setLoadingUrl] = createSignal<string>();
+
+  const setPreviewSource = (objectUrl?: string) => {
+    const previous = previewUrl();
+    if (previous) URL.revokeObjectURL(previous);
+    setPreviewUrl(objectUrl);
+  };
+
+  onCleanup(() => setPreviewSource(undefined));
+
+  const preview = async (item: Result) => {
+    // Re-selecting the current item toggles playback.
+    if (selectedResult() === item && audioRef) {
+      if (audioRef.paused) void audioRef.play().catch(() => undefined);
+      else audioRef.pause();
+      return;
+    }
+
+    setSelectedResult(item);
+    setPreviewSource(undefined);
+    setLoadingUrl(item.url);
+
+    try {
+      const buffer = await window.yt.fetchVideo(item.url);
+      if (selectedResult() !== item) return; // selection moved on while loading
+      setPreviewSource(URL.createObjectURL(new Blob([buffer])));
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'unknown error';
+      notify(`Couldn't preview "${item.title}": ${reason}`, 'error');
+    } finally {
+      setLoadingUrl(undefined);
+    }
+  };
 
   return (
     <Column flex={1} overflow={'hidden'}>
@@ -74,16 +114,7 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
                 <For each={results() ?? []}>
                   {(item) => (
                     <BrowserListItem
-                      onSelect={() => {
-                        if (selectedResult() === item) {
-                          if (playerRef?.paused) {
-                            playerRef?.play();
-                          } else {
-                            playerRef?.pause();
-                          }
-                        }
-                        setSelectedResult(item);
-                      }}
+                      onSelect={() => void preview(item)}
                       isSelected={selectedResult() === item}
                       name={item.title}
                       thumbnail={item.snippet.thumbnails.url as string}
@@ -103,10 +134,34 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
       </ErrorBoundary>
       <Show keyed when={selectedResult()}>
         {(item) => (
-          <iframe
-            height={(360 / 640) * 300}
-            src={`https://www.youtube.com/embed/${item.id.videoId}?autoplay=1&origin=${location.origin}&vq=tiny`}
-          />
+          <div
+            class={css`
+              padding: 8px;
+              border-top: 1px solid #3a3a3a;
+            `}
+          >
+            <div
+              class={css`
+                font-size: 11px;
+                color: #bbb;
+                margin-bottom: 4px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+              `}
+            >
+              {loadingUrl() === item.url ? 'Loading preview…' : item.title}
+            </div>
+            <audio
+              ref={audioRef}
+              src={previewUrl()}
+              autoplay
+              controls
+              class={css`
+                width: 100%;
+              `}
+            />
+          </div>
         )}
       </Show>
     </Column>

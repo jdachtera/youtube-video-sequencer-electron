@@ -8,6 +8,10 @@ async function createWindow() {
     show: false, // Use 'ready-to-show' event to show window
     webPreferences: {
       nodeIntegration: true,
+      // Let the search-panel audio preview start playing after its async
+      // (yt-dlp) fetch, which breaks the user-gesture chain Chromium normally
+      // requires for autoplay.
+      autoplayPolicy: 'no-user-gesture-required',
       // Keep the renderer/preload unsandboxed: the preload relies on Node
       // built-ins (and bundles youtubei.js). Newer Electron sandboxes renderers
       // by default, so set this explicitly to preserve behaviour across the bump.
