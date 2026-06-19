@@ -11,6 +11,7 @@ import {
   readdirSync,
   renameSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -198,8 +199,29 @@ const downloadAudio = async (
   }
 };
 
+/** Total size, in bytes, of the on-disk audio cache. */
+const cacheUsage = (): number => {
+  const dir = cacheDir();
+  if (!existsSync(dir)) return 0;
+  return readdirSync(dir).reduce((total, name) => {
+    try {
+      return total + statSync(join(dir, name)).size;
+    } catch {
+      return total;
+    }
+  }, 0);
+};
+
 /** Wire the renderer's `window.yt.fetchVideo` bridge to yt-dlp. */
 export const registerYoutubeDownload = (): void => {
+  ipcMain.handle('yt:cache-size', () => cacheUsage());
+
+  ipcMain.handle('yt:clear-cache', () => {
+    const freed = cacheUsage();
+    rmSync(cacheDir(), { recursive: true, force: true });
+    return freed;
+  });
+
   ipcMain.handle('yt:download', async (event, url: string) => {
     const report: ProgressReporter = (phase, progress) => {
       if (!event.sender.isDestroyed()) {

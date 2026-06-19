@@ -56,6 +56,9 @@ const exposedVars = {
       ipcRenderer.on('yt:download-progress', listener);
       return () => ipcRenderer.removeListener('yt:download-progress', listener);
     },
+    // Inspect / clear the on-disk audio cache (main process).
+    getCacheSize: (): Promise<number> => ipcRenderer.invoke('yt:cache-size'),
+    clearCache: (): Promise<number> => ipcRenderer.invoke('yt:clear-cache'),
   },
 };
 

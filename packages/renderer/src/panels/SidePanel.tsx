@@ -12,6 +12,7 @@ import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { Column, Row } from '../UI/Grid';
 import type { Engine } from '../engine/Engine';
 import { createStoreFromEventEmitter } from '../engine/EngineBase';
+import { CacheControl } from './CacheControl';
 import { FindSlicesPanel } from './FindSlicesPanel';
 import { LocalFilesPanel } from './LocalFilesPanel';
 import { YoutubeSearchPanel } from './YoutubeSearchPanel';
@@ -109,6 +110,7 @@ export const SidePanel = (props: { engine: Engine }) => {
             <LocalFilesPanel engine={props.engine} />
           </Match>
         </Switch>
+        <CacheControl />
       </Column>
       <Column
         class={css`

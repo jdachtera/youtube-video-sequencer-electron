@@ -78,6 +78,10 @@ const yt = {
   ): (() => void) => {
     return () => undefined;
   },
+
+  // Overridden in exposedVars.ts; the browser fallback has no on-disk cache.
+  getCacheSize: async (): Promise<number> => 0,
+  clearCache: async (): Promise<number> => 0,
 };
 
 export default yt;
