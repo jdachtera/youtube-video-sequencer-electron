@@ -52,6 +52,9 @@ const binaryPath = (): string =>
     process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp',
   );
 
+type DownloadPhase = 'binary' | 'audio' | 'done';
+type ProgressReporter = (phase: DownloadPhase, progress: number) => void;
+
 let ensurePromise: Promise<string> | null = null;
 
 /**
@@ -59,7 +62,7 @@ let ensurePromise: Promise<string> | null = null;
  * stack follows redirects and honours the system proxy and certificate store,
  * unlike a raw `https` request.
  */
-const ensureBinary = (): Promise<string> => {
+const ensureBinary = (onProgress?: ProgressReporter): Promise<string> => {
   const dest = binaryPath();
   if (existsSync(dest)) return Promise.resolve(dest);
   if (ensurePromise) return ensurePromise;
@@ -76,8 +79,19 @@ const ensureBinary = (): Promise<string> => {
         return;
       }
 
+      const contentLength = response.headers['content-length'];
+      const total =
+        Number(
+          Array.isArray(contentLength) ? contentLength[0] : contentLength,
+        ) || 0;
+      let received = 0;
+
       const file = createWriteStream(dest);
-      response.on('data', (chunk) => file.write(chunk));
+      response.on('data', (chunk) => {
+        file.write(chunk);
+        received += chunk.length;
+        if (total) onProgress?.('binary', received / total);
+      });
       response.on('end', () =>
         file.end(() => {
           try {
@@ -114,13 +128,16 @@ const toArrayBuffer = (buffer: Buffer): ArrayBuffer =>
  * yt-dlp. The fresh download is written to a temp directory (robust across
  * container formats) and then persisted to the cache before being returned.
  */
-const downloadAudio = async (url: string): Promise<ArrayBuffer> => {
+const downloadAudio = async (
+  url: string,
+  onProgress?: ProgressReporter,
+): Promise<ArrayBuffer> => {
   const cachePath = cachePathFor(url);
   if (existsSync(cachePath)) {
     return toArrayBuffer(readFileSync(cachePath));
   }
 
-  const binary = await ensureBinary();
+  const binary = await ensureBinary(onProgress);
   const workDir = mkdtempSync(join(tmpdir(), 'yvs-yt-'));
 
   try {
@@ -128,7 +145,7 @@ const downloadAudio = async (url: string): Promise<ArrayBuffer> => {
       const child = spawn(binary, [
         '--no-playlist',
         '--no-warnings',
-        '--no-progress',
+        '--newline',
         '-f',
         'bestaudio[ext=m4a]/bestaudio',
         '-o',
@@ -137,7 +154,20 @@ const downloadAudio = async (url: string): Promise<ArrayBuffer> => {
       ]);
 
       let stderr = '';
-      child.stderr.on('data', (chunk) => (stderr += chunk.toString()));
+      // yt-dlp prints "[download]  42.3%" lines (one per line thanks to
+      // --newline); surface them as audio-phase progress.
+      const reportProgress = (text: string) => {
+        const match = text.match(/\[download\]\s+(\d{1,3}(?:\.\d+)?)%/);
+        if (match) {
+          onProgress?.('audio', Math.min(0.99, Number(match[1]) / 100));
+        }
+      };
+      child.stdout.on('data', (chunk) => reportProgress(chunk.toString()));
+      child.stderr.on('data', (chunk) => {
+        const text = chunk.toString();
+        stderr += text;
+        reportProgress(text);
+      });
       child.on('error', reject);
       child.on('close', (code) => {
         if (code === 0) resolve();
@@ -170,5 +200,19 @@ const downloadAudio = async (url: string): Promise<ArrayBuffer> => {
 
 /** Wire the renderer's `window.yt.fetchVideo` bridge to yt-dlp. */
 export const registerYoutubeDownload = (): void => {
-  ipcMain.handle('yt:download', (_event, url: string) => downloadAudio(url));
+  ipcMain.handle('yt:download', async (event, url: string) => {
+    const report: ProgressReporter = (phase, progress) => {
+      if (!event.sender.isDestroyed()) {
+        event.sender.send('yt:download-progress', { url, phase, progress });
+      }
+    };
+
+    try {
+      return await downloadAudio(url, report);
+    } finally {
+      // Always emit a terminal event so the renderer clears the indicator,
+      // whether the download succeeded, hit the cache, or failed.
+      report('done', 1);
+    }
+  });
 };

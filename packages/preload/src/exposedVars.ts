@@ -36,6 +36,26 @@ const exposedVars = {
     // in the main process (see packages/main/src/youtubeDownload.ts).
     fetchVideo: (url: string): Promise<ArrayBuffer> =>
       ipcRenderer.invoke('yt:download', url),
+    // Subscribe to download progress emitted by the main process. Returns an
+    // unsubscribe function.
+    onDownloadProgress: (
+      callback: (progress: {
+        url: string;
+        phase: 'binary' | 'audio' | 'done';
+        progress: number;
+      }) => void,
+    ): (() => void) => {
+      const listener = (
+        _event: unknown,
+        payload: {
+          url: string;
+          phase: 'binary' | 'audio' | 'done';
+          progress: number;
+        },
+      ) => callback(payload);
+      ipcRenderer.on('yt:download-progress', listener);
+      return () => ipcRenderer.removeListener('yt:download-progress', listener);
+    },
   },
 };
 

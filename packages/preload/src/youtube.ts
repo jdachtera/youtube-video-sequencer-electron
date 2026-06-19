@@ -66,6 +66,18 @@ const yt = {
   fetchVideo: async (_url: string): Promise<ArrayBuffer> => {
     throw new Error('Audio download is only available in the desktop app.');
   },
+
+  // Overridden in exposedVars.ts with the real IPC subscription; the browser
+  // fallback has no main process to report download progress.
+  onDownloadProgress: (
+    _callback: (progress: {
+      url: string;
+      phase: 'binary' | 'audio' | 'done';
+      progress: number;
+    }) => void,
+  ): (() => void) => {
+    return () => undefined;
+  },
 };
 
 export default yt;

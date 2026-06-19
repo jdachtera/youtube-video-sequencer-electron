@@ -1,14 +1,16 @@
 import { css } from '@emotion/css';
 import { ApolloProvider } from '@merged/solid-apollo';
-import { For, Show } from 'solid-js';
+import { For, onCleanup, onMount, Show } from 'solid-js';
 import { Transport } from 'tone';
 import { SamplerView } from './Device/SamplerView';
 import { TrackView } from './Device/TrackView';
+import { Downloads } from './UI/Downloads';
 import { GlobalStyles } from './UI/GlobalStyles';
 import { Column, Row } from './UI/Grid';
 import { Toaster } from './UI/Toaster';
 import { theme } from './UI/theme';
 import { apolloClient } from './apolloClient';
+import { updateDownload } from './downloads';
 import { ThemeProvider } from './emotion-solid';
 import { Engine } from './engine/Engine';
 import { createSignalFromEventEmitter } from './engine/EngineBase';
@@ -36,11 +38,17 @@ export function App() {
     'currentSamplerChanged',
   );
 
+  onMount(() => {
+    const unsubscribe = window.yt.onDownloadProgress?.(updateDownload);
+    if (unsubscribe) onCleanup(unsubscribe);
+  });
+
   return (
     <ThemeProvider theme={theme}>
       <ApolloProvider client={apolloClient}>
         <GlobalStyles />
         <Toaster />
+        <Downloads />
 
         <Column
           class={css`
