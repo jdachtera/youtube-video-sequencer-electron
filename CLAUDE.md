@@ -7,7 +7,8 @@ Guidance for agents working in this repository.
 A YouTube video **sequencer** desktop app built on the `vite-electron-builder`
 boilerplate. UI is **SolidJS**; bundling is **Vite**; packaging is
 **electron-builder**. Audio is handled with **Tone.js**; data layer uses Apollo
-Client + GraphQL and IndexedDB (`idb`); YouTube access via `youtubei.js`.
+Client + GraphQL and IndexedDB (`idb`). YouTube **search + metadata** come from
+`youtubei.js`; **audio download** is delegated to the **`yt-dlp`** binary.
 
 ## Package manager
 
@@ -45,9 +46,19 @@ then `yarn build`, so keep `yarn.lock` in sync and the build green.
 
 ## Toolchain notes / gotchas
 
-- **Vite 4 + rollup 3** are required: `youtubei.js` v13 uses
+- **Vite 4 + rollup 3** are required: older `youtubei.js` used
   `import ... assert { type: 'json' }` (import assertions), which the older
-  vite 3 / rollup 2 parser could not handle.
+  vite 3 / rollup 2 parser could not handle. `youtubei.js` is pinned to **v17**
+  (v13 crashed on YouTube's current signature deciphering); its bundled `.d.ts`
+  use TS 5.0 `export type *`, so all three packages set `skipLibCheck`.
+- **Audio download goes through `yt-dlp`, not `youtubei.js`.** Modern YouTube
+  withholds stream URLs from JS extractors (SABR streaming + bot checks), so
+  `youtubei.js` is metadata-only. `packages/main/src/youtubeDownload.ts` runs
+  the `yt-dlp` binary in the **main process** (binary auto-downloaded to
+  `userData/bin` on first use via Electron's `net`) behind the `yt:download`
+  IPC channel; `preload`'s `fetchVideo` invokes it. Keep node-only download code
+  out of `preload/src/youtube.ts` — that module is also bundled into the
+  renderer (the `index.tsx` web fallback), which can't import `electron`.
 - **SolidJS JSX compiler must match the runtime.** `solid-js` is pinned to
   **1.6.3**, so `babel-preset-solid` is pinned to **1.6.16** via the
   `resolutions` field in `package.json`. Newer `babel-preset-solid` emits

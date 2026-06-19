@@ -1,6 +1,12 @@
 import { app } from 'electron';
 import './security-restrictions';
 import { restoreOrCreateWindow } from './mainWindow';
+import { registerYoutubeDownload } from './youtubeDownload';
+
+/**
+ * Expose the yt-dlp-backed audio download bridge to the renderer.
+ */
+registerYoutubeDownload();
 
 /**
  * Prevent multiple instances

@@ -1,7 +1,6 @@
 import { Innertube } from 'youtubei.js';
 import { search } from '@jdachtera/youtube-search-without-api-key';
 import type { VideoInfo } from 'youtubei.js/dist/src/parser/youtube';
-import type { Stream } from 'stream';
 
 let innertubePromise: Promise<Innertube> | null = null;
 
@@ -61,19 +60,11 @@ const yt = {
     }
   },
 
-  fetchVideo: async (url: string): Promise<ArrayBuffer | string> => {
-    const videoId = extractVideoId(url);
-
-    const innertube = await getInnerTube();
-    const stream = await innertube.download(videoId, {
-      type: 'audio',
-      quality: 'bestefficiency',
-      format: 'mp4',
-    });
-
-    const buffer = await new Response(stream).arrayBuffer();
-
-    return buffer;
+  // The real implementation runs through yt-dlp in the Electron main process
+  // and is wired up in exposedVars.ts. This stub only runs in the browser-only
+  // fallback (no Electron), where spawning a binary isn't possible.
+  fetchVideo: async (_url: string): Promise<ArrayBuffer> => {
+    throw new Error('Audio download is only available in the desktop app.');
   },
 };
 

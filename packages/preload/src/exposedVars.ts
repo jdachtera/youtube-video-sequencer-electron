@@ -30,7 +30,13 @@ const exposedVars = {
       }
     },
   },
-  yt,
+  yt: {
+    ...yt,
+    // Override the browser-only stub: route audio downloads to yt-dlp running
+    // in the main process (see packages/main/src/youtubeDownload.ts).
+    fetchVideo: (url: string): Promise<ArrayBuffer> =>
+      ipcRenderer.invoke('yt:download', url),
+  },
 };
 
 export default exposedVars;
