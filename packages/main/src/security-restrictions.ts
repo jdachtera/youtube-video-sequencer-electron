@@ -65,6 +65,9 @@ app.on('web-contents-created', (_, contents) => {
       const { origin } = new URL(webContents.getURL());
 
       const permissionGranted =
+        // Allow first-party content (the app itself, incl. the video preview)
+        // to enter fullscreen; navigation to untrusted origins is blocked below.
+        permission === 'fullscreen' ||
         !!ALLOWED_ORIGINS_AND_PERMISSIONS.get(origin)?.has(permission);
       callback(permissionGranted);
 
