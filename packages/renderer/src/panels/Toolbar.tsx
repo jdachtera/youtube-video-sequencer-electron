@@ -18,7 +18,7 @@ import {
 import { DeviceChain } from '../engine/device/DeviceChain';
 import { SamplerDevice } from '../engine/device/Sampler';
 import type { DeepPartial } from '../engine/types';
-import { LoginModal } from './LoginModal';
+import { AccountMenu } from './AccountMenu';
 import { MixdownButton } from './MixdownButton';
 
 export const Toolbar = (props: { engine: Engine }) => {
@@ -170,8 +170,6 @@ export const Toolbar = (props: { engine: Engine }) => {
 
   return (
     <div>
-      <LoginModal />
-
       <div
         class={css`
           background: #333;
@@ -339,6 +337,7 @@ export const Toolbar = (props: { engine: Engine }) => {
             }}
             label="Master Volume"
           />
+          <AccountMenu />
         </Row>
       </div>
     </div>
