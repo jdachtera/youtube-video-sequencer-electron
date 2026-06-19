@@ -17,6 +17,7 @@ import {
 } from '../engine/EngineBase';
 import { DeviceChain } from '../engine/device/DeviceChain';
 import { SamplerDevice } from '../engine/device/Sampler';
+import { createHistory } from '../engine/history';
 import type { DeepPartial } from '../engine/types';
 import { AccountMenu } from './AccountMenu';
 import { MixdownButton } from './MixdownButton';
@@ -58,6 +59,8 @@ export const Toolbar = (props: { engine: Engine }) => {
     }
   };
 
+  const history = createHistory(props.engine);
+
   const handleKeydown = (event: KeyboardEvent) => {
     if (
       event.target instanceof HTMLInputElement ||
@@ -65,10 +68,35 @@ export const Toolbar = (props: { engine: Engine }) => {
     ) {
       return;
     }
-    switch (event.code) {
-      case 'Space':
-        togglePlay();
-        break;
+
+    const mod = event.metaKey || event.ctrlKey;
+
+    if (mod && event.code === 'KeyZ') {
+      event.preventDefault();
+      if (event.shiftKey) history.redo();
+      else history.undo();
+      return;
+    }
+
+    if (mod && event.code === 'KeyS') {
+      event.preventDefault();
+      exportJSON();
+      return;
+    }
+
+    if (!mod && event.code === 'Space') {
+      event.preventDefault();
+      togglePlay();
+      return;
+    }
+
+    if (event.code === 'Escape' && engineState.viewMode.sidePanel.open) {
+      props.engine.set({
+        viewMode: {
+          ...engineState.viewMode,
+          sidePanel: { open: false },
+        },
+      });
     }
   };
 
@@ -186,6 +214,21 @@ export const Toolbar = (props: { engine: Engine }) => {
             blinkInterval={engineState.playing ? 60 / engineState.bpm : 0}
             label={'▶'}
           />
+
+          <ButtonGroup>
+            <ButtonWithLabel
+              onClick={() => history.undo()}
+              disabled={!history.canUndo()}
+              labelOnButton={true}
+              label={'Undo'}
+            />
+            <ButtonWithLabel
+              onClick={() => history.redo()}
+              disabled={!history.canRedo()}
+              labelOnButton={true}
+              label={'Redo'}
+            />
+          </ButtonGroup>
 
           <ButtonGroup>
             <LoadFileButton
