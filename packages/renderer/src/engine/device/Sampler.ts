@@ -2,7 +2,6 @@ import { batch } from 'solid-js';
 import { getContext, ToneAudioBuffer } from 'tone';
 import type { Engine } from '../Engine';
 import { EngineBase } from '../EngineBase';
-import { loadCachedVideo, storeCachedVideo } from '../blobStore';
 import type { PropertyUpdateEvents } from '../helpers';
 import { entries, fetchSliceUrlInfo } from '../helpers';
 import { loadFileAsBuffer, resolveFileUrl } from '../localFile';
@@ -77,24 +76,19 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
         this.buffer.set(audioBuffer);
       }
     } else {
-      const cachedBlob = await loadCachedVideo(this.url);
+      // Remote sources are cached as compressed files on disk by the main
+      // process; fetch the bytes (cache hit or fresh yt-dlp download) and decode
+      // them here.
+      const base64StringOrBuffer = await this.loadArrayBuffer();
 
-      if (cachedBlob) {
-        this.buffer.fromArray(cachedBlob);
-      } else {
-        const base64StringOrBuffer = await this.loadArrayBuffer();
+      const arrayBuffer =
+        typeof base64StringOrBuffer === 'string'
+          ? base64ToArrayBuffer(base64StringOrBuffer)
+          : base64StringOrBuffer;
 
-        const arrayBuffer =
-          typeof base64StringOrBuffer === 'string'
-            ? base64ToArrayBuffer(base64StringOrBuffer)
-            : base64StringOrBuffer;
-
-        if (!arrayBuffer) return;
-        const audioBuffer = await getContext().decodeAudioData(arrayBuffer);
-        this.buffer.set(audioBuffer);
-
-        await storeCachedVideo(this.url, this.buffer.toArray());
-      }
+      if (!arrayBuffer) return;
+      const audioBuffer = await getContext().decodeAudioData(arrayBuffer);
+      this.buffer.set(audioBuffer);
     }
 
     this.emit('load');

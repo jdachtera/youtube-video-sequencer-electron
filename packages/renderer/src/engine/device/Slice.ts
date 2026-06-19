@@ -3,7 +3,6 @@ import { batch, createUniqueId } from 'solid-js';
 import { GrainPlayer, Player, ToneAudioBuffer } from 'tone';
 import { debounce } from 'ts-debounce';
 import type { Engine } from '../Engine';
-import { loadAudioBuffer, storeAudioBuffer } from '../blobStore';
 import type { PropertyUpdateEvents } from '../helpers';
 import { entries, randomColor } from '../helpers';
 import type { DeepPartial } from '../types';
@@ -202,19 +201,10 @@ export class Slice extends Device<SliceEvents> {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   updateBuffer = debounce(async (..._args: unknown[]) => {
-    const savedData = await loadAudioBuffer(this.id);
-    const hash = `${this.url}:${this.start}-${this.end}`;
-
-    if (savedData?.hash === hash) {
-      this.player.buffer = new ToneAudioBuffer().fromArray(savedData.buffer);
-    } else {
-      this.player.buffer = await this.loadBufferFromSampler();
-
-      await storeAudioBuffer(this.id, {
-        hash,
-        buffer: this.player.buffer.toArray(),
-      });
-    }
+    // Slice the (decoded) sampler buffer in memory. The compressed source it
+    // comes from is cached on disk by the main process, so there's no need to
+    // persist decoded PCM per slice.
+    this.player.buffer = await this.loadBufferFromSampler();
 
     this.emit('load');
   }, 10);

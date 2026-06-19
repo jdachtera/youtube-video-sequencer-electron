@@ -1,5 +1,6 @@
 import { app, ipcMain, net } from 'electron';
 import { spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import {
   chmodSync,
   createWriteStream,
@@ -8,7 +9,9 @@ import {
   mkdtempSync,
   readFileSync,
   readdirSync,
+  renameSync,
   rmSync,
+  writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -21,6 +24,11 @@ import { join } from 'node:path';
  *
  * The binary is fetched on first use into the app's userData directory, so
  * nothing extra has to be bundled or shipped with the installer.
+ *
+ * Downloaded audio is cached as the *compressed* source on disk
+ * (userData/audio-cache), not as decoded PCM in IndexedDB. The compressed file
+ * is ~15-20x smaller, isn't subject to browser storage eviction, and is decoded
+ * on demand by the renderer's Web Audio context.
  */
 
 const RELEASE_BASE =
@@ -92,12 +100,26 @@ const ensureBinary = (): Promise<string> => {
   return ensurePromise;
 };
 
+const cacheDir = (): string => join(app.getPath('userData'), 'audio-cache');
+
+const cachePathFor = (url: string): string =>
+  join(cacheDir(), createHash('sha256').update(url).digest('hex'));
+
+const toArrayBuffer = (buffer: Buffer): ArrayBuffer =>
+  buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+
 /**
- * Download the best audio-only stream for a YouTube URL and return its bytes.
- * The stream is written to a temp directory (robust across container formats)
- * and read back as an ArrayBuffer for the renderer's Web Audio decoder.
+ * Return the best audio-only stream for a YouTube URL as compressed bytes,
+ * serving from the on-disk cache when present and otherwise downloading it with
+ * yt-dlp. The fresh download is written to a temp directory (robust across
+ * container formats) and then persisted to the cache before being returned.
  */
 const downloadAudio = async (url: string): Promise<ArrayBuffer> => {
+  const cachePath = cachePathFor(url);
+  if (existsSync(cachePath)) {
+    return toArrayBuffer(readFileSync(cachePath));
+  }
+
   const binary = await ensureBinary();
   const workDir = mkdtempSync(join(tmpdir(), 'yvs-yt-'));
 
@@ -132,10 +154,15 @@ const downloadAudio = async (url: string): Promise<ArrayBuffer> => {
     if (!file) throw new Error('yt-dlp produced no output file');
 
     const buffer = readFileSync(join(workDir, file));
-    return buffer.buffer.slice(
-      buffer.byteOffset,
-      buffer.byteOffset + buffer.byteLength,
-    );
+
+    // Persist the compressed source to the cache. Write to a temp path and
+    // rename so a crash mid-write never leaves a corrupt cache entry.
+    mkdirSync(cacheDir(), { recursive: true });
+    const tempCachePath = `${cachePath}.${process.pid}.tmp`;
+    writeFileSync(tempCachePath, buffer);
+    renameSync(tempCachePath, cachePath);
+
+    return toArrayBuffer(buffer);
   } finally {
     rmSync(workDir, { recursive: true, force: true });
   }

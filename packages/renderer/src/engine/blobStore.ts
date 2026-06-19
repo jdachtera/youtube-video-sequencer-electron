@@ -6,66 +6,43 @@ export type CachedFileSystemDirectoryHandle = {
 } & FileSystemDirectoryHandle;
 
 let db: IDBPDatabase<{
-  'video-cache': {
-    key: string;
-    value: Float32Array | Float32Array[];
-  };
   'directory-handles': {
     key: number;
     value: CachedFileSystemDirectoryHandle;
   };
-  'audio-buffers': {
-    key: string;
-    value: { hash: string; buffer: Float32Array | Float32Array[] };
-  };
 }>;
 
-const dbVersion = 2;
+// v3: audio is now cached as compressed files on disk by the main process
+// (see packages/main/src/youtubeDownload.ts), so the decoded-PCM `video-cache`
+// and `audio-buffers` stores are gone. Only File System Access directory
+// handles remain — they can only be persisted via structured clone, so
+// IndexedDB is the right (and only) home for them.
+const dbVersion = 3;
 
 const getDatabase = async () => {
   if (!db) {
     db = await openDB('cache', dbVersion, {
-      upgrade(db, oldVersion) {
-        if (oldVersion < 1) {
-          db.createObjectStore('video-cache');
-        }
-
+      upgrade(database, oldVersion) {
         if (oldVersion < 2) {
-          db.createObjectStore('directory-handles', {
+          database.createObjectStore('directory-handles', {
             keyPath: 'id',
             autoIncrement: true,
           });
         }
 
         if (oldVersion < 3) {
-          db.createObjectStore('audio-buffers');
+          // Drop the obsolete decoded-audio caches and reclaim their space.
+          const legacy = database as unknown as IDBPDatabase;
+          for (const name of ['video-cache', 'audio-buffers']) {
+            if (legacy.objectStoreNames.contains(name)) {
+              legacy.deleteObjectStore(name);
+            }
+          }
         }
       },
     });
   }
   return db;
-};
-
-export const loadCachedVideo = async (url: string) => {
-  return (await getDatabase()).get('video-cache', url);
-};
-
-export const storeCachedVideo = async (
-  url: string,
-  data: Float32Array | Float32Array[],
-) => {
-  return (await getDatabase()).put('video-cache', data, url);
-};
-
-export const loadAudioBuffer = async (id: string) => {
-  return (await getDatabase()).get('audio-buffers', id);
-};
-
-export const storeAudioBuffer = async (
-  id: string,
-  data: { hash: string; buffer: Float32Array | Float32Array[] },
-) => {
-  return (await getDatabase()).put('audio-buffers', data, id);
 };
 
 export const loadCachedLocalDirectoryHandles = async () => {
@@ -79,7 +56,6 @@ export const loadCachedLocalDirectoryHandle = async (id: number) => {
 export const storeCachedLocalDirectoryHandle = async (
   handle: FileSystemDirectoryHandle,
 ) => {
-  handle;
   return (await getDatabase()).put(
     'directory-handles',
     handle as CachedFileSystemDirectoryHandle,
