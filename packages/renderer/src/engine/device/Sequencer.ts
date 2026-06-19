@@ -117,7 +117,7 @@ export class SequencerDevice extends Device<SequencerEvents> {
     this.patterns = [
       ...this.patterns.slice(0, index),
       pattern,
-      ...this.patterns.slice(index + 2),
+      ...this.patterns.slice(index),
     ];
 
     this.emit('patternAdded', pattern);
