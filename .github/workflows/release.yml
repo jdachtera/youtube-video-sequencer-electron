@@ -76,45 +76,25 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v3
         with:
           node-version: 16 # Need for npm >=7.7
-          cache: 'yarn'
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
-      # Compile app and upload artifacts
-      - name: Compile & release Electron app
-        uses: samuelmeuli/action-electron-builder@v1
+      - name: Build app
+        run: pnpm build
         env:
           VITE_APP_VERSION: ${{ needs.draft.outputs.version }}
-        with:
-          build_script_name: build
-          args: --config .electron-builder.config.js
 
-          # GitHub token, automatically provided to the action
-          # (No need to define this secret in the repo settings)
-          github_token: ${{ secrets.github_token }}
-
-          # If the commit is tagged with a version (e.g. "v1.0.0"),
-          # release the app after building
-          release: true
-
-          # Sometimes the build may fail due to a connection problem with Apple, GitHub, etc. servers.
-          # This option will restart the build as many attempts as possible
-          max_attempts: 3
-
-          # Code Signing params
-
-          # Base64-encoded code signing certificate for Windows
-          # windows_certs: ''
-
-          # Password for decrypting `windows_certs`
-          # windows_certs_password: ''
-
-          # Base64-encoded code signing certificate for macOS
-          # mac_certs: ''
-
-          # Password for decrypting `mac_certs`
-          # mac_certs_password: ''
+      # Compile and publish the Electron app to the GitHub release.
+      - name: Compile & release Electron app
+        run: pnpm exec electron-builder --config .electron-builder.config.js --publish always
+        env:
+          VITE_APP_VERSION: ${{ needs.draft.outputs.version }}
+          GITHUB_TOKEN: ${{ secrets.github_token }}

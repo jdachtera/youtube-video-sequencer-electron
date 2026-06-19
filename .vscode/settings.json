@@ -41,7 +41,7 @@
     "*.{css,sass,scss}.d.ts": true
   },
   "eslint.lintTask.enable": true,
-  "eslint.packageManager": "yarn",
+  "eslint.packageManager": "pnpm",
   "eslint.probe": [
     "javascript",
     "javascriptreact",

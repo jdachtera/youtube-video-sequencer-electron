@@ -8,13 +8,13 @@
   },
   "main": "packages/main/dist/index.cjs",
   "scripts": {
-    "build": "npm run build:main && npm run build:preload && npm run build:renderer",
+    "build": "pnpm run build:main && pnpm run build:preload && pnpm run build:renderer",
     "build:main": "cd ./packages/main && vite build",
     "build:preload": "cd ./packages/preload && vite build",
     "build:renderer": "cd ./packages/renderer && vite build",
-    "compile": "cross-env MODE=production npm run build && electron-builder build --config .electron-builder.config.js --dir",
-    "test": "npm run test:main && npm run test:preload && npm run test:renderer && npm run test:e2e",
-    "test:e2e": "npm run build && node scripts/with-display.mjs vitest run",
+    "compile": "cross-env MODE=production pnpm run build && electron-builder build --config .electron-builder.config.js --dir",
+    "test": "pnpm run test:main && pnpm run test:preload && pnpm run test:renderer && pnpm run test:e2e",
+    "test:e2e": "pnpm run build && node scripts/with-display.mjs vitest run",
     "test:main": "vitest run -r packages/main --passWithNoTests",
     "test:preload": "vitest run -r packages/preload --passWithNoTests",
     "test:renderer": "vitest run -r packages/renderer --passWithNoTests",
@@ -24,7 +24,7 @@
     "typecheck:main": "tsc --noEmit -p packages/main/tsconfig.json",
     "typecheck:preload": "tsc --noEmit -p packages/preload/tsconfig.json",
     "typecheck:renderer": "tsc --noEmit -p packages/renderer/tsconfig.json",
-    "typecheck": "npm run typecheck:main && npm run typecheck:preload && npm run typecheck:renderer",
+    "typecheck": "pnpm run typecheck:main && pnpm run typecheck:preload && pnpm run typecheck:renderer",
     "prepare": "husky install",
     "graphql-codegen": "graphql-codegen --config codegen.yml"
   },
@@ -118,8 +118,15 @@
     "vite": "^4.5.14",
     "vitest": "0.25.5"
   },
-  "resolutions": {
-    "babel-preset-solid": "1.6.16"
+  "pnpm": {
+    "overrides": {
+      "babel-preset-solid": "1.6.16",
+      "@types/minimatch": "5.1.2",
+      "tone": "14.7.77",
+      "@emotion/css": "11.10.5",
+      "solid-icons": "1.0.4",
+      "prettier": "2.8.0"
+    }
   },
   "dependencies": {
     "@apollo/client": "^3.7.2",
@@ -149,8 +156,7 @@
     "util": "^0.12.5",
     "vite-plugin-solid": "2.6.1",
     "vm-browserify": "^1.1.2",
-    "yarn": "^1.22.19",
     "youtubei.js": "^17.0.1"
   },
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+  "packageManager": "pnpm@9.15.9"
 }

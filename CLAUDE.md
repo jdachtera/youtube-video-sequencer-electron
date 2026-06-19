@@ -12,10 +12,13 @@ Client + GraphQL and IndexedDB (`idb`). YouTube **search + metadata** come from
 
 ## Package manager
 
-This is a **yarn (Classic, 1.22.x)** project — pinned via the `packageManager`
-field and `yarn.lock`. Use `yarn`, not `npm`. Do not commit a `package-lock.json`.
-On Claude Code on the web, the SessionStart hook (`.claude/hooks/session-start.sh`)
-runs `yarn install` automatically.
+This is a **pnpm** project (pnpm 9.x) — pinned via the `packageManager` field and
+`pnpm-lock.yaml`. Use `pnpm`, not `npm` or `yarn`. Do not commit a
+`package-lock.json` or `yarn.lock`. `.npmrc` sets `node-linker=hoisted` so
+node_modules stays flat for Electron / electron-builder. Dependency version pins
+go in `pnpm.overrides` (not yarn's `resolutions`). On Claude Code on the web, the
+SessionStart hook (`.claude/hooks/session-start.sh`) runs `pnpm install`
+automatically; pnpm is provided via corepack.
 
 ## Project layout
 
@@ -32,17 +35,17 @@ them in `packages/preload/contracts.d.ts` / `exposedVars.ts`.
 ## Common commands
 
 ```bash
-yarn install        # install deps
-yarn start          # dev: vite watch + launches Electron (needs a display/GUI)
-yarn build          # build all three packages (build:main, :preload, :renderer)
-yarn typecheck      # tsc --noEmit across all packages
-yarn lint           # eslint (gates on errors; warnings are tolerated)
-yarn test           # unit tests (vitest, passWithNoTests) + e2e build
-yarn compile        # production build + electron-builder --dir (local debug build)
+pnpm install        # install deps
+pnpm start          # dev: vite watch + launches Electron (needs a display/GUI)
+pnpm build          # build all three packages (build:main, :preload, :renderer)
+pnpm typecheck      # tsc --noEmit across all packages
+pnpm lint           # eslint (gates on errors; warnings are tolerated)
+pnpm test           # unit tests (vitest, passWithNoTests) + e2e build
+pnpm compile        # production build + electron-builder --dir (local debug build)
 ```
 
-The Release CI (`.github/workflows/release.yml`) runs `yarn install --frozen-lockfile`
-then `yarn build`, so keep `yarn.lock` in sync and the build green.
+The Release CI (`.github/workflows/release.yml`) runs `pnpm install --frozen-lockfile`
+then `pnpm build`, so keep `pnpm-lock.yaml` in sync and the build green.
 
 ## Toolchain notes / gotchas
 
@@ -66,9 +69,9 @@ then `yarn build`, so keep `yarn.lock` in sync and the build green.
   the other breaks `build:renderer`. Keep `solid-js`, `vite-plugin-solid`
   (2.6.1, peer-compatible with solid 1.6), and the `babel-preset-solid`
   resolution moving together.
-- The Electron **GUI won't launch via `yarn start`** in headless/root
+- The Electron **GUI won't launch via `pnpm start`** in headless/root
   containers (`Running as root without --no-sandbox`). To actually see the UI
-  there, use **`yarn screenshot`** — it builds, launches the app under Xvfb
+  there, use **`pnpm screenshot`** — it builds, launches the app under Xvfb
   with `--no-sandbox`, drives it with `playwright-core`, and writes a PNG.
   (Outbound HTTPS may be blocked by the sandbox network policy, so the YouTube
   panel can render empty — that's environmental, not a bug.)

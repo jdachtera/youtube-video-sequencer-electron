@@ -7,9 +7,9 @@
  * Electron is driven with Playwright's `_electron` API.
  *
  * Usage:
- *   yarn screenshot                 # build, launch, write ./screenshot.png
- *   yarn screenshot out.png         # custom output path
- *   yarn screenshot --no-build      # skip the build step (use existing dist)
+ *   pnpm screenshot                 # build, launch, write ./screenshot.png
+ *   pnpm screenshot out.png         # custom output path
+ *   pnpm screenshot --no-build      # skip the build step (use existing dist)
  *
  * Env:
  *   SCREENSHOT_DELAY_MS  ms to wait after load before capturing (default 5000)
@@ -52,7 +52,7 @@ if (process.platform === 'linux' && !process.env.DISPLAY && !process.env.__SCREE
 
 if (!noBuild) {
   console.log('[screenshot] Building app (use --no-build to skip)...');
-  const b = spawnSync('yarn', ['build'], { stdio: 'inherit', cwd: repo });
+  const b = spawnSync('pnpm', ['build'], { stdio: 'inherit', cwd: repo });
   if (b.status !== 0) process.exit(b.status ?? 1);
 }
 
