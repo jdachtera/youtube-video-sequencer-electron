@@ -118,6 +118,12 @@ export class Slice extends Device<SliceEvents> {
       }
 
       this.play(time);
+
+      // Piano-roll notes carry a gate: release the slice when the note ends
+      // instead of letting it ring to the buffer's natural end.
+      if (step.gateSeconds && step.gateSeconds > 0) {
+        this.player.stop(time + step.gateSeconds);
+      }
     }
     const playbackRate = this.playbackRate * step.playbackRate;
     if (playbackRate !== this.player.playbackRate) {

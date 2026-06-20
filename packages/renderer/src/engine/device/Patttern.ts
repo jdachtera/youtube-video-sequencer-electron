@@ -72,6 +72,10 @@ export type Step = {
   playbackRate: number;
   pitch: number;
   reverse: boolean;
+  // Optional note-off gate in seconds. The step grid never sets this (a step
+  // plays the slice to its natural end); the piano roll sets it from the
+  // note's length so melodies release on time. Monophonic per slice.
+  gateSeconds?: number;
 };
 
 type PatternEvents = {
@@ -270,12 +274,20 @@ export class Pattern extends EngineBase<
     const part = new Part<{ time: string; note: Note }>((time, value) => {
       const { note } = value;
       const semitones = note.midi - PIANO_ROLL_ROOT_MIDI;
+      // Note length in seconds at the current tempo, so the slice releases
+      // when the note ends.
+      const bpm = this.engine.transport.bpm.value;
+      const gateSeconds =
+        note.durationTicks > 0
+          ? (note.durationTicks / (this.ppq || 192)) * (60 / bpm)
+          : 0;
       this.sequencer.onSequenceEvent(time, {
         play: true,
         volume: note.velocity ?? 1,
         playbackRate: Math.pow(2, semitones / 12),
         pitch: 0,
         reverse: false,
+        gateSeconds,
       });
     }, []);
 

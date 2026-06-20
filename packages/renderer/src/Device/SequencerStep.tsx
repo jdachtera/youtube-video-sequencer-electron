@@ -14,7 +14,9 @@ import { camelCaseToSpaced } from '../UI/format';
 import { useAppTheme } from '../UI/theme';
 import type { Step } from '../engine/device/Patttern';
 
-export const sequencerModes: (keyof Step)[] = [
+// gateSeconds is a transient, piano-roll-only field — not a per-step editable
+// lane, so it's excluded from the sequencer's mode list.
+export const sequencerModes: Exclude<keyof Step, 'gateSeconds'>[] = [
   'play',
   'playbackRate',
   'volume',
