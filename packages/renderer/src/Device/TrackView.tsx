@@ -1,5 +1,6 @@
 import { css } from '@emotion/css';
 import type { Track } from 'engine/Track';
+import { Show } from 'solid-js';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { DeviceWrapper } from '../UI/DeviceWrapper';
 import { Row } from '../UI/Grid';
@@ -18,7 +19,13 @@ export const TrackView = (props: { track: Track }) => {
       solo: track.soloNode.solo,
       color: track.color,
     }),
-    ['colorUpdated', 'nameUpdated', 'soloUpdated', 'muteUpdated'],
+    [
+      'colorUpdated',
+      'nameUpdated',
+      'soloUpdated',
+      'muteUpdated',
+      'collapsedUpdated',
+    ],
   );
 
   const viewMode = createStoreFromEventEmitter(
@@ -81,7 +88,9 @@ export const TrackView = (props: { track: Track }) => {
           </Row>
         </ScreenPrintBackground>
       </DeviceWrapper>
-      <DeviceChainView deviceChain={props.track.chain} renderDummy={false} />
+      <Show when={!trackState.collapsed}>
+        <DeviceChainView deviceChain={props.track.chain} renderDummy={false} />
+      </Show>
     </Row>
   );
 };

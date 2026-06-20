@@ -67,6 +67,9 @@ export class Track extends EngineBase<TrackEvents> {
           this.chain.on('change', this.emitChange);
           this.chain.output.connect(this.volume);
           break;
+        case 'collapsed':
+          this.collapsed = entry.value;
+          break;
         case 'color':
         case 'name':
           this[entry.key] = entry.value;

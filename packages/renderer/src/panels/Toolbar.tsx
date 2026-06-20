@@ -351,6 +351,7 @@ export const Toolbar = (props: { engine: Engine }) => {
               const collapsed = !minimized();
 
               props.engine.tracks.forEach((track) => {
+                track.set({ collapsed });
                 track.chain.devices.forEach((device) => {
                   device.set({ collapsed });
                   if (device instanceof SamplerDevice) {

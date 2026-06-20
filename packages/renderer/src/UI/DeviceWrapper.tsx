@@ -50,7 +50,7 @@ export const DeviceWrapper = (
       <div
         class={css`
           width: 100%;
-          margin: 10px 5px;
+          margin: 5px 4px;
         `}
       >
         {props.children}
