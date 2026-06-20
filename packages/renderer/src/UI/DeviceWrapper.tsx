@@ -3,7 +3,6 @@ import { BiRegularCompass } from 'solid-icons/bi';
 import type { JSX } from 'solid-js';
 import { splitProps, Show } from 'solid-js';
 import { styled } from '../emotion-solid';
-import megarack from '../svg/megarack.png';
 import { RackEar } from './RackEar';
 
 export const DeviceWrapper = (
@@ -29,12 +28,15 @@ export const DeviceWrapper = (
         [css`
           label: DeviceWrapper;
           display: flex;
-          border: 1px #222 solid;
-          background: ${props.background ?? '#969696'};
-          box-shadow: 0px 0px 2px inset #222;
-          border-radius: 4px;
-          background-image: url(${megarack});
-          background-size: 200px;
+          border: 1px solid rgba(0, 0, 0, 0.35);
+          background-color: ${props.background ?? '#5b5b5b'};
+          background-image: linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.1),
+            rgba(0, 0, 0, 0.14)
+          );
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+          border-radius: 6px;
         `]: true,
       }}
     >

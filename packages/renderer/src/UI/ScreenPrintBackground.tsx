@@ -21,11 +21,11 @@ export const ScreenPrintBackground = (
       class={[
         css`
           background: ${props.background ?? '#ff9100'};
-          padding: 15px;
+          padding: 6px 8px;
           border-radius: 5px;
           display: flex;
           flex-direction: column;
-          margin: 5px 0;
+          margin: 3px 0;
         `,
         props.class ?? '',
       ].join(' ')}

@@ -41,15 +41,11 @@ export const ButtonWithLabel = (
     >
       <div
         class={css`
-          box-shadow: 0px 0px 2px 2px #1f1f1fb0;
-          border-radius: 2px;
           display: flex;
         `}
       >
         <div
           class={css`
-            border-radius: 3px;
-            box-shadow: 4px 3px 5px 4px #13131349;
             display: flex;
           `}
         >
@@ -60,17 +56,22 @@ export const ButtonWithLabel = (
               activated: props.activated,
               [css`
                 cursor: pointer;
-                border: 2px outset white;
-                padding: 6px;
-                border-radius: 2px;
-                background: radial-gradient(#c2c2c2, #fff);
+                border: 1px solid rgba(0, 0, 0, 0.3);
+                padding: 4px 9px;
+                border-radius: 3px;
+                background: linear-gradient(180deg, #fbfbfb, #dcdcdc);
+                box-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
                 font-family: 'oswald';
                 font-weight: bold;
                 font-size: 14px;
                 font-variant: small-caps;
+                transition: box-shadow 0.1s ease, background 0.1s ease;
+                &:hover {
+                  background: linear-gradient(180deg, #ffffff, #e6e6e6);
+                }
                 &:active,
                 &.activated {
-                  box-shadow: 0 0 14px 2px
+                  box-shadow: 0 0 10px 1px
                     ${adjustHue(-23, darken(0.1, props.activatedColor))};
                   background: radial-gradient(
                     ${props.activatedColor},
@@ -78,8 +79,10 @@ export const ButtonWithLabel = (
                   );
                 }
                 &:active {
-                  border: 2px inset
-                    ${adjustHue(-23, darken(0.1, props.activatedColor))};
+                  border-color: ${adjustHue(
+                    -23,
+                    darken(0.1, props.activatedColor),
+                  )};
                 }
               `]: true,
               [css`
