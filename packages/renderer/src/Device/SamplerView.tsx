@@ -39,6 +39,26 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
     window.addEventListener('mouseup', onUp);
   };
 
+  const [chopCount, setChopCount] = createSignal(8);
+
+  // Slice the whole sample into N equal pieces, each its own playable track —
+  // the classic chop workflow for turning a YouTube clip into an instrument.
+  const chopSample = () => {
+    const duration = buffer()?.duration;
+    if (!duration) return;
+    const count = Math.max(1, Math.min(64, Math.round(chopCount())));
+    for (let i = 0; i < count; i++) {
+      props.sampler.engine.createSliceTrack(
+        Slice.normalizeData({
+          url: props.sampler.url,
+          title: `${props.sampler.title || 'Chop'} ${i + 1}`,
+          start: (i * duration) / count,
+          end: ((i + 1) * duration) / count,
+        }),
+      );
+    }
+  };
+
   const zoom = createSignalFromEventEmitter(
     () => props.sampler,
     (sampler) => sampler.zoom,
@@ -166,14 +186,40 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
               <div>{formatTime(buffer()?.duration ?? 0)}s</div>
               <div>{formatTime(position())}s</div>
             </LCDLine>
-            <div>
-              Zoom:{' '}
-              <NumberInputWithArrowButtons
-                value={zoom()}
-                onChange={(zoom) => props.sampler.set({ zoom })}
-                parse={(value) => Math.round(parseFloat(value)) / 100}
-                format={(value) => Math.round(value * 100).toString()}
-              />
+            <div
+              class={css`
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                flex-wrap: wrap;
+              `}
+            >
+              <span>
+                Zoom:{' '}
+                <NumberInputWithArrowButtons
+                  value={zoom()}
+                  onChange={(zoom) => props.sampler.set({ zoom })}
+                  parse={(value) => Math.round(parseFloat(value)) / 100}
+                  format={(value) => Math.round(value * 100).toString()}
+                />
+              </span>
+              <span
+                class={css`
+                  display: flex;
+                  align-items: center;
+                  gap: 4px;
+                `}
+              >
+                Chop:{' '}
+                <NumberInputWithArrowButtons
+                  value={chopCount()}
+                  min={1}
+                  max={64}
+                  step={1}
+                  onChange={(value) => setChopCount(value)}
+                />
+                <AkaiButton onClick={chopSample}>Chop sample</AkaiButton>
+              </span>
             </div>
             <Waveform
               buffer={buffer()}
