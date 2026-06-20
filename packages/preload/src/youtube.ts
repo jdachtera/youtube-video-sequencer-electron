@@ -35,7 +35,9 @@ const yt = {
   async search(term: string) {
     return await search(term);
   },
-  getInfo: async (url: string): Promise<{ basic_info: { title: string } }> => {
+  getInfo: async (
+    url: string,
+  ): Promise<{ basic_info: { title: string; thumbnail?: string } }> => {
     const innertube = await getInnerTube();
     const videoId = extractVideoId(url);
 
@@ -47,7 +49,7 @@ const yt = {
       const cache = localStorage.getItem(cacheKey);
       if (!cache) throw new Error('No cache found');
       const cacheEntry = JSON.parse(cache) as {
-        result?: { basic_info: { title: string } };
+        result?: { basic_info: { title: string; thumbnail?: string } };
         expiresAt?: number;
       };
       if (!cacheEntry.result || (cacheEntry.expiresAt ?? 0) <= now)
@@ -58,8 +60,16 @@ const yt = {
 
       // Return a plain, structured-clone-safe object: the full VideoInfo is a
       // class instance whose methods/getters can't cross the context bridge
-      // (that threw "An object could not be cloned"). Only the title is used.
-      const result = { basic_info: { title: info.basic_info?.title ?? '' } };
+      // (that threw "An object could not be cloned"). The renderer uses the
+      // title and a single thumbnail URL (the sampler cover).
+      const thumbnails = info.basic_info?.thumbnail ?? [];
+      const thumbnail = thumbnails.length
+        ? thumbnails.reduce((a, b) => ((b.width ?? 0) > (a.width ?? 0) ? b : a))
+            .url
+        : '';
+      const result = {
+        basic_info: { title: info.basic_info?.title ?? '', thumbnail },
+      };
 
       localStorage.setItem(
         cacheKey,

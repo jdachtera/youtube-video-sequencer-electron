@@ -53,14 +53,16 @@ export function randomColor() {
 
 export async function fetchSliceUrlInfo(url: string) {
   if (url.includes('youtube.com')) {
-    // The title is best-effort metadata. youtubei.js can fail (YouTube keeps
-    // changing its InnerTube endpoints — e.g. a 400 from /youtubei/v1/config),
-    // so never let it block the actual audio download, which goes through the
-    // separate yt-dlp path.
+    // The title/cover are best-effort metadata. youtubei.js can fail (YouTube
+    // keeps changing its InnerTube endpoints — e.g. a 400 from
+    // /youtubei/v1/config), so never let it block the actual audio download,
+    // which goes through the separate yt-dlp path.
     let title = '';
+    let cover = '';
     try {
       const result = await window.yt.getInfo(url);
       title = result?.basic_info?.title ?? '';
+      cover = result?.basic_info?.thumbnail ?? '';
     } catch {
       // Ignore: fall back to a title derived from the URL below.
     }
@@ -79,6 +81,7 @@ export async function fetchSliceUrlInfo(url: string) {
 
     return {
       title,
+      cover,
       buffer,
     };
   }
@@ -86,8 +89,8 @@ export async function fetchSliceUrlInfo(url: string) {
   if (url.startsWith('http://file.local')) {
     const title = url.split('/').pop()!.split('.').slice(0, -1).join('.');
 
-    return { sourceUrl: url, title };
+    return { sourceUrl: url, title, cover: '' };
   }
 
-  return { sourceUrl: url, title: '' };
+  return { sourceUrl: url, title: '', cover: '' };
 }

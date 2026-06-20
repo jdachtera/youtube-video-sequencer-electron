@@ -226,9 +226,14 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
                             : undefined
                         }
                         onAdd={() => {
-                          const sampler = props.engine.getOrCreateSampler(
-                            item.url,
-                          );
+                          // Each "add" creates a new sample slot in the
+                          // sampler, seeded with the search result's title and
+                          // thumbnail so the cover shows immediately.
+                          const sampler = props.engine.createSample({
+                            url: item.url,
+                            title: item.title,
+                            cover: item.snippet.thumbnails.url as string,
+                          });
                           props.engine.setCurrentSampler(sampler);
                         }}
                       />

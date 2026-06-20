@@ -23,8 +23,23 @@ const extractVideoId = (url: string) => {
   return videoId;
 };
 
-const TITLE_CACHE_TTL = 1000 * 60 * 60 * 24;
-const titleCache = new Map<string, { title: string; expiresAt: number }>();
+const INFO_CACHE_TTL = 1000 * 60 * 60 * 24;
+const infoCache = new Map<
+  string,
+  { title: string; thumbnail: string; expiresAt: number }
+>();
+
+// Pick the highest-resolution thumbnail innertube returns. The array order
+// isn't guaranteed, so choose by width rather than position.
+const pickThumbnail = (
+  thumbnails: { url?: string; width?: number }[] | undefined,
+): string => {
+  if (!thumbnails?.length) return '';
+  const best = thumbnails.reduce((a, b) =>
+    (b.width ?? 0) > (a.width ?? 0) ? b : a,
+  );
+  return best?.url ?? '';
+};
 
 export const registerYoutubeApi = (): void => {
   ipcMain.handle('yt:search', (_event, term: string) => search(term));
@@ -32,17 +47,24 @@ export const registerYoutubeApi = (): void => {
   ipcMain.handle('yt:getInfo', async (_event, url: string) => {
     const videoId = extractVideoId(url);
 
-    const cached = titleCache.get(videoId);
+    const cached = infoCache.get(videoId);
     if (cached && cached.expiresAt > Date.now()) {
-      return { basic_info: { title: cached.title } };
+      return {
+        basic_info: { title: cached.title, thumbnail: cached.thumbnail },
+      };
     }
 
     const innertube = await getInnerTube();
     const info = await innertube.getInfo(videoId);
-    // Return a plain, structured-clone-safe object across IPC; only the title
-    // is used by the renderer.
+    // Return a plain, structured-clone-safe object across IPC; the renderer
+    // uses the title and a single thumbnail URL (the sampler's cover image).
     const title = info.basic_info?.title ?? '';
-    titleCache.set(videoId, { title, expiresAt: Date.now() + TITLE_CACHE_TTL });
-    return { basic_info: { title } };
+    const thumbnail = pickThumbnail(info.basic_info?.thumbnail);
+    infoCache.set(videoId, {
+      title,
+      thumbnail,
+      expiresAt: Date.now() + INFO_CACHE_TTL,
+    });
+    return { basic_info: { title, thumbnail } };
   });
 };

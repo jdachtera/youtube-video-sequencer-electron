@@ -151,9 +151,70 @@ export class Engine extends EngineBase<EngineEvents> {
   setCurrentSampler(sampler?: SamplerDevice) {
     if (sampler === this.currentSampler) return;
 
-    this.currentSampler?.unload();
     this.currentSampler = sampler;
+    this.currentSamplerIndex = sampler ? this.samplers.indexOf(sampler) : -1;
+    // Eagerly decode so the cover/waveform/audition are ready when shown. The
+    // buffer is kept loaded (we no longer unload on switch) so browsing through
+    // slots with ◀/▶ doesn't re-download/re-decode each step.
+    void sampler?.hasLoaded();
     this.emit('currentSamplerChanged', sampler);
+  }
+
+  // Browse the prepared sample slots (the sampler's ◀/▶ buttons). Wraps around.
+  selectSampleByIndex(index: number) {
+    if (!this.samplers.length) return;
+    const count = this.samplers.length;
+    const wrapped = ((index % count) + count) % count;
+    this.setCurrentSampler(this.samplers[wrapped]);
+  }
+
+  selectNextSample() {
+    this.selectSampleByIndex(this.currentSamplerIndex + 1);
+  }
+
+  selectPreviousSample() {
+    this.selectSampleByIndex(this.currentSamplerIndex - 1);
+  }
+
+  // Create a new sample slot (one per "add video"; chopping makes several).
+  // Slots are keyed by id, so the same url can appear in multiple slots.
+  createSample(data: DeepPartial<SerializedSampler>) {
+    const sampler = new SamplerDevice(this, SamplerDevice.normalizeData(data));
+    // Propagate slot edits (region, root note, cover, …) so they're autosaved
+    // and captured by undo/redo.
+    sampler.on('change', this.emitChange);
+    this.samplers = [...this.samplers, sampler];
+    this.emit(
+      'samplersUpdated',
+      this.samplers.map((existing) => existing.serialize()),
+    );
+    this.emit('change', this);
+    return sampler;
+  }
+
+  findSampler(id: string) {
+    return this.samplers.find((sampler) => sampler.id === id);
+  }
+
+  removeSample(sampler: SamplerDevice) {
+    const index = this.samplers.indexOf(sampler);
+    sampler.off('change', this.emitChange);
+    this.samplers = this.samplers.filter((existing) => existing !== sampler);
+
+    if (this.currentSampler === sampler) {
+      this.currentSampler = undefined;
+      this.currentSamplerIndex = -1;
+      // Fall back to a neighbouring slot so the panel still has something to
+      // show.
+      this.setCurrentSampler(this.samplers[Math.max(0, index - 1)]);
+    }
+
+    sampler.dispose();
+    this.emit(
+      'samplersUpdated',
+      this.samplers.map((existing) => existing.serialize()),
+    );
+    this.emit('change', this);
   }
 
   createTrack(serializedTrack: SerializedTrack) {
@@ -204,6 +265,11 @@ export class Engine extends EngineBase<EngineEvents> {
   // render engine — never the live singleton, or playback would go silent.
   dispose() {
     this.clear();
+    this.samplers.forEach((sampler) => {
+      sampler.off('change', this.emitChange);
+      sampler.dispose();
+    });
+    this.samplers = [];
     this.gain.dispose();
     this.limiter.dispose();
     this.meter.dispose();
@@ -225,6 +291,55 @@ export class Engine extends EngineBase<EngineEvents> {
           this.transport.swing = entry[1] ?? 0;
           this.transport.swingSubdivision = '16n';
           break;
+        case 'samplers': {
+          // Restore prepared sample slots. normalizeData emits `samplers`
+          // before `tracks`, so this runs first and slices created during
+          // track restore can bind to the matching slot (by url) instead of
+          // lazily creating a duplicate.
+          //
+          // Reconcile by id rather than dispose-and-rebuild: undo/redo applies
+          // full snapshots through set(), and re-decoding every buffer on each
+          // step would be slow — so unchanged slots (and their loaded buffers)
+          // are kept in place.
+          const previousId = this.currentSampler?.id;
+          const byId = new Map(
+            this.samplers.map((sampler) => [sampler.id, sampler]),
+          );
+          const seen = new Set<string>();
+
+          this.samplers = (entry[1] ?? []).map((serializedSampler) => {
+            const normalized = SamplerDevice.normalizeData(serializedSampler);
+            const existing = byId.get(normalized.id);
+            seen.add(normalized.id);
+            if (existing) {
+              existing.set(normalized);
+              return existing;
+            }
+            const sampler = new SamplerDevice(this, normalized);
+            sampler.on('change', this.emitChange);
+            return sampler;
+          });
+
+          byId.forEach((sampler, id) => {
+            if (!seen.has(id)) {
+              sampler.off('change', this.emitChange);
+              sampler.dispose();
+            }
+          });
+
+          this.currentSampler = undefined;
+          this.currentSamplerIndex = -1;
+          this.emit(
+            'samplersUpdated',
+            this.samplers.map((sampler) => sampler.serialize()),
+          );
+          // Keep the current selection if it survived; otherwise show the first
+          // slot in the always-visible sampler panel.
+          this.setCurrentSampler(
+            (previousId && this.findSampler(previousId)) || this.samplers[0],
+          );
+          break;
+        }
         case 'tracks':
           this.tracks.forEach((track) => this.removeTrack(track));
           Engine.normalizeTracks({ tracks: entry[1] ?? [] }).forEach(
@@ -255,8 +370,12 @@ export class Engine extends EngineBase<EngineEvents> {
   serialize(): SerializedEngine {
     return {
       viewMode: this.viewMode,
-      tracks: this.tracks.map((track) => track.serialize()),
+      // Sample slots before tracks: set() restores them in this order so slices
+      // (created during track restore) bind to an existing slot rather than
+      // lazily creating a duplicate. Matters for offline render, which calls
+      // set(serialize()) directly without normalizeData.
       samplers: this.samplers.map((sampler) => sampler.serialize()),
+      tracks: this.tracks.map((track) => track.serialize()),
       bpm: this.transport.bpm.value,
       swing: this.transport.swing,
       zoom: this.zoom,
@@ -305,12 +424,11 @@ export class Engine extends EngineBase<EngineEvents> {
 
     if (existingSampler) return existingSampler;
 
-    console.trace(url);
-
     const newSampler = new SamplerDevice(
       this,
       SamplerDevice.normalizeData({ url }),
     );
+    newSampler.on('change', this.emitChange);
 
     this.samplers = [...this.samplers, newSampler];
 

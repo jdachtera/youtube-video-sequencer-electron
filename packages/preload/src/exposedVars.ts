@@ -86,7 +86,9 @@ const exposedVars = {
     // only forwards over IPC so it needs no Node modules.
     search: (term: string): ReturnType<typeof searchYoutube> =>
       ipcRenderer.invoke('yt:search', term),
-    getInfo: (url: string): Promise<{ basic_info: { title: string } }> =>
+    getInfo: (
+      url: string,
+    ): Promise<{ basic_info: { title: string; thumbnail?: string } }> =>
       ipcRenderer.invoke('yt:getInfo', url),
     // Audio downloads go to yt-dlp running in the main process (see
     // packages/main/src/youtubeDownload.ts).

@@ -33,7 +33,7 @@ describe('fetchSliceUrlInfo', () => {
 
     expect(yt.getInfo).toHaveBeenCalledWith(url);
     expect(yt.fetchVideo).toHaveBeenCalledWith(url);
-    expect(result).toEqual({ title: 'My Track', buffer });
+    expect(result).toEqual({ title: 'My Track', cover: '', buffer });
   });
 
   it('throws when the YouTube download yields no buffer', async () => {
@@ -55,6 +55,7 @@ describe('fetchSliceUrlInfo', () => {
     expect(result).toEqual({
       sourceUrl: 'http://file.local:1/dir/Cool Sample.wav',
       title: 'Cool Sample',
+      cover: '',
     });
   });
 
@@ -64,6 +65,7 @@ describe('fetchSliceUrlInfo', () => {
     expect(result).toEqual({
       sourceUrl: 'https://example.com/audio.mp3',
       title: '',
+      cover: '',
     });
   });
 });

@@ -2,7 +2,7 @@ import { css } from '@emotion/css';
 import { ApolloProvider } from '@merged/solid-apollo';
 import { For, onCleanup, onMount, Show } from 'solid-js';
 import { Transport } from 'tone';
-import { SamplerView } from './Device/SamplerView';
+import { SamplerPanel } from './Device/SamplerPanel';
 import { TrackView } from './Device/TrackView';
 import { Downloads } from './UI/Downloads';
 import { EmptyState } from './UI/EmptyState';
@@ -57,12 +57,6 @@ export function App() {
     'zoomUpdated',
   );
 
-  const selectedSampler = createSignalFromEventEmitter(
-    engine,
-    (engine) => engine.currentSampler,
-    'currentSamplerChanged',
-  );
-
   onMount(() => {
     const unsubscribe = window.yt.onDownloadProgress?.(updateDownload);
     if (unsubscribe) onCleanup(unsubscribe);
@@ -95,11 +89,7 @@ export function App() {
           <Row overflow={'hidden'} flex={1}>
             <SidePanel engine={engine} />
             <Column overflow={'hidden'} flex={1}>
-              <Row>
-                <Show keyed when={selectedSampler()}>
-                  {(sampler) => <SamplerView sampler={sampler} />}
-                </Show>
-              </Row>
+              <SamplerPanel engine={engine} />
               <Show
                 when={tracks().length > 0}
                 fallback={<EmptyState engine={engine} />}
