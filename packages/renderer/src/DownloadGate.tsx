@@ -38,7 +38,7 @@ export const DownloadGate = () => (
           color: #ff9100;
         `}
       >
-        Megarack
+        MegaRack
       </h1>
       <p
         class={css`
@@ -57,7 +57,7 @@ export const DownloadGate = () => (
           color: #cfcfcf;
         `}
       >
-        Megarack runs as a desktop app — it needs a native audio engine and
+        MegaRack runs as a desktop app — it needs a native audio engine and
         downloader that a browser can't provide. Download the build for your
         platform to get started.
       </p>

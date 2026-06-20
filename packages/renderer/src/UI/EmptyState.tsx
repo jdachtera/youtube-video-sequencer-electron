@@ -55,7 +55,7 @@ export const EmptyState = (props: { engine: Engine }) => {
             margin-bottom: 6px;
           `}
         >
-          Megarack
+          MegaRack
         </div>
         <h1
           class={css`

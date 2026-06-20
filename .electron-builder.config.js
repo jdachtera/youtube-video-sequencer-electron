@@ -10,8 +10,8 @@ if (process.env.VITE_APP_VERSION === undefined) {
  * @see https://www.electron.build/configuration/configuration
  */
 const config = {
-  productName: 'YoutubeVideoSequencer',
-  appId: 'com.ratstudio.YoutubeVideoSequencer',
+  productName: 'MegaRack',
+  appId: 'com.ratstudio.MegaRack',
   directories: {
     output: 'dist',
     buildResources: 'buildResources',
