@@ -16,6 +16,7 @@ import {
   followupActionTypes,
   normalizeFollowupActionData,
 } from '../engine/device/Patttern';
+import { randomMusicalNotes, randomMusicalSteps } from '../engine/randomize';
 import { subdivisions, subdivisionTypes } from '../engine/types';
 import { PianoRollView } from './PianoRollView';
 import { Sequencer } from './Sequencer';
@@ -184,6 +185,23 @@ export const PatternEditor = (
                       ? 'steps'
                       : 'pianoroll',
                 });
+              }}
+            />
+            <ButtonWithLabel
+              label="🎲 Random"
+              labelOnButton={true}
+              onClick={() => {
+                const pattern = selectedPattern();
+                if (!pattern) return;
+                if (pattern.mode === 'pianoroll') {
+                  pattern.set({
+                    notes: randomMusicalNotes({ ppq: pattern.ppq, bars: 2 }),
+                  });
+                } else {
+                  pattern.set({
+                    steps: randomMusicalSteps(pattern.steps.length || 16),
+                  });
+                }
               }}
             />
             <FollowupActionControls
