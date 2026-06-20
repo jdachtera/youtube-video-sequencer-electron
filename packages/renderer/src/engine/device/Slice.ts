@@ -281,8 +281,9 @@ export class Slice extends Device<SliceEvents> {
       this.player.stop(time);
       this.player.start(time);
       this.firstFrameTime = time ?? this.player.immediate();
-    } catch (e) {
-      console.log({ e, time, p: this.player });
+    } catch {
+      // Tone throws if start/stop land on an identical transport time; the
+      // retrigger is dropped, which is fine — no need to surface it.
     }
 
     requestAnimationFrame(() => this.emit('playingUpdated', true));

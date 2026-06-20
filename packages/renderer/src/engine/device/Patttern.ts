@@ -158,6 +158,9 @@ export class Pattern extends EngineBase<
     ).toSeconds();
 
     const previousSequence = this.sequence;
+    // Whether the sequence we're about to replace was actively playing. Only
+    // the current pattern of a running sequencer is in the 'started' state.
+    const wasStarted = previousSequence?.state === 'started';
 
     if (previousSequence) {
       previousSequence.stop();
@@ -170,6 +173,13 @@ export class Pattern extends EngineBase<
       events: this.steps,
       subdivision,
     });
+
+    // If we just replaced a sequence that was playing (e.g. the user changed
+    // the subdivision/type mid-playback), start the new one so the channel
+    // keeps playing instead of falling silent until the next stop/start.
+    if (wasStarted) {
+      this.start();
+    }
 
     return this.sequence;
   }

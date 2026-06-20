@@ -89,8 +89,13 @@ export class DeviceChain extends Device<DeviceChainEvents> {
 
   protected setDevices(devices: Device[]) {
     this.input.disconnect();
+    // Tear down the existing wiring before rebuilding so sequenceEvent
+    // listeners don't accumulate (each rebuild would otherwise add another
+    // copy, making every step fire multiple times).
     this.devices.forEach((device) => {
       device.output.disconnect();
+      device.setInputDevice(undefined);
+      device.off('sequenceEvent', this.emitSequenceEmvent);
     });
     this.devices = devices;
 
@@ -148,8 +153,10 @@ export class DeviceChain extends Device<DeviceChainEvents> {
   connectDevices() {
     this.devices.reduce((prevDevice: Device | undefined, currentDevice) => {
       if (prevDevice) {
+        // setInputDevice wires both the audio connection and the
+        // sequenceEvent forwarding, so it must not be registered again here
+        // or every step would fire twice.
         currentDevice.setInputDevice(prevDevice);
-        prevDevice.on('sequenceEvent', currentDevice.handleSequenceEvent);
       }
 
       return currentDevice;

@@ -92,7 +92,6 @@ export class SequencerDevice extends Device<SequencerEvents> {
   emitChange = () => this.emit('change', this);
 
   rewindSequence = () => {
-    console.log('startSequence');
     this.stopSequence();
     this.getPattern()?.start();
     this.engine.transport.scheduleOnce(() => {
@@ -101,7 +100,6 @@ export class SequencerDevice extends Device<SequencerEvents> {
   };
 
   stopSequence = () => {
-    console.log('stopSequence');
     this.getPattern()?.stop();
     this.engine.transport.clear(this.scheduledFollowUpAction);
   };
@@ -241,7 +239,6 @@ export class SequencerDevice extends Device<SequencerEvents> {
     }
 
     if (nextPatternIndex < this.patterns.length) {
-      console.log({ currentPatternIndex: nextPatternIndex });
       this.set({ currentPatternIndex: nextPatternIndex });
     }
 
