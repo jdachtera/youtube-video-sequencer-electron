@@ -14,6 +14,8 @@ export type SerializedTrack = {
   collapsed: boolean;
   solo: boolean;
   color: string;
+  // Per-track output level in decibels (0 = unity).
+  volume: number;
 };
 
 type TrackEvents = {
@@ -37,6 +39,7 @@ export class Track extends EngineBase<TrackEvents> {
     solo: track.solo ?? false,
     color: track.color ?? '',
     collapsed: track.collapsed ?? false,
+    volume: track.volume ?? 0,
     chain: DeviceChain.normalizeData({
       ...track.chain,
       devices: track.chain?.devices,
@@ -80,6 +83,9 @@ export class Track extends EngineBase<TrackEvents> {
         case 'solo':
           this.soloNode.set({ solo: entry.value });
           break;
+        case 'volume':
+          this.volume.volume.value = entry.value;
+          break;
       }
 
       this.emit(`${entry.key}Updated`, entry.value);
@@ -121,6 +127,7 @@ export class Track extends EngineBase<TrackEvents> {
       solo: this.soloNode.solo,
       color: this.color,
       collapsed: this.collapsed,
+      volume: this.volume.volume.value,
     };
   }
 }

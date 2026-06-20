@@ -18,6 +18,7 @@ export const TrackView = (props: { track: Track }) => {
       mute: track.volume.mute,
       solo: track.soloNode.solo,
       color: track.color,
+      volume: track.volume.volume.value,
     }),
     [
       'colorUpdated',
@@ -25,6 +26,7 @@ export const TrackView = (props: { track: Track }) => {
       'soloUpdated',
       'muteUpdated',
       'collapsedUpdated',
+      'volumeUpdated',
     ],
   );
 
@@ -47,7 +49,13 @@ export const TrackView = (props: { track: Track }) => {
         }}
         background={trackState.color}
       >
-        <ScreenPrintBackground background={'rgba(255,255,255,0.2)'}>
+        <ScreenPrintBackground
+          background={'rgba(255,255,255,0.2)'}
+          class={css`
+            flex: 1;
+            align-self: stretch;
+          `}
+        >
           <Row
             classList={{
               [css`
@@ -86,6 +94,53 @@ export const TrackView = (props: { track: Track }) => {
               }}
             />
           </Row>
+
+          {/* Volume fader fills the channel strip like a mixer channel. */}
+          <div
+            class={css`
+              flex: 1;
+              display: flex;
+              align-items: stretch;
+              gap: 8px;
+              padding: 8px 6px 4px;
+              min-height: 90px;
+            `}
+          >
+            <input
+              type="range"
+              min={-48}
+              max={6}
+              step={0.5}
+              value={trackState.volume}
+              title="Track volume (dB)"
+              onInput={(event) =>
+                props.track.set({ volume: event.currentTarget.valueAsNumber })
+              }
+              onDblClick={() => props.track.set({ volume: 0 })}
+              class={css`
+                writing-mode: vertical-lr;
+                direction: rtl;
+                width: 26px;
+                height: 100%;
+                cursor: pointer;
+                accent-color: #222;
+              `}
+            />
+            <span
+              class={css`
+                align-self: flex-start;
+                font-family: 'oswald';
+                font-size: 11px;
+                color: rgba(0, 0, 0, 0.6);
+              `}
+            >
+              {trackState.volume <= -48
+                ? '-∞'
+                : `${trackState.volume > 0 ? '+' : ''}${Math.round(
+                    trackState.volume,
+                  )} dB`}
+            </span>
+          </div>
         </ScreenPrintBackground>
       </DeviceWrapper>
       <Show when={!trackState.collapsed}>
