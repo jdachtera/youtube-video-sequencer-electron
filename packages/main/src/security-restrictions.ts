@@ -1,10 +1,13 @@
 import { app, shell } from 'electron';
 import { URL } from 'url';
+import { remoteRendererOrigin } from './channel';
 
 /**
  * List of origins that you allow open INSIDE the application and permissions for each of them.
  *
- * In development mode you need allow open `VITE_DEV_SERVER_URL`
+ * In development mode you need allow open `VITE_DEV_SERVER_URL`. When the UI is
+ * served remotely (the GitHub Pages deployment), its origin is allowed too so
+ * reloads / in-site navigation aren't blocked.
  */
 const ALLOWED_ORIGINS_AND_PERMISSIONS = new Map<
   string,
@@ -14,6 +17,8 @@ const ALLOWED_ORIGINS_AND_PERMISSIONS = new Map<
 >(
   import.meta.env.DEV && import.meta.env.VITE_DEV_SERVER_URL
     ? [[new URL(import.meta.env.VITE_DEV_SERVER_URL).origin, new Set()]]
+    : remoteRendererOrigin
+    ? [[remoteRendererOrigin, new Set<string>()]]
     : [],
 );
 

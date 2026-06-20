@@ -1,4 +1,5 @@
 import { app, ipcMain } from 'electron';
+import { getChannel, hasRemote, listBranches, setChannel } from './channel';
 
 /**
  * Version of the contextBridge / IPC contract this desktop shell exposes to the
@@ -27,4 +28,14 @@ export const registerHostApi = (): void => {
       platform: process.platform,
     }),
   );
+
+  // Renderer "channel" (which Pages deployment / branch the UI is loaded from).
+  ipcMain.handle('host:getChannel', () => ({
+    current: getChannel(),
+    hasRemote: hasRemote(),
+  }));
+  ipcMain.handle('host:setChannel', (_event, branch: string) =>
+    setChannel(branch),
+  );
+  ipcMain.handle('host:listBranches', () => listBranches());
 };

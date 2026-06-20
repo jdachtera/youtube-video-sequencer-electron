@@ -39,6 +39,17 @@ const exposedVars = {
       appVersion: string;
       platform: string;
     }> => ipcRenderer.invoke('host:info'),
+    // Which renderer "channel" (Pages deployment / branch) the UI is loaded
+    // from, and whether remote loading is configured at all.
+    getChannel: (): Promise<{ current: string; hasRemote: boolean }> =>
+      ipcRenderer.invoke('host:getChannel'),
+    // Switch channel: persists the choice and reloads the window from the
+    // selected branch's deployment (falling back to the bundled copy).
+    setChannel: (branch: string): Promise<void> =>
+      ipcRenderer.invoke('host:setChannel', branch),
+    // Branch names available to switch to (from the GitHub API, via main).
+    listBranches: (): Promise<string[]> =>
+      ipcRenderer.invoke('host:listBranches'),
   },
   yt: {
     // Search + metadata run in the main process (youtubei.js); the preload

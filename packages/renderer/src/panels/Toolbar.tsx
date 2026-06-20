@@ -22,6 +22,7 @@ import { createHistory } from '../engine/history';
 import type { DeepPartial } from '../engine/types';
 import { notify } from '../notifications';
 import { AccountMenu } from './AccountMenu';
+import { ChannelSwitcher } from './ChannelSwitcher';
 import { MixdownButton } from './MixdownButton';
 
 export const Toolbar = (props: { engine: Engine }) => {
@@ -387,6 +388,7 @@ export const Toolbar = (props: { engine: Engine }) => {
             label="Master Volume"
           />
           <MasterMeter engine={props.engine} />
+          <ChannelSwitcher />
           <AccountMenu />
         </Row>
       </div>
