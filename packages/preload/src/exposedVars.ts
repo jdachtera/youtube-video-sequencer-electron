@@ -31,6 +31,14 @@ const exposedVars = {
         ipcRenderer.once(channel, (event, ...args) => func(...args));
       }
     },
+    // Describe the desktop shell to the renderer: its IPC/contextBridge contract
+    // version, app version, and platform. A remotely-loaded (GitHub Pages)
+    // renderer reads this to detect an out-of-date shell.
+    getInfo: (): Promise<{
+      apiVersion: number;
+      appVersion: string;
+      platform: string;
+    }> => ipcRenderer.invoke('host:info'),
   },
   yt: {
     // Search + metadata run in the main process (youtubei.js); the preload

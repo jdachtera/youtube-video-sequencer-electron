@@ -65,19 +65,52 @@ async function createWindow() {
   );
 
   /**
-   * URL for main window.
-   * Vite dev server for development.
-   * `file://../renderer/index.html` for production and test
+   * Where to load the renderer from:
+   *  - the Vite dev server in development;
+   *  - otherwise the bundled `file://` build that ships inside the app.
+   *
+   * Optionally, a remote renderer (the GitHub Pages "canary" deployment) can be
+   * loaded instead, so the web UI can be updated without shipping a new Electron
+   * build. It's strictly opt-in via `MEGARACK_RENDERER_URL` (runtime env) or a
+   * baked-in `VITE_RENDERER_URL` (build time); with neither set the app behaves
+   * exactly as before. If the remote can't be reached we always fall back to the
+   * bundled copy, so the app still starts offline.
    */
-  const pageUrl =
-    import.meta.env.DEV && import.meta.env.VITE_DEV_SERVER_URL !== undefined
-      ? import.meta.env.VITE_DEV_SERVER_URL
-      : new URL(
-          '../renderer/dist/index.html',
-          'file://' + __dirname,
-        ).toString();
+  const bundledUrl = new URL(
+    '../renderer/dist/index.html',
+    'file://' + __dirname,
+  ).toString();
 
-  await browserWindow.loadURL(pageUrl);
+  const remoteRendererUrl =
+    process.env.MEGARACK_RENDERER_URL || import.meta.env.VITE_RENDERER_URL;
+
+  const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> =>
+    Promise.race([
+      promise,
+      new Promise<T>((_resolve, reject) =>
+        setTimeout(() => reject(new Error(`timed out after ${ms}ms`)), ms),
+      ),
+    ]);
+
+  if (
+    import.meta.env.DEV &&
+    import.meta.env.VITE_DEV_SERVER_URL !== undefined
+  ) {
+    await browserWindow.loadURL(import.meta.env.VITE_DEV_SERVER_URL);
+  } else if (remoteRendererUrl) {
+    try {
+      await withTimeout(browserWindow.loadURL(remoteRendererUrl), 8000);
+    } catch (error) {
+      console.warn(
+        `[renderer] remote load of ${remoteRendererUrl} failed; using bundled copy:`,
+        error,
+      );
+      // A fresh loadURL supersedes any still-pending remote navigation.
+      await browserWindow.loadURL(bundledUrl);
+    }
+  } else {
+    await browserWindow.loadURL(bundledUrl);
+  }
 
   return browserWindow;
 }

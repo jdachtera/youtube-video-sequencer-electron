@@ -1,0 +1,80 @@
+name: Deploy renderer to GitHub Pages
+
+on:
+  # Publish the web UI (the renderer) to GitHub Pages. This is intentionally
+  # decoupled from the Electron Release workflow: the renderer can be updated and
+  # redeployed on its own — cheaply, no 3-OS build — so the desktop "canary"
+  # shell (which loads this URL with a bundled local fallback) gets a new UI
+  # without shipping a whole Electron build.
+  #
+  # Only renderer-affecting changes on the default branch redeploy, to keep
+  # Actions minutes down; the build can also be run manually.
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/renderer/**'
+      - 'packages/preload/src/**'
+      - '.electron-vendors.cache.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+# Allow the deploy-pages action to publish, and OIDC to authenticate it.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never run two Pages deploys at once; let an in-flight one finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: 'bash'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build renderer
+        run: pnpm build:renderer
+        env:
+          MODE: production
+
+      - name: Prepare Pages artifact
+        run: |
+          dist=packages/renderer/dist
+          # Single-page app: serve index.html for unknown paths.
+          cp "$dist/index.html" "$dist/404.html"
+          # Don't let GitHub run the output through Jekyll.
+          touch "$dist/.nojekyll"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: packages/renderer/dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -15,10 +15,33 @@ import { updateDownload } from './downloads';
 import { ThemeProvider } from './emotion-solid';
 import { Engine } from './engine/Engine';
 import { createSignalFromEventEmitter } from './engine/EngineBase';
+import { notify } from './notifications';
 import { SidePanel } from './panels/SidePanel';
 import { Toolbar } from './panels/Toolbar';
 
 const engine = new Engine(Transport);
+
+// Lowest desktop-shell IPC/contextBridge contract this UI needs. When the UI is
+// served remotely (GitHub Pages) and loaded into an older installed shell, warn
+// the user instead of silently failing. Bump in lockstep with SHELL_API_VERSION
+// (packages/main/src/hostApi.ts) when this UI starts relying on a newer channel.
+const REQUIRED_SHELL_API_VERSION = 1;
+
+const checkShellVersion = async () => {
+  const getInfo = window.host?.getInfo;
+  if (!getInfo) return; // running as a plain website, not inside the shell
+  try {
+    const info = await getInfo();
+    if (info.apiVersion < REQUIRED_SHELL_API_VERSION) {
+      notify(
+        'The desktop app is out of date — some features may not work. Please update.',
+        'error',
+      );
+    }
+  } catch {
+    // No host info available; nothing actionable.
+  }
+};
 
 export function App() {
   const tracks = createSignalFromEventEmitter(
@@ -42,6 +65,7 @@ export function App() {
   onMount(() => {
     const unsubscribe = window.yt.onDownloadProgress?.(updateDownload);
     if (unsubscribe) onCleanup(unsubscribe);
+    void checkShellVersion();
   });
 
   return (
