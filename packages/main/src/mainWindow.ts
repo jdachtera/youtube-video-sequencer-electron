@@ -29,6 +29,8 @@ async function createWindow() {
    * @see https://github.com/electron/electron/issues/25012
    */
   browserWindow.on('ready-to-show', () => {
+    // Open maximized so the rack has room by default.
+    browserWindow?.maximize();
     browserWindow?.show();
 
     if (import.meta.env.DEV) {
