@@ -20,6 +20,10 @@ import { YoutubeSearchPanel } from './YoutubeSearchPanel';
 const tabs = ['YouTube', 'SliceDB', 'LocalFiles'] as const;
 export type SidePanelTab = typeof tabs[number];
 
+// SliceDB is hidden for now (kept in the type/Match so projects and the
+// backend integration aren't removed) until that feature is ready.
+const visibleTabs: SidePanelTab[] = ['YouTube', 'LocalFiles'];
+
 export const SidePanel = (props: { engine: Engine }) => {
   const sidePanelState = createStoreFromEventEmitter(
     () => props.engine,
@@ -84,7 +88,7 @@ export const SidePanel = (props: { engine: Engine }) => {
     >
       <Column flex={1} overflow={'hidden'}>
         <ButtonGroup>
-          <For each={tabs}>
+          <For each={visibleTabs}>
             {(tab) => (
               <ButtonWithLabel
                 label={tab}
@@ -129,7 +133,7 @@ export const SidePanel = (props: { engine: Engine }) => {
           });
         }}
         width={`${dragHandleWidth}px`}
-      ></Column>
+      />
     </Row>
   );
 };
