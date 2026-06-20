@@ -13,6 +13,9 @@
  *
  * Env:
  *   SCREENSHOT_DELAY_MS  ms to wait after load before capturing (default 5000)
+ *   SEED_PROJECT         JSON string seeded into localStorage('track') before
+ *                        capture, so a specific project can be screenshotted
+ *                        (e.g. to review device layout density).
  */
 import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
@@ -76,6 +79,15 @@ const app = await _electron.launch({
 const win = await app.firstWindow({ timeout: 30000 });
 win.on('pageerror', (e) => console.log('[renderer:pageerror]', e.message));
 await win.waitForLoadState('domcontentloaded').catch(() => {});
+
+if (process.env.SEED_PROJECT) {
+  await win.evaluate(
+    (seed) => localStorage.setItem('track', seed),
+    process.env.SEED_PROJECT,
+  );
+  await win.reload();
+  await win.waitForLoadState('domcontentloaded').catch(() => {});
+}
 
 const delay = Number(process.env.SCREENSHOT_DELAY_MS ?? 5000);
 await new Promise((r) => setTimeout(r, delay));
