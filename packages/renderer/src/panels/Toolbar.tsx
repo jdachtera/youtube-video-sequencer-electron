@@ -20,6 +20,7 @@ import { DeviceChain } from '../engine/device/DeviceChain';
 import { SamplerDevice } from '../engine/device/Sampler';
 import { createHistory } from '../engine/history';
 import type { DeepPartial } from '../engine/types';
+import { notify } from '../notifications';
 import { AccountMenu } from './AccountMenu';
 import { MixdownButton } from './MixdownButton';
 
@@ -151,28 +152,22 @@ export const Toolbar = (props: { engine: Engine }) => {
   };
 
   const loadJSON = async (event: { currentTarget: HTMLInputElement }) => {
-    await new Promise<void>((resolve) => {
-      const file = event.currentTarget.files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.addEventListener('load', (loadEvent) => {
-          const fileContents = loadEvent.target?.result?.toString();
+    const file = event.currentTarget.files?.[0];
+    if (!file) return;
 
-          if (!fileContents) return;
-          try {
-            const parsedData = JSON.parse(fileContents) as Partial<
-              ReturnType<Engine['serialize']>
-            >;
-
-            props.engine.set(Engine.normalizeData(parsedData));
-            resolve();
-          } catch {
-            //
-          }
-        });
-        reader.readAsText(file);
-      }
-    });
+    try {
+      const parsedData = JSON.parse(await file.text()) as Partial<
+        ReturnType<Engine['serialize']>
+      >;
+      props.engine.set(Engine.normalizeData(parsedData));
+    } catch (error) {
+      notify(
+        `Couldn't import "${file.name}": ${
+          error instanceof Error ? error.message : 'not a valid project file'
+        }`,
+        'error',
+      );
+    }
   };
 
   onMount(() => props.engine.on('change', saveToLocalStorage));

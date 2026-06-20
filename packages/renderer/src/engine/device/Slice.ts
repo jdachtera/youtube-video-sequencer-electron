@@ -278,18 +278,17 @@ export class Slice extends Device<SliceEvents> {
   }
 
   dispose() {
-    super.dispose();
     this.sampler.removeSlice(this);
     this.engine.off('draw', this.handleDraw);
     this.engine.off('stop', this.handleTransportStop);
 
     this.player.stop();
     this.player.disconnect();
-    this.output.disconnect();
-
-    this.output.dispose();
     this.player.dispose();
 
+    // super.dispose() disconnects and disposes input/output; do it last so we
+    // don't touch the output node after it's already been disposed.
+    super.dispose();
     this.removeAllListeners();
   }
 
