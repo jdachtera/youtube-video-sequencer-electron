@@ -1,5 +1,10 @@
-import { Innertube } from 'youtubei.js';
+import { Innertube, Log } from 'youtubei.js';
 import { search } from '@jdachtera/youtube-search-without-api-key';
+
+// youtubei.js is chatty about YouTube's ever-changing response shapes (e.g.
+// "Unable to find matching run for attachment run"). Those are harmless parser
+// warnings for our metadata-only use, so keep the console to real errors.
+Log.setLevel(Log.Level.ERROR);
 
 let innertubePromise: Promise<Innertube> | null = null;
 
