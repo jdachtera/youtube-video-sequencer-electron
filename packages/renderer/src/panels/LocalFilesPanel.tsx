@@ -24,6 +24,7 @@ import {
   loadFileAsDataUrl,
   resolveFileUrl,
 } from '../engine/localFile';
+import { notify } from '../notifications';
 import { BrowserListItem } from './List';
 
 const supportedExtensions = [
@@ -113,11 +114,22 @@ export const LocalFilesPanel = (props: { engine: Engine }) => {
   });
 
   const addFolder = async () => {
-    const dirHandle = await window.showDirectoryPicker();
-    await dirHandle.requestPermission({ mode: 'read' });
-    await storeCachedLocalDirectoryHandle(dirHandle);
-    const handles = await refetch();
-    if (handles) await indexDirectories(handles, true);
+    try {
+      const dirHandle = await window.showDirectoryPicker();
+      await dirHandle.requestPermission({ mode: 'read' });
+      await storeCachedLocalDirectoryHandle(dirHandle);
+      const handles = await refetch();
+      if (handles) await indexDirectories(handles, true);
+    } catch (error) {
+      // AbortError just means the user closed the picker — ignore it.
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      notify(
+        `Couldn't open that folder: ${
+          error instanceof Error ? error.message : 'unknown error'
+        }`,
+        'error',
+      );
+    }
   };
 
   const removeFolder = async (handle: CachedFileSystemDirectoryHandle) => {
