@@ -382,6 +382,20 @@ export class Pattern extends EngineBase<
     this.part?.stop(time);
   }
 
+  // The musical length of one loop of this pattern, in seconds at the current
+  // tempo. Used to size the mixdown render so a beat exports as a full loop.
+  loopDurationSeconds() {
+    if (this.mode === 'pianoroll') {
+      const beats =
+        pianoRollLoopLengthTicks(this.notes, this.ppq) / (this.ppq || 192);
+      return beats * (60 / this.engine.transport.bpm.value);
+    }
+    return (
+      this.steps.length *
+      Time(`${this.subdivision}${this.subdivisionType}`).toSeconds()
+    );
+  }
+
   serialize(): SerializedPattern {
     return {
       name: this.name,

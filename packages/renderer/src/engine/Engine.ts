@@ -17,8 +17,8 @@ import type { SerializedTrack } from './Track';
 import { Track } from './Track';
 import type { SerializedSampler } from './device/Sampler';
 import { SamplerDevice } from './device/Sampler';
+import { SequencerDevice } from './device/Sequencer';
 import type { SerializedSlice } from './device/Slice';
-import { Slice } from './device/Slice';
 import type { PropertyUpdateEvents } from './helpers';
 import { entries } from './helpers';
 import type { DeepPartial } from './types';
@@ -274,17 +274,20 @@ export class Engine extends EngineBase<EngineEvents> {
     this.transport.stop();
   }
 
+  // The render length (in seconds) for a mixdown: one full loop of the longest
+  // pattern across all tracks, so the export captures a complete cycle of the
+  // beat. Floored so an empty or very short project still yields a usable file.
   getMaxSequenceLength() {
-    return (
-      this.tracks
-        .map((track) =>
-          track.chain.devices.filter(
-            (device): device is Slice => device instanceof Slice,
-          ),
-        )
-        .sort()
-        .pop()?.length ?? 16
-    );
+    const durations = this.tracks.map((track) => {
+      const sequencer = track.chain.devices.find(
+        (device): device is SequencerDevice =>
+          device instanceof SequencerDevice,
+      );
+      return sequencer?.getPattern()?.loopDurationSeconds() ?? 0;
+    });
+
+    const longest = durations.length ? Math.max(...durations) : 0;
+    return Math.max(longest, 2);
   }
 
   getOrCreateSampler(url: string) {
