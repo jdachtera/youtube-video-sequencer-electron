@@ -6,6 +6,7 @@ import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { Column, Row } from '../UI/Grid';
 import { LCDFrame, LCDLabel, LCDLine } from '../UI/LCD';
 import { NumberInputWithArrowButtons } from '../UI/NumberInputWithArrowButtons';
+import { SelectWithArrowButtons } from '../UI/SelectWithArrowButtons';
 import { formatTime } from '../UI/format';
 import { LCD } from '../UI/lcdStyles';
 import type { Engine } from '../engine/Engine';
@@ -15,6 +16,12 @@ import {
 } from '../engine/EngineBase';
 import type { SamplerDevice } from '../engine/device/Sampler';
 import { Slice } from '../engine/device/Slice';
+
+const controlGroup = css`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
 
 // The always-visible "classic sampler" at the top of the app: cover/title of
 // the current slot on the left, a waveform sample-selector in the middle, and
@@ -309,6 +316,64 @@ const SamplerSlotView = (props: { sampler: SamplerDevice; engine: Engine }) => {
           <span>
             {formatTime(state.start)}s – {formatTime(selectionEnd())}s
           </span>
+        </Row>
+
+        {/* Sound-shaping — these define the slot's sound; every voice that plays
+            it follows. Clone the slot for a different variation. */}
+        <Row
+          class={css`
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+          `}
+        >
+          <span class={controlGroup}>
+            <LCDLabel>Vol</LCDLabel>
+            <NumberInputWithArrowButtons
+              value={state.volume}
+              min={0}
+              max={3}
+              step={0.01}
+              onChange={(volume) => props.sampler.set({ volume })}
+            />
+          </span>
+          <span class={controlGroup}>
+            <LCDLabel>Speed</LCDLabel>
+            <NumberInputWithArrowButtons
+              value={state.playbackRate}
+              min={0}
+              max={4}
+              step={0.01}
+              onChange={(playbackRate) => props.sampler.set({ playbackRate })}
+            />
+          </span>
+          <span class={controlGroup}>
+            <LCDLabel>Warp</LCDLabel>
+            <SelectWithArrowButtons
+              options={['resample', 'stretch'] as ('resample' | 'stretch')[]}
+              size={9}
+              selectedOption={state.warpmode}
+              onChange={(warpmode) => props.sampler.set({ warpmode })}
+            />
+          </span>
+          <ButtonWithLabel
+            label="Reverse"
+            labelOnButton
+            activated={state.reverse}
+            onClick={() => props.sampler.set({ reverse: !state.reverse })}
+          />
+          <Show when={state.warpmode === 'stretch'}>
+            <span class={controlGroup}>
+              <LCDLabel>Grain</LCDLabel>
+              <NumberInputWithArrowButtons
+                value={state.grainSize}
+                min={0.001}
+                max={1}
+                step={0.001}
+                onChange={(grainSize) => props.sampler.set({ grainSize })}
+              />
+            </span>
+          </Show>
         </Row>
 
         <Waveform

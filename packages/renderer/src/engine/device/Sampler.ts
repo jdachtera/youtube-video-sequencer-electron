@@ -30,6 +30,14 @@ export type SerializedSampler = {
   // sequencer steps pitch up/down from here.
   rootNote: number;
   color: string;
+  // Sound-shaping params. The slot is the complete definition of a sound; a
+  // voice just triggers it (clone a slot to make a variation). Per-step
+  // pitch/velocity still come from the sequencer pattern.
+  volume: number;
+  playbackRate: number;
+  warpmode: 'resample' | 'stretch';
+  reverse: boolean;
+  grainSize: number;
 };
 
 type SamplerDeviceEvents = {
@@ -55,6 +63,11 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
   rootNote = 0;
   color = '';
   title = '';
+  volume = 1;
+  playbackRate = 1;
+  warpmode: SerializedSampler['warpmode'] = 'resample';
+  reverse = false;
+  grainSize = 0.1;
   selectedSlice?: Slice;
 
   // Transient preview player for the Audition button.
@@ -79,6 +92,11 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
     end: sampler.end ?? 0,
     rootNote: sampler.rootNote ?? 0,
     color: sampler.color ?? randomColor(),
+    volume: sampler.volume ?? 1,
+    playbackRate: sampler.playbackRate ?? 1,
+    warpmode: sampler.warpmode ?? 'resample',
+    reverse: sampler.reverse ?? false,
+    grainSize: sampler.grainSize ?? 0.1,
   });
 
   constructor(public engine: Engine, serializedSampler: SerializedSampler) {
@@ -191,6 +209,21 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
           case 'title':
             this.title = entry[1] ?? '';
             break;
+          case 'volume':
+            this.volume = entry[1] ?? 1;
+            break;
+          case 'playbackRate':
+            this.playbackRate = entry[1] ?? 1;
+            break;
+          case 'warpmode':
+            this.warpmode = entry[1] ?? 'resample';
+            break;
+          case 'reverse':
+            this.reverse = entry[1] ?? false;
+            break;
+          case 'grainSize':
+            this.grainSize = entry[1] ?? 0.1;
+            break;
         }
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -294,6 +327,11 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
       end: this.end,
       rootNote: this.rootNote,
       color: this.color,
+      volume: this.volume,
+      playbackRate: this.playbackRate,
+      warpmode: this.warpmode,
+      reverse: this.reverse,
+      grainSize: this.grainSize,
     };
   }
 }

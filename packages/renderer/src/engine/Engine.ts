@@ -222,20 +222,22 @@ export class Engine extends EngineBase<EngineEvents> {
   // Find a sample slot matching a source + region, creating one if none exists.
   // Used to migrate pre-slot slices (which carried their own url + region) onto
   // a shared slot, so identical regions across tracks collapse to one slot.
-  findOrCreateSampleSlot(data: {
-    url: string;
-    start?: number;
-    end?: number;
-    title?: string;
-    color?: string;
-  }) {
+  findOrCreateSampleSlot(data: DeepPartial<SerializedSampler>) {
     const start = data.start ?? 0;
     const end = data.end ?? 0;
+    // Match on everything that defines the sound, so two legacy voices with the
+    // same region but different tuning migrate to distinct slots (rather than
+    // collapsing and losing one's settings).
     const match = this.samplers.find(
       (sampler) =>
         sampler.url === data.url &&
         sampler.start === start &&
-        sampler.end === end,
+        sampler.end === end &&
+        sampler.playbackRate === (data.playbackRate ?? 1) &&
+        sampler.warpmode === (data.warpmode ?? 'resample') &&
+        sampler.reverse === (data.reverse ?? false) &&
+        sampler.grainSize === (data.grainSize ?? 0.1) &&
+        sampler.volume === (data.volume ?? 1),
     );
     return match ?? this.createSample(data);
   }

@@ -133,6 +133,11 @@ export class Slice extends Device<SliceEvents> {
         end: this.end,
         title: this.title,
         color: this.color,
+        playbackRate: this.playbackRate,
+        warpmode: this.warpmode,
+        reverse: this.reverse,
+        grainSize: this.grainSize,
+        volume: this.volume,
       });
 
     if (this.sampler && this.sampler !== resolved) {
@@ -160,14 +165,38 @@ export class Slice extends Device<SliceEvents> {
     this.emit('change', this);
   }
 
-  // Mirror the slot's source + region onto the voice so the existing player /
-  // buffer code keeps working, then rebuild the sliced buffer.
+  // Mirror the slot's source + region + sound params onto the voice so the
+  // existing player/buffer code keeps working, then rebuild the sliced buffer.
+  // The slot owns the sound; the voice is just a trigger.
   private syncFromSampler() {
     this.url = this.sampler.url;
     this.start = this.sampler.start;
     this.end = this.sampler.end;
-    this.updateBuffer();
+    this.playbackRate = this.sampler.playbackRate;
+    this.reverse = this.sampler.reverse;
+    this.grainSize = this.sampler.grainSize;
+    this.volume = this.sampler.volume;
+
+    if (this.warpmode !== this.sampler.warpmode) {
+      // resample vs stretch uses a different Tone player, so rebuild it (which
+      // also reloads the sliced buffer).
+      this.warpmode = this.sampler.warpmode;
+      this.createPlayer();
+    } else {
+      this.updateBuffer();
+    }
   }
+
+  // Source + region + sound params live on the slot; route edits there.
+  private static readonly slotOwnedKeys: (keyof SerializedSlice)[] = [
+    'start',
+    'end',
+    'playbackRate',
+    'warpmode',
+    'reverse',
+    'grainSize',
+    'volume',
+  ];
 
   handleDraw = (now: number) => {
     // Only voices that are actually sounding need a moving playhead. Emitting a
@@ -225,24 +254,25 @@ export class Slice extends Device<SliceEvents> {
   };
 
   set(slicePartial: Partial<SerializedSlice>) {
-    // When bound to a sample slot, the region (start/end) is owned by the slot,
-    // so route region edits there; the slot's change syncs them back onto every
-    // voice that plays it. (During construction this.sampler isn't set yet, so
-    // the initial region is applied to the voice and then used to seed the slot
-    // in bindSampler.)
-    if (
-      this.sampler &&
-      this.samplerId &&
-      (slicePartial.start !== undefined || slicePartial.end !== undefined)
-    ) {
-      this.sampler.set({
-        ...(slicePartial.start !== undefined
-          ? { start: slicePartial.start }
-          : {}),
-        ...(slicePartial.end !== undefined ? { end: slicePartial.end } : {}),
-      });
-      const { start: _start, end: _end, ...rest } = slicePartial;
-      slicePartial = rest;
+    // When bound to a sample slot, the source/region/sound params are owned by
+    // the slot, so route those edits there; the slot's change syncs them back
+    // onto every voice that plays it. (During construction this.sampler isn't
+    // set yet, so the initial values are applied to the voice and then used to
+    // seed the slot in bindSampler.)
+    if (this.sampler && this.samplerId) {
+      const slotEdits: Record<string, unknown> = {};
+      let hasSlotEdit = false;
+      for (const key of Slice.slotOwnedKeys) {
+        if (slicePartial[key] !== undefined) {
+          slotEdits[key] = slicePartial[key];
+          hasSlotEdit = true;
+        }
+      }
+      if (hasSlotEdit) {
+        this.sampler.set(slotEdits as Parameters<SamplerDevice['set']>[0]);
+        slicePartial = { ...slicePartial };
+        for (const key of Slice.slotOwnedKeys) delete slicePartial[key];
+      }
     }
 
     batch(() => {
