@@ -194,8 +194,16 @@ export class Engine extends EngineBase<EngineEvents> {
     this.emit('trackRemoved', track);
   }
 
-  dispose() {
+  // Remove every track but keep the engine and its master bus alive. Used by
+  // "Clear all" on the live (singleton) engine.
+  clear() {
     this.tracks.forEach((track) => this.removeTrack(track));
+  }
+
+  // Full teardown, including the master bus. Only for the throwaway offline
+  // render engine — never the live singleton, or playback would go silent.
+  dispose() {
+    this.clear();
     this.gain.dispose();
     this.limiter.dispose();
     this.meter.dispose();

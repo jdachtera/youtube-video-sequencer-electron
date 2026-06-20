@@ -126,7 +126,7 @@ export const Toolbar = (props: { engine: Engine }) => {
     ) {
       return;
     }
-    props.engine.dispose();
+    props.engine.clear();
   };
 
   const [lastSaved, setLastSaved] = createSignal<number>();
