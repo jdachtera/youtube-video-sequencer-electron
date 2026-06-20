@@ -1,6 +1,13 @@
 /* eslint-disable max-classes-per-file */
 import { batch } from 'solid-js';
-import { Gain, getContext, OfflineContext, setContext, start } from 'tone';
+import {
+  Gain,
+  getContext,
+  Limiter,
+  OfflineContext,
+  setContext,
+  start,
+} from 'tone';
 import type { Transport } from 'tone/build/esm/core/clock/Transport';
 import type { Time, TransportTime } from 'tone/build/esm/core/type/Units';
 import type { SidePanelTab } from '../panels/SidePanel';
@@ -53,6 +60,11 @@ export class Engine extends EngineBase<EngineEvents> {
   public currentSampler?: SamplerDevice;
 
   public gain = new Gain();
+
+  // Brickwall safety limiter on the master bus. Layering several samples can
+  // easily push the sum past 0 dBFS and clip into harsh digital distortion;
+  // this catches the peaks so the mix (and exports) stay clean.
+  public limiter = new Limiter(-1);
 
   public currentPatternIndex = 0;
 
@@ -121,7 +133,8 @@ export class Engine extends EngineBase<EngineEvents> {
     this.transport.on('stop', () => {
       this.emit('stop');
     });
-    this.gain.toDestination();
+    this.gain.connect(this.limiter);
+    this.limiter.toDestination();
   }
 
   emitChange = () => this.emit('change', this);
@@ -178,6 +191,8 @@ export class Engine extends EngineBase<EngineEvents> {
 
   dispose() {
     this.tracks.forEach((track) => this.removeTrack(track));
+    this.gain.dispose();
+    this.limiter.dispose();
   }
 
   set(serializedEngine: DeepPartial<SerializedEngine>) {
