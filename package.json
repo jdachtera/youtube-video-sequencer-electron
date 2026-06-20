@@ -148,6 +148,7 @@
     "solid-dismiss": "^1.4.1",
     "solid-icons": "^1.0.4",
     "solid-js": "1.6.3",
+    "solid-pianoroll": "^0.0.28",
     "stream-browserify": "^3.0.0",
     "timers-browserify": "^2.0.12",
     "tiny-typed-emitter": "^2.1.0",

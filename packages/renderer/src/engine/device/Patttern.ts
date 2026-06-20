@@ -1,4 +1,5 @@
-import { Sequence, Time } from 'tone';
+import type { Note } from 'solid-pianoroll';
+import { Part, Sequence, Time } from 'tone';
 import type { TransportTime } from 'tone/build/esm/core/type/Units';
 import type { Engine } from '../Engine';
 import { EngineBase } from '../EngineBase';
@@ -44,6 +45,8 @@ export const followupActionTypes: FollowupAction['type'][] = [
   'other',
 ];
 
+export type PatternMode = 'steps' | 'pianoroll';
+
 export type SerializedPattern = {
   name: string;
   color: string;
@@ -51,7 +54,17 @@ export type SerializedPattern = {
   subdivisionType: typeof subdivisionTypes[number];
   followupAction?: FollowupAction;
   steps: Step[];
+  // Melodic piano-roll mode: notes (MIDI/PPQ based) that pitch-shift the
+  // downstream slice instead of just triggering it.
+  mode: PatternMode;
+  notes: Note[];
+  ppq: number;
+  duration: number;
 };
+
+// MIDI note the sample plays back at its natural pitch (C4). Notes above pitch
+// up, notes below pitch down.
+export const PIANO_ROLL_ROOT_MIDI = 60;
 
 export type Step = {
   play: boolean;
@@ -70,6 +83,7 @@ export class Pattern extends EngineBase<
 > {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   sequence: Sequence<Step> = null!;
+  part: Part<{ time: string; note: Note }> | null = null;
   engine: Engine;
 
   name = '';
@@ -78,6 +92,11 @@ export class Pattern extends EngineBase<
   subdivision = 16;
   subdivisionType: typeof subdivisionTypes[number] = 'n';
   followupAction?: FollowupAction;
+
+  mode: PatternMode = 'steps';
+  notes: Note[] = [];
+  ppq = 192;
+  duration = 192 * 16;
 
   public constructor(
     public sequencer: SequencerDevice,
@@ -104,6 +123,12 @@ export class Pattern extends EngineBase<
           subdivision: pattern.subdivision ?? 16,
           subdivisionType: pattern.subdivisionType ?? 'n',
           steps: (pattern.steps ?? []).map((step) => normalizeStepData(step)),
+          mode: pattern.mode === 'pianoroll' ? 'pianoroll' : 'steps',
+          notes: Array.isArray(pattern.notes)
+            ? pattern.notes.map((note) => normalizeNoteData(note))
+            : [],
+          ppq: pattern.ppq ?? 192,
+          duration: pattern.duration ?? 192 * 16,
         };
 
   set(patternPartial: Partial<SerializedPattern>) {
@@ -133,6 +158,42 @@ export class Pattern extends EngineBase<
         case 'followupAction':
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this.followupAction = entry[1]!;
+          break;
+        case 'mode':
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          this.mode = entry[1]!;
+          // Stop the step sequence and (re)build the note part so the right
+          // scheduler is active for the new mode.
+          this.sequence?.stop();
+          this.createPart();
+          if (
+            this.engine.transport.state === 'started' &&
+            this.sequencer.getPattern() === this
+          ) {
+            this.start();
+          }
+          break;
+        case 'notes': {
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          this.notes = entry[1]!;
+          if (this.mode === 'pianoroll') {
+            const wasStarted = this.part?.state === 'started';
+            this.createPart();
+            if (wasStarted) this.part?.start(0);
+          }
+          break;
+        }
+        case 'ppq':
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          this.ppq = entry[1]!;
+          if (this.mode === 'pianoroll') this.createPart();
+          break;
+        case 'duration':
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          this.duration = entry[1]!;
+          if (this.part) {
+            this.part.loopEnd = this.ticksToToneTime(this.duration);
+          }
           break;
         case 'name':
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -184,6 +245,50 @@ export class Pattern extends EngineBase<
     return this.sequence;
   }
 
+  // Convert piano-roll ticks (in this pattern's ppq) to a Tone transport-tick
+  // time string, so note timing stays correct across tempo changes.
+  protected ticksToToneTime(ticks: number) {
+    const quarters = ticks / (this.ppq || 192);
+    const toneTicks = Math.round(quarters * this.engine.transport.PPQ);
+    return `${toneTicks}i`;
+  }
+
+  // Build (or tear down) the Tone.Part that schedules piano-roll notes. Each
+  // note fires the same sequenceEvent the step grid uses, but pitched: the
+  // playbackRate is derived from the note's distance from the root, so the
+  // downstream slice plays back at the note's pitch.
+  protected createPart() {
+    if (this.part) {
+      this.part.stop();
+      this.part.clear();
+      this.part.dispose();
+      this.part = null;
+    }
+
+    if (this.mode !== 'pianoroll') return;
+
+    const part = new Part<{ time: string; note: Note }>((time, value) => {
+      const { note } = value;
+      const semitones = note.midi - PIANO_ROLL_ROOT_MIDI;
+      this.sequencer.onSequenceEvent(time, {
+        play: true,
+        volume: note.velocity ?? 1,
+        playbackRate: Math.pow(2, semitones / 12),
+        pitch: 0,
+        reverse: false,
+      });
+    }, []);
+
+    this.notes.forEach((note) =>
+      part.add({ time: this.ticksToToneTime(note.ticks), note }),
+    );
+
+    part.loop = true;
+    part.loopEnd = this.ticksToToneTime(this.duration);
+
+    this.part = part;
+  }
+
   setLength(newLength: number) {
     const steps = [
       ...this.steps.slice(0, newLength),
@@ -200,6 +305,11 @@ export class Pattern extends EngineBase<
   }
 
   start(time?: TransportTime) {
+    if (this.mode === 'pianoroll') {
+      if (!this.part) this.createPart();
+      this.part?.start(time ?? 0);
+      return;
+    }
     if (time === undefined && this.engine.transport.state === 'started') {
       const sequenceDuration =
         this.sequence.toSeconds(this.sequence.subdivision) *
@@ -225,7 +335,8 @@ export class Pattern extends EngineBase<
   }
 
   stop(time?: TransportTime) {
-    this.sequence.stop(time);
+    this.sequence?.stop(time);
+    this.part?.stop(time);
   }
 
   serialize(): SerializedPattern {
@@ -238,14 +349,26 @@ export class Pattern extends EngineBase<
       steps: this.steps.map((step) => ({
         ...step,
       })),
+      mode: this.mode,
+      notes: this.notes.map((note) => ({ ...note })),
+      ppq: this.ppq,
+      duration: this.duration,
     };
   }
 
   dispose() {
     this.removeAllListeners();
-    this.sequence.dispose();
+    this.sequence?.dispose();
+    this.part?.dispose();
   }
 }
+
+export const normalizeNoteData = (note: DeepPartial<Note>): Note => ({
+  ticks: note.ticks ?? 0,
+  durationTicks: note.durationTicks ?? 0,
+  midi: note.midi ?? PIANO_ROLL_ROOT_MIDI,
+  velocity: note.velocity ?? 1,
+});
 
 export const normalizeStepData = (
   step: DeepPartial<Step & { actions: unknown[] }>,

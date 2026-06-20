@@ -17,6 +17,7 @@ import {
   normalizeFollowupActionData,
 } from '../engine/device/Patttern';
 import { subdivisions, subdivisionTypes } from '../engine/types';
+import { PianoRollView } from './PianoRollView';
 import { Sequencer } from './Sequencer';
 import type { SequencerMode } from './SequencerStep';
 import { sequencerModes } from './SequencerStep';
@@ -68,6 +69,7 @@ export const PatternEditor = (
       subdivisionType: pattern?.subdivisionType,
       followupAction: pattern?.followupAction,
       steps: pattern?.steps,
+      mode: pattern?.mode ?? 'steps',
     }),
     ['change'],
   );
@@ -127,43 +129,62 @@ export const PatternEditor = (
               }}
             />
 
-            <NumberInputWithArrowButtons
-              label={'Steps'}
-              size={4}
-              step={1}
-              min={1}
-              max={1024}
-              value={selectedPatternState()?.steps?.length}
-              onChange={(length) => {
-                selectedPattern().setLength(length);
-              }}
-            />
-            <SelectWithArrowButtons
-              label={'Div'}
-              size={2}
-              options={subdivisions}
-              selectedOption={selectedPatternState()?.subdivision ?? 16}
-              onChange={(subdivision) => {
-                selectedPattern()?.set({ subdivision });
-              }}
-            />
-            <SelectWithArrowButtons
-              size={2}
-              label={'Type'}
-              options={[...subdivisionTypes]}
-              selectedOption={
-                selectedPatternState()?.subdivisionType ?? 'n' ?? 16
+            <Show when={selectedPatternState().mode !== 'pianoroll'}>
+              <NumberInputWithArrowButtons
+                label={'Steps'}
+                size={4}
+                step={1}
+                min={1}
+                max={1024}
+                value={selectedPatternState()?.steps?.length}
+                onChange={(length) => {
+                  selectedPattern().setLength(length);
+                }}
+              />
+              <SelectWithArrowButtons
+                label={'Div'}
+                size={2}
+                options={subdivisions}
+                selectedOption={selectedPatternState()?.subdivision ?? 16}
+                onChange={(subdivision) => {
+                  selectedPattern()?.set({ subdivision });
+                }}
+              />
+              <SelectWithArrowButtons
+                size={2}
+                label={'Type'}
+                options={[...subdivisionTypes]}
+                selectedOption={
+                  selectedPatternState()?.subdivisionType ?? 'n' ?? 16
+                }
+                onChange={(subdivisionType) => {
+                  selectedPattern()?.set({ subdivisionType });
+                }}
+              />
+              <SelectWithArrowButtons
+                size={1}
+                options={sequencerModes}
+                selectedOption={selectedMode()}
+                optionLabel={(mode) => sequencerModeLabels[mode]}
+                onChange={setSelectedMode}
+              />
+            </Show>
+            <ButtonWithLabel
+              label={
+                selectedPatternState().mode === 'pianoroll'
+                  ? '▦ Steps'
+                  : '♪ Piano'
               }
-              onChange={(subdivisionType) => {
-                selectedPattern()?.set({ subdivisionType });
+              labelOnButton={true}
+              activated={selectedPatternState().mode === 'pianoroll'}
+              onClick={() => {
+                selectedPattern()?.set({
+                  mode:
+                    selectedPatternState().mode === 'pianoroll'
+                      ? 'steps'
+                      : 'pianoroll',
+                });
               }}
-            />
-            <SelectWithArrowButtons
-              size={1}
-              options={sequencerModes}
-              selectedOption={selectedMode()}
-              optionLabel={(mode) => sequencerModeLabels[mode]}
-              onChange={setSelectedMode}
             />
             <FollowupActionControls
               numberOfPatterns={sequencerState.numberOfPatterns}
@@ -182,14 +203,23 @@ export const PatternEditor = (
       </Column>
       <Show when={selectedPattern()}>
         <ScreenPrintBackground background={'rgba(255,255,255,0.2)'}>
-          <Sequencer
-            mode={selectedMode()}
-            steps={selectedPatternState().steps}
-            onChange={(steps) => {
-              selectedPattern()?.set({ steps });
-            }}
-            sequencer={props.sequencer}
-          />
+          <Show
+            when={selectedPatternState().mode === 'pianoroll'}
+            fallback={
+              <Sequencer
+                mode={selectedMode()}
+                steps={selectedPatternState().steps}
+                onChange={(steps) => {
+                  selectedPattern()?.set({ steps });
+                }}
+                sequencer={props.sequencer}
+              />
+            }
+          >
+            <Show keyed when={selectedPattern()}>
+              {(pattern) => <PianoRollView pattern={pattern} />}
+            </Show>
+          </Show>
         </ScreenPrintBackground>
       </Show>
     </Flex>
