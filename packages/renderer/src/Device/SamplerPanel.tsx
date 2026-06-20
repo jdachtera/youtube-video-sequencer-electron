@@ -445,11 +445,12 @@ const Cover = (props: { url: string }) => {
         fallback={
           <span
             class={css`
-              opacity: 0.5;
-              font-size: 11px;
+              opacity: 0.3;
+              font-size: 30px;
+              line-height: 1;
             `}
           >
-            no cover
+            ♪
           </span>
         }
       >
