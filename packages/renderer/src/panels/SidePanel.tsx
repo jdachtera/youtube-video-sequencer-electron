@@ -12,13 +12,17 @@ import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { Column, Row } from '../UI/Grid';
 import type { Engine } from '../engine/Engine';
 import { createStoreFromEventEmitter } from '../engine/EngineBase';
+import { CacheControl } from './CacheControl';
 import { FindSlicesPanel } from './FindSlicesPanel';
 import { LocalFilesPanel } from './LocalFilesPanel';
-import { SoundsDotComPanel } from './SoundDotComPanel';
 import { YoutubeSearchPanel } from './YoutubeSearchPanel';
 
-const tabs = ['YouTube', 'SliceDB', 'Sounds.com', 'LocalFiles'] as const;
+const tabs = ['YouTube', 'SliceDB', 'LocalFiles'] as const;
 export type SidePanelTab = typeof tabs[number];
+
+// SliceDB is hidden for now (kept in the type/Match so projects and the
+// backend integration aren't removed) until that feature is ready.
+const visibleTabs: SidePanelTab[] = ['YouTube', 'LocalFiles'];
 
 export const SidePanel = (props: { engine: Engine }) => {
   const sidePanelState = createStoreFromEventEmitter(
@@ -84,7 +88,7 @@ export const SidePanel = (props: { engine: Engine }) => {
     >
       <Column flex={1} overflow={'hidden'}>
         <ButtonGroup>
-          <For each={tabs}>
+          <For each={visibleTabs}>
             {(tab) => (
               <ButtonWithLabel
                 label={tab}
@@ -106,13 +110,11 @@ export const SidePanel = (props: { engine: Engine }) => {
           <Match when={sidePanelState.activeTab === 'SliceDB'}>
             <FindSlicesPanel engine={props.engine} />
           </Match>
-          <Match when={sidePanelState.activeTab === 'Sounds.com'}>
-            <SoundsDotComPanel engine={props.engine} />
-          </Match>
           <Match when={sidePanelState.activeTab === 'LocalFiles'}>
             <LocalFilesPanel engine={props.engine} />
           </Match>
         </Switch>
+        <CacheControl />
       </Column>
       <Column
         class={css`
@@ -131,7 +133,7 @@ export const SidePanel = (props: { engine: Engine }) => {
           });
         }}
         width={`${dragHandleWidth}px`}
-      ></Column>
+      />
     </Row>
   );
 };

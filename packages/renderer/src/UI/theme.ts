@@ -10,9 +10,9 @@ export const theme = {
   },
   sizes: {
     labelBorderRadius: '3px',
-    knobSize: 80,
+    knobSize: 46,
     toggleSize: 50,
-    controlMargin: 10,
+    controlMargin: 4,
   },
   fonts: {
     lcdFont: 'chesstype',

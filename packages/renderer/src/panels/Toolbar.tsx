@@ -1,11 +1,12 @@
 import { css } from '@emotion/css';
-import { createSignal, For, onCleanup, onMount } from 'solid-js';
+import { createSignal, For, onCleanup, onMount, Show } from 'solid-js';
 import { Time } from 'tone';
 import { debounce } from 'ts-debounce';
 import { ButtonGroup } from '../UI/ButtonGroup';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { Row } from '../UI/Grid';
 import { LoadFileButton } from '../UI/LoadFileButton';
+import { MasterMeter } from '../UI/MasterMeter';
 import { NumberInputWithArrowButtons } from '../UI/NumberInputWithArrowButtons';
 import { RangeInput } from '../UI/RangeInput';
 import { camelCaseToSpaced } from '../UI/format';
@@ -17,8 +18,11 @@ import {
 } from '../engine/EngineBase';
 import { DeviceChain } from '../engine/device/DeviceChain';
 import { SamplerDevice } from '../engine/device/Sampler';
+import { createHistory } from '../engine/history';
 import type { DeepPartial } from '../engine/types';
-import { LoginModal } from './LoginModal';
+import { notify } from '../notifications';
+import { AccountMenu } from './AccountMenu';
+import { ChannelSwitcher } from './ChannelSwitcher';
 import { MixdownButton } from './MixdownButton';
 
 export const Toolbar = (props: { engine: Engine }) => {
@@ -58,6 +62,8 @@ export const Toolbar = (props: { engine: Engine }) => {
     }
   };
 
+  const history = createHistory(props.engine);
+
   const handleKeydown = (event: KeyboardEvent) => {
     if (
       event.target instanceof HTMLInputElement ||
@@ -65,10 +71,35 @@ export const Toolbar = (props: { engine: Engine }) => {
     ) {
       return;
     }
-    switch (event.code) {
-      case 'Space':
-        togglePlay();
-        break;
+
+    const mod = event.metaKey || event.ctrlKey;
+
+    if (mod && event.code === 'KeyZ') {
+      event.preventDefault();
+      if (event.shiftKey) history.redo();
+      else history.undo();
+      return;
+    }
+
+    if (mod && event.code === 'KeyS') {
+      event.preventDefault();
+      exportJSON();
+      return;
+    }
+
+    if (!mod && event.code === 'Space') {
+      event.preventDefault();
+      togglePlay();
+      return;
+    }
+
+    if (event.code === 'Escape' && engineState.viewMode.sidePanel.open) {
+      props.engine.set({
+        viewMode: {
+          ...engineState.viewMode,
+          sidePanel: { open: false },
+        },
+      });
     }
   };
 
@@ -89,11 +120,21 @@ export const Toolbar = (props: { engine: Engine }) => {
   };
 
   const clear = () => {
-    props.engine.dispose();
+    if (
+      !window.confirm(
+        'Clear the entire project? Everything in the rack will be removed.',
+      )
+    ) {
+      return;
+    }
+    props.engine.clear();
   };
+
+  const [lastSaved, setLastSaved] = createSignal<number>();
 
   const saveToLocalStorage = debounce((engine: Engine) => {
     localStorage.setItem('track', JSON.stringify(engine.serialize()));
+    setLastSaved(Date.now());
   }, 500);
 
   const exportJSON = () => {
@@ -112,28 +153,22 @@ export const Toolbar = (props: { engine: Engine }) => {
   };
 
   const loadJSON = async (event: { currentTarget: HTMLInputElement }) => {
-    await new Promise<void>((resolve) => {
-      const file = event.currentTarget.files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.addEventListener('load', (loadEvent) => {
-          const fileContents = loadEvent.target?.result?.toString();
+    const file = event.currentTarget.files?.[0];
+    if (!file) return;
 
-          if (!fileContents) return;
-          try {
-            const parsedData = JSON.parse(fileContents) as Partial<
-              ReturnType<Engine['serialize']>
-            >;
-
-            props.engine.set(Engine.normalizeData(parsedData));
-            resolve();
-          } catch {
-            //
-          }
-        });
-        reader.readAsText(file);
-      }
-    });
+    try {
+      const parsedData = JSON.parse(await file.text()) as Partial<
+        ReturnType<Engine['serialize']>
+      >;
+      props.engine.set(Engine.normalizeData(parsedData));
+    } catch (error) {
+      notify(
+        `Couldn't import "${file.name}": ${
+          error instanceof Error ? error.message : 'not a valid project file'
+        }`,
+        'error',
+      );
+    }
   };
 
   onMount(() => props.engine.on('change', saveToLocalStorage));
@@ -160,15 +195,22 @@ export const Toolbar = (props: { engine: Engine }) => {
 
   return (
     <div>
-      <LoginModal />
-
       <div
         class={css`
           background: #333;
           padding: 8px;
         `}
       >
-        <Row>
+        <Row
+          classList={{
+            [css`
+              flex-wrap: wrap;
+              align-items: center;
+              row-gap: 6px;
+              column-gap: 2px;
+            `]: true,
+          }}
+        >
           <ButtonWithLabel
             type="button"
             activated={engineState.playing}
@@ -180,11 +222,30 @@ export const Toolbar = (props: { engine: Engine }) => {
           />
 
           <ButtonGroup>
-            <LoadFileButton label={'Load'} onChange={loadJSON} accept=".json" />
+            <ButtonWithLabel
+              onClick={() => history.undo()}
+              disabled={!history.canUndo()}
+              labelOnButton={true}
+              label={'Undo'}
+            />
+            <ButtonWithLabel
+              onClick={() => history.redo()}
+              disabled={!history.canRedo()}
+              labelOnButton={true}
+              label={'Redo'}
+            />
+          </ButtonGroup>
+
+          <ButtonGroup>
+            <LoadFileButton
+              label={'Import'}
+              onChange={loadJSON}
+              accept=".json"
+            />
             <ButtonWithLabel
               onClick={exportJSON}
               labelOnButton={true}
-              label={'Save'}
+              label={'Export'}
             />
             <MixdownButton engine={props.engine} />
             <ButtonWithLabel
@@ -193,6 +254,21 @@ export const Toolbar = (props: { engine: Engine }) => {
               label={'Clear all'}
             />
           </ButtonGroup>
+
+          <Show when={lastSaved()}>
+            <span
+              title="Your work is autosaved locally in this app"
+              class={css`
+                align-self: center;
+                margin: 0 6px;
+                font-size: 10px;
+                color: #8a8;
+                white-space: nowrap;
+              `}
+            >
+              ● Autosaved
+            </span>
+          </Show>
 
           <Row
             classList={{
@@ -281,6 +357,7 @@ export const Toolbar = (props: { engine: Engine }) => {
               const collapsed = !minimized();
 
               props.engine.tracks.forEach((track) => {
+                track.set({ collapsed });
                 track.chain.devices.forEach((device) => {
                   device.set({ collapsed });
                   if (device instanceof SamplerDevice) {
@@ -310,6 +387,9 @@ export const Toolbar = (props: { engine: Engine }) => {
             }}
             label="Master Volume"
           />
+          <MasterMeter engine={props.engine} />
+          <ChannelSwitcher />
+          <AccountMenu />
         </Row>
       </div>
     </div>

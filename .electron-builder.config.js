@@ -23,6 +23,19 @@ const config = {
   linux: {
     target: 'tar.bz2',
   },
+  mac: {
+    // Build for both Apple Silicon and Intel Macs.
+    target: [
+      { target: 'dmg', arch: ['arm64', 'x64'] },
+      { target: 'zip', arch: ['arm64', 'x64'] },
+    ],
+    category: 'public.app-category.music',
+    // Local/unsigned build: electron-builder skips code signing so it builds
+    // without an Apple Developer certificate. The app runs locally (first launch:
+    // right-click -> Open to get past Gatekeeper). For distribution, set up a
+    // Developer ID identity + notarization instead of `identity: null`.
+    identity: null,
+  },
 };
 
 module.exports = config;

@@ -4,18 +4,15 @@ import { App } from './App';
 (async () => {
   if (!window.yt) {
     window.global = window;
-    const [yt, soundsDotCom] = await Promise.all([
-      import('../../preload/src/youtube'),
-      import('../../preload/src/sounds'),
-    ]);
+    const yt = await import('../../preload/src/youtube');
 
     window.yt = yt.default;
-    window.soundsDotCom = soundsDotCom.default;
 
     window.host = {
       zoom: () => {
         //
       },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any;
   }
 

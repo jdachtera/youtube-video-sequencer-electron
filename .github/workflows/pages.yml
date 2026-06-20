@@ -1,0 +1,91 @@
+name: Deploy renderer to GitHub Pages
+
+on:
+  # Publish the web UI (the renderer) to GitHub Pages. Decoupled from the
+  # Electron Release workflow: the renderer is built and deployed on its own —
+  # cheaply, no 3-OS build — so the desktop shell (which loads this URL with a
+  # bundled local fallback) gets a new UI without shipping an Electron build.
+  #
+  # main deploys to the site root; every other branch deploys to
+  # branches/<slug>/, so a branch's preview build can be selected from inside
+  # the app (the channel switcher). Only renderer-affecting changes redeploy, to
+  # keep Actions minutes down.
+  push:
+    branches:
+      - '**'
+    paths:
+      - 'packages/renderer/**'
+      - 'packages/preload/src/**'
+      - '.electron-vendors.cache.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+# peaceiris pushes the build to the gh-pages branch.
+permissions:
+  contents: write
+
+# Serialize all deploys (across branches) so concurrent pushes don't race on the
+# shared gh-pages branch. Let an in-flight deploy finish rather than cancelling.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: 'bash'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build renderer
+        run: pnpm build:renderer
+        env:
+          MODE: production
+
+      - name: Prepare artifact
+        run: |
+          dist=packages/renderer/dist
+          # Single-page app: serve index.html for unknown paths.
+          cp "$dist/index.html" "$dist/404.html"
+          # Don't let GitHub run the output through Jekyll.
+          touch "$dist/.nojekyll"
+
+      - name: Compute deploy target
+        id: target
+        run: |
+          branch="${GITHUB_REF_NAME}"
+          if [ "$branch" = "main" ]; then
+            echo "dir=." >> "$GITHUB_OUTPUT"
+          else
+            # Folder-safe slug; MUST match slug() in packages/main/src/channel.ts.
+            slug=$(echo "$branch" | sed 's#[^a-zA-Z0-9._-]#-#g')
+            echo "dir=branches/$slug" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: packages/renderer/dist
+          destination_dir: ${{ steps.target.outputs.dir }}
+          # Keep other branches' folders (and the root) when deploying one.
+          keep_files: true
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: 'Deploy ${{ github.ref_name }} (${{ github.sha }})'

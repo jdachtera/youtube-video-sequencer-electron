@@ -1,5 +1,6 @@
 import { css } from '@emotion/css';
 import type { Track } from 'engine/Track';
+import { Show } from 'solid-js';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { DeviceWrapper } from '../UI/DeviceWrapper';
 import { Row } from '../UI/Grid';
@@ -17,8 +18,16 @@ export const TrackView = (props: { track: Track }) => {
       mute: track.volume.mute,
       solo: track.soloNode.solo,
       color: track.color,
+      volume: track.volume.volume.value,
     }),
-    ['colorUpdated', 'nameUpdated', 'soloUpdated', 'muteUpdated'],
+    [
+      'colorUpdated',
+      'nameUpdated',
+      'soloUpdated',
+      'muteUpdated',
+      'collapsedUpdated',
+      'volumeUpdated',
+    ],
   );
 
   const viewMode = createStoreFromEventEmitter(
@@ -45,14 +54,14 @@ export const TrackView = (props: { track: Track }) => {
             classList={{
               [css`
                 flex: 1;
-                margin-top: 20px 0;
+                align-items: center;
               `]: true,
             }}
           >
             <InputLCD
               classList={{
                 [css`
-                  width: 150px;
+                  width: 130px;
                   white-space: nowrap;
                   text-overflow: ellipsis;
                 `]: true,
@@ -79,9 +88,55 @@ export const TrackView = (props: { track: Track }) => {
               }}
             />
           </Row>
+
+          {/* Compact volume slider (double-click resets to 0 dB). */}
+          <div
+            class={css`
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              padding: 4px 2px 0;
+            `}
+          >
+            <input
+              type="range"
+              min={-48}
+              max={6}
+              step={0.5}
+              value={trackState.volume}
+              title="Track volume (dB)"
+              onInput={(event) =>
+                props.track.set({ volume: event.currentTarget.valueAsNumber })
+              }
+              onDblClick={() => props.track.set({ volume: 0 })}
+              class={css`
+                flex: 1;
+                height: 14px;
+                cursor: pointer;
+                accent-color: #333;
+              `}
+            />
+            <span
+              class={css`
+                min-width: 42px;
+                text-align: right;
+                font-family: 'oswald';
+                font-size: 11px;
+                color: rgba(0, 0, 0, 0.6);
+              `}
+            >
+              {trackState.volume <= -48
+                ? '-∞'
+                : `${trackState.volume > 0 ? '+' : ''}${Math.round(
+                    trackState.volume,
+                  )} dB`}
+            </span>
+          </div>
         </ScreenPrintBackground>
       </DeviceWrapper>
-      <DeviceChainView deviceChain={props.track.chain} renderDummy={false} />
+      <Show when={!trackState.collapsed}>
+        <DeviceChainView deviceChain={props.track.chain} renderDummy={false} />
+      </Show>
     </Row>
   );
 };

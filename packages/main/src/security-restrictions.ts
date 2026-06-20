@@ -1,32 +1,24 @@
 import { app, shell } from 'electron';
 import { URL } from 'url';
+import { remoteRendererOrigin } from './channel';
 
 /**
  * List of origins that you allow open INSIDE the application and permissions for each of them.
  *
- * In development mode you need allow open `VITE_DEV_SERVER_URL`
+ * In development mode you need allow open `VITE_DEV_SERVER_URL`. When the UI is
+ * served remotely (the GitHub Pages deployment), its origin is allowed too so
+ * reloads / in-site navigation aren't blocked.
  */
 const ALLOWED_ORIGINS_AND_PERMISSIONS = new Map<
   string,
-  Set<
-    | 'clipboard-read'
-    | 'media'
-    | 'display-capture'
-    | 'mediaKeySystem'
-    | 'geolocation'
-    | 'notifications'
-    | 'midi'
-    | 'midiSysex'
-    | 'pointerLock'
-    | 'fullscreen'
-    | 'openExternal'
-    | 'unknown'
-    | 'clipboard-sanitized-write'
-    | 'window-placement'
-  >
+  // Electron's permission union grows across versions; keep this as a plain
+  // string set so the allowlist (empty by default) doesn't have to track it.
+  Set<string>
 >(
   import.meta.env.DEV && import.meta.env.VITE_DEV_SERVER_URL
     ? [[new URL(import.meta.env.VITE_DEV_SERVER_URL).origin, new Set()]]
+    : remoteRendererOrigin
+    ? [[remoteRendererOrigin, new Set<string>()]]
     : [],
 );
 
@@ -78,6 +70,15 @@ app.on('web-contents-created', (_, contents) => {
       const { origin } = new URL(webContents.getURL());
 
       const permissionGranted =
+        // Allow first-party content (the app itself, incl. the video preview)
+        // to enter fullscreen; navigation to untrusted origins is blocked below.
+        permission === 'fullscreen' ||
+        // Allow the File System Access API (the local sample browser's folder
+        // picker). Electron routes showDirectoryPicker through the 'fileSystem'
+        // permission, so denying it makes the picker abort with "user aborted".
+        // Untrusted origins can't reach the main frame (navigation is blocked
+        // above and webviews are stripped), so this stays first-party.
+        permission === 'fileSystem' ||
         !!ALLOWED_ORIGINS_AND_PERMISSIONS.get(origin)?.has(permission);
       callback(permissionGranted);
 
@@ -88,6 +89,15 @@ app.on('web-contents-created', (_, contents) => {
       }
     },
   );
+
+  /**
+   * Synchronous permission checks (used by the File System Access API before it
+   * shows the picker). Mirror the request handler so the local sample browser's
+   * folder access isn't blocked at the check stage.
+   */
+  contents.session.setPermissionCheckHandler((_webContents, permission) => {
+    return permission === 'fullscreen' || permission === 'fileSystem';
+  });
 
   /**
    * Hyperlinks to allowed sites open in the default browser.

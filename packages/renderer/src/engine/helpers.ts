@@ -53,19 +53,37 @@ export function randomColor() {
 
 export async function fetchSliceUrlInfo(url: string) {
   if (url.includes('youtube.com')) {
-    const result = await window.yt.getInfo(url);
+    // The title is best-effort metadata. youtubei.js can fail (YouTube keeps
+    // changing its InnerTube endpoints — e.g. a 400 from /youtubei/v1/config),
+    // so never let it block the actual audio download, which goes through the
+    // separate yt-dlp path.
+    let title = '';
+    try {
+      const result = await window.yt.getInfo(url);
+      title = result?.basic_info?.title ?? '';
+    } catch {
+      // Ignore: fall back to a title derived from the URL below.
+    }
 
     const buffer = await window.yt.fetchVideo(url);
 
     if (!buffer) throw new Error('Download failed');
 
+    if (!title) {
+      try {
+        title = new URL(url).searchParams.get('v') ?? 'YouTube sample';
+      } catch {
+        title = 'YouTube sample';
+      }
+    }
+
     return {
-      title: result.basic_info.title,
+      title,
       buffer,
     };
   }
 
-  if (url.startsWith('http://local.file')) {
+  if (url.startsWith('http://file.local')) {
     const title = url.split('/').pop()!.split('.').slice(0, -1).join('.');
 
     return { sourceUrl: url, title };

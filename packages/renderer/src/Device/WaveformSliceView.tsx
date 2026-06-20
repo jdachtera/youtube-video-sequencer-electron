@@ -1,8 +1,8 @@
 import { css, keyframes } from '@emotion/css';
 import { mergeProps } from 'solid-js';
+import { Waveform } from 'solid-waveform';
 import { createSignalFromEventEmitter } from '../engine/EngineBase';
 import type { Slice } from '../engine/device/Slice';
-import { Waveform } from './Waveform/Waveform';
 
 type WaveformSliceViewProps = {
   slice: Slice;
@@ -55,13 +55,10 @@ export const WaveformSliceView = (
           `]: true,
         }}
         buffer={buffer()}
-        cacheKey={`${props.slice.id}-${props.slice.start}${props.slice.end}`}
         onClick={handleClickWaveform}
         position={0}
         zoom={1}
-        onStateChange={() => {
-          //
-        }}
+        scale={1}
       />
       <div
         classList={{

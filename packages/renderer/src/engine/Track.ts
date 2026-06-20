@@ -14,6 +14,8 @@ export type SerializedTrack = {
   collapsed: boolean;
   solo: boolean;
   color: string;
+  // Per-track output level in decibels (0 = unity).
+  volume: number;
 };
 
 type TrackEvents = {
@@ -37,6 +39,7 @@ export class Track extends EngineBase<TrackEvents> {
     solo: track.solo ?? false,
     color: track.color ?? '',
     collapsed: track.collapsed ?? false,
+    volume: track.volume ?? 0,
     chain: DeviceChain.normalizeData({
       ...track.chain,
       devices: track.chain?.devices,
@@ -67,6 +70,9 @@ export class Track extends EngineBase<TrackEvents> {
           this.chain.on('change', this.emitChange);
           this.chain.output.connect(this.volume);
           break;
+        case 'collapsed':
+          this.collapsed = entry.value;
+          break;
         case 'color':
         case 'name':
           this[entry.key] = entry.value;
@@ -77,6 +83,9 @@ export class Track extends EngineBase<TrackEvents> {
         case 'solo':
           this.soloNode.set({ solo: entry.value });
           break;
+        case 'volume':
+          this.volume.volume.value = entry.value;
+          break;
       }
 
       this.emit(`${entry.key}Updated`, entry.value);
@@ -86,8 +95,9 @@ export class Track extends EngineBase<TrackEvents> {
 
   setSolo(solo: boolean, multi = false) {
     if (solo && !multi) {
-      this.engine.tracks.forEach((slice) =>
-        slice.set({ solo: this === slice }),
+      // Exclusive solo: solo this track and clear every other.
+      this.engine.tracks.forEach((track) =>
+        track.set({ solo: this === track }),
       );
     } else {
       this.set({ solo });
@@ -99,7 +109,14 @@ export class Track extends EngineBase<TrackEvents> {
   }
 
   dispose() {
+    // Release the solo bus first: disposing a still-soloed track would
+    // otherwise leave every other track muted (a stuck solo).
+    this.soloNode.solo = false;
     this.chain.dispose();
+    this.volume.disconnect();
+    this.soloNode.disconnect();
+    this.volume.dispose();
+    this.soloNode.dispose();
   }
 
   serialize(): SerializedTrack {
@@ -110,6 +127,7 @@ export class Track extends EngineBase<TrackEvents> {
       solo: this.soloNode.solo,
       color: this.color,
       collapsed: this.collapsed,
+      volume: this.volume.volume.value,
     };
   }
 }

@@ -1,6 +1,14 @@
 /* eslint-disable max-classes-per-file */
 import { batch } from 'solid-js';
-import { Gain, getContext, OfflineContext, setContext, start } from 'tone';
+import {
+  Gain,
+  getContext,
+  Limiter,
+  Meter,
+  OfflineContext,
+  setContext,
+  start,
+} from 'tone';
 import type { Transport } from 'tone/build/esm/core/clock/Transport';
 import type { Time, TransportTime } from 'tone/build/esm/core/type/Units';
 import type { SidePanelTab } from '../panels/SidePanel';
@@ -9,8 +17,8 @@ import type { SerializedTrack } from './Track';
 import { Track } from './Track';
 import type { SerializedSampler } from './device/Sampler';
 import { SamplerDevice } from './device/Sampler';
+import { SequencerDevice } from './device/Sequencer';
 import type { SerializedSlice } from './device/Slice';
-import { Slice } from './device/Slice';
 import type { PropertyUpdateEvents } from './helpers';
 import { entries } from './helpers';
 import type { DeepPartial } from './types';
@@ -53,6 +61,14 @@ export class Engine extends EngineBase<EngineEvents> {
   public currentSampler?: SamplerDevice;
 
   public gain = new Gain();
+
+  // Brickwall safety limiter on the master bus. Layering several samples can
+  // easily push the sum past 0 dBFS and clip into harsh digital distortion;
+  // this catches the peaks so the mix (and exports) stay clean.
+  public limiter = new Limiter(-1);
+
+  // Post-limiter level meter (0..1) driving the toolbar's master meter.
+  public meter = new Meter({ normalRange: true, smoothing: 0.7 });
 
   public currentPatternIndex = 0;
 
@@ -121,7 +137,9 @@ export class Engine extends EngineBase<EngineEvents> {
     this.transport.on('stop', () => {
       this.emit('stop');
     });
-    this.gain.toDestination();
+    this.gain.connect(this.limiter);
+    this.limiter.toDestination();
+    this.limiter.connect(this.meter);
   }
 
   emitChange = () => this.emit('change', this);
@@ -176,8 +194,19 @@ export class Engine extends EngineBase<EngineEvents> {
     this.emit('trackRemoved', track);
   }
 
-  dispose() {
+  // Remove every track but keep the engine and its master bus alive. Used by
+  // "Clear all" on the live (singleton) engine.
+  clear() {
     this.tracks.forEach((track) => this.removeTrack(track));
+  }
+
+  // Full teardown, including the master bus. Only for the throwaway offline
+  // render engine — never the live singleton, or playback would go silent.
+  dispose() {
+    this.clear();
+    this.gain.dispose();
+    this.limiter.dispose();
+    this.meter.dispose();
   }
 
   set(serializedEngine: DeepPartial<SerializedEngine>) {
@@ -253,17 +282,20 @@ export class Engine extends EngineBase<EngineEvents> {
     this.transport.stop();
   }
 
+  // The render length (in seconds) for a mixdown: one full loop of the longest
+  // pattern across all tracks, so the export captures a complete cycle of the
+  // beat. Floored so an empty or very short project still yields a usable file.
   getMaxSequenceLength() {
-    return (
-      this.tracks
-        .map((track) =>
-          track.chain.devices.filter(
-            (device): device is Slice => device instanceof Slice,
-          ),
-        )
-        .sort()
-        .pop()?.length ?? 16
-    );
+    const durations = this.tracks.map((track) => {
+      const sequencer = track.chain.devices.find(
+        (device): device is SequencerDevice =>
+          device instanceof SequencerDevice,
+      );
+      return sequencer?.getPattern()?.loopDurationSeconds() ?? 0;
+    });
+
+    const longest = durations.length ? Math.max(...durations) : 0;
+    return Math.max(longest, 2);
   }
 
   getOrCreateSampler(url: string) {

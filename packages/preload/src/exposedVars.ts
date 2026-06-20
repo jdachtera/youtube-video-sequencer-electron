@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ipcRenderer } from 'electron';
-import yt from './youtube';
-import soundsDotCom from './sounds';
+// Type-only: lets us type the search bridge without bundling youtubei.js into
+// the (now sandboxed) preload — search/metadata run in the main process.
+import type { search as searchYoutube } from '@jdachtera/youtube-search-without-api-key';
 
 export type ExposedVars = typeof exposedVars;
 
@@ -30,9 +31,72 @@ const exposedVars = {
         ipcRenderer.once(channel, (event, ...args) => func(...args));
       }
     },
+    // Describe the desktop shell to the renderer: its IPC/contextBridge contract
+    // version, app version, and platform. A remotely-loaded (GitHub Pages)
+    // renderer reads this to detect an out-of-date shell.
+    getInfo: (): Promise<{
+      apiVersion: number;
+      appVersion: string;
+      platform: string;
+    }> => ipcRenderer.invoke('host:info'),
+    // Which renderer "channel" (Pages deployment / branch) the UI is loaded
+    // from, and whether remote loading is configured at all.
+    getChannel: (): Promise<{ current: string; hasRemote: boolean }> =>
+      ipcRenderer.invoke('host:getChannel'),
+    // Switch channel: persists the choice and reloads the window from the
+    // selected branch's deployment (falling back to the bundled copy).
+    setChannel: (branch: string): Promise<void> =>
+      ipcRenderer.invoke('host:setChannel', branch),
+    // Branch names available to switch to (from the GitHub API, via main).
+    listBranches: (): Promise<string[]> =>
+      ipcRenderer.invoke('host:listBranches'),
   },
-  yt,
-  soundsDotCom,
+  yt: {
+    // Search + metadata run in the main process (youtubei.js); the preload
+    // only forwards over IPC so it needs no Node modules.
+    search: (term: string): ReturnType<typeof searchYoutube> =>
+      ipcRenderer.invoke('yt:search', term),
+    getInfo: (url: string): Promise<{ basic_info: { title: string } }> =>
+      ipcRenderer.invoke('yt:getInfo', url),
+    // Audio downloads go to yt-dlp running in the main process (see
+    // packages/main/src/youtubeDownload.ts).
+    fetchVideo: (url: string): Promise<ArrayBuffer> =>
+      ipcRenderer.invoke('yt:download', url),
+    // Subscribe to download progress emitted by the main process. Returns an
+    // unsubscribe function.
+    onDownloadProgress: (
+      callback: (progress: {
+        url: string;
+        phase: 'binary' | 'audio' | 'done';
+        progress: number;
+      }) => void,
+    ): (() => void) => {
+      const listener = (
+        _event: unknown,
+        payload: {
+          url: string;
+          phase: 'binary' | 'audio' | 'done';
+          progress: number;
+        },
+      ) => callback(payload);
+      ipcRenderer.on('yt:download-progress', listener);
+      return () => ipcRenderer.removeListener('yt:download-progress', listener);
+    },
+    // Inspect / clear the on-disk audio cache (main process).
+    getCacheSize: (): Promise<number> => ipcRenderer.invoke('yt:cache-size'),
+    clearCache: (): Promise<number> => ipcRenderer.invoke('yt:clear-cache'),
+    // Resolve a local, seekable URL for previewing a video (main process).
+    getPreviewUrl: (url: string): Promise<string> =>
+      ipcRenderer.invoke('yt:preview', url),
+  },
+  media: {
+    // Fetch a cross-origin image (e.g. a YouTube thumbnail) in the main process
+    // and get it back as a `data:` URL, so the sandboxed renderer can show it
+    // with webSecurity enabled / when served from a remote origin. Resolves to
+    // an empty string on any failure.
+    fetchImage: (url: string): Promise<string> =>
+      ipcRenderer.invoke('media:fetchImage', url),
+  },
 };
 
 export default exposedVars;

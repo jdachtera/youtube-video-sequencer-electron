@@ -21,6 +21,10 @@ type ReverbDeviceEvents = {
 export class ReverbDevice extends Device<ReverbDeviceEvents> {
   reverbNode = new ReverbNode();
 
+  // The wet level the user dialled in. Ducked to 0 while the transport is
+  // stopped so the reverb tail doesn't keep ringing after stop.
+  private configuredWet = 0.2;
+
   static normalizeData = (
     reverb: DeepPartial<SerializedReverbDevice>,
   ): SerializedReverbDevice => ({
@@ -42,9 +46,23 @@ export class ReverbDevice extends Device<ReverbDeviceEvents> {
     this.input.connect(this.reverbNode);
     this.reverbNode.connect(this.output);
     this.set(serializedReverb);
+
+    this.engine.on('start', this.handleTransportStart);
+    this.engine.on('stop', this.handleTransportStop);
+    if (this.engine.transport.state !== 'started') {
+      this.reverbNode.wet.value = 0;
+    }
   }
 
   emitChange = () => this.emit('change', this);
+
+  private handleTransportStart = () => {
+    this.reverbNode.wet.rampTo(this.configuredWet, 0.03);
+  };
+
+  private handleTransportStop = () => {
+    this.reverbNode.wet.rampTo(0, 0.05);
+  };
 
   set(partialSerializedReverb: Partial<SerializedReverbDevice>) {
     entries(partialSerializedReverb).forEach((entry) => {
@@ -63,9 +81,10 @@ export class ReverbDevice extends Device<ReverbDeviceEvents> {
           });
           break;
         case 'wet':
-          this.reverbNode.set({
-            wet: entry[1] ?? 0.3,
-          });
+          this.configuredWet = entry[1] ?? 0.2;
+          if (this.engine.transport.state === 'started') {
+            this.reverbNode.set({ wet: this.configuredWet });
+          }
           break;
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -77,6 +96,8 @@ export class ReverbDevice extends Device<ReverbDeviceEvents> {
 
   dispose(): void {
     super.dispose();
+    this.engine.off('start', this.handleTransportStart);
+    this.engine.off('stop', this.handleTransportStop);
     this.reverbNode.dispose();
   }
 

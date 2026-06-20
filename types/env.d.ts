@@ -14,6 +14,13 @@ interface ImportMetaEnv {
    * The value of the variable is set in scripts/watch.js and depend on packages/main/vite.config.js
    */
   readonly VITE_DEV_SERVER_URL: undefined | string;
+  /**
+   * Optional remote renderer URL baked in at build time (e.g. the GitHub Pages
+   * deployment). When set, the main process loads the UI from here instead of
+   * the bundled copy, falling back to the bundle if it can't be reached. Can
+   * also be supplied at runtime via the MEGARACK_RENDERER_URL env var.
+   */
+  readonly VITE_RENDERER_URL: undefined | string;
 }
 
 interface ImportMeta {

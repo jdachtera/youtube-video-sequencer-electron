@@ -1,15 +1,12 @@
 name: Release
 on:
+  # Releases are deliberate, to keep Actions minutes down: the 3-OS build
+  # matrix runs only when a version tag (v*) is pushed or the workflow is run
+  # manually — never automatically on every branch or commit.
   push:
-    branches:
-      - main
-    paths-ignore:
-      - '**.md'
-      - '**.spec.js'
-      - '.idea'
-      - '.gitignore'
-      - '.github/**'
-      - '!.github/workflows/release.yml'
+    tags:
+      - 'v*'
+  workflow_dispatch:
 
 concurrency:
   group: release-${{ github.ref }}
@@ -26,21 +23,21 @@ jobs:
       version: ${{ steps.version.outputs.build-version }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
-          node-version: 14
+          node-version: 20
 
       - name: Get last git tag
         id: tag
-        run: echo "::set-output name=last-tag::$(git describe --tags --abbrev=0 || git rev-list --max-parents=0 ${{github.ref}})"
+        run: echo "last-tag=$(git describe --tags --abbrev=0 || git rev-list --max-parents=0 ${{github.ref}})" >> "$GITHUB_OUTPUT"
 
       - name: Get version from current date
         id: version
-        run: echo "::set-output name=build-version::$(node -e "try{console.log(require('./.electron-builder.config.js').extraMetadata.version)}catch(e){console.error(e);process.exit(1)}")"
+        run: echo "build-version=$(node -e "try{console.log(require('./.electron-builder.config.js').extraMetadata.version)}catch(e){console.error(e);process.exit(1)}")" >> "$GITHUB_OUTPUT"
 
       - name: Waiting on All checks
         uses: lewagon/wait-on-check-action@v0.2
@@ -74,47 +71,32 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v3
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
         with:
-          node-version: 16 # Need for npm >=7.7
-          cache: 'yarn'
+          node-version: 20
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
-      # Compile app and upload artifacts
-      - name: Compile & release Electron app
-        uses: samuelmeuli/action-electron-builder@v1
+      - name: Build app
+        run: pnpm build
         env:
           VITE_APP_VERSION: ${{ needs.draft.outputs.version }}
-        with:
-          build_script_name: build
-          args: --config .electron-builder.config.js
+          # Ship releases that load the UI from the GitHub Pages deployment, so
+          # the web UI can be updated (via the Pages workflow) without a new
+          # Electron build. The bundled renderer built here stays as the offline
+          # fallback if Pages is unreachable. See packages/main/src/mainWindow.ts.
+          VITE_RENDERER_URL: https://jdachtera.github.io/youtube-video-sequencer-electron/
 
-          # GitHub token, automatically provided to the action
-          # (No need to define this secret in the repo settings)
-          github_token: ${{ secrets.github_token }}
-
-          # If the commit is tagged with a version (e.g. "v1.0.0"),
-          # release the app after building
-          release: true
-
-          # Sometimes the build may fail due to a connection problem with Apple, GitHub, etc. servers.
-          # This option will restart the build as many attempts as possible
-          max_attempts: 3
-
-          # Code Signing params
-
-          # Base64-encoded code signing certificate for Windows
-          # windows_certs: ''
-
-          # Password for decrypting `windows_certs`
-          # windows_certs_password: ''
-
-          # Base64-encoded code signing certificate for macOS
-          # mac_certs: ''
-
-          # Password for decrypting `mac_certs`
-          # mac_certs_password: ''
+      # Compile and publish the Electron app to the GitHub release.
+      - name: Compile & release Electron app
+        run: pnpm exec electron-builder --config .electron-builder.config.js --publish always
+        env:
+          VITE_APP_VERSION: ${{ needs.draft.outputs.version }}
+          GITHUB_TOKEN: ${{ secrets.github_token }}

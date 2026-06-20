@@ -10,6 +10,7 @@ import type { SerializedDeviceBase } from './Device';
 import { Device } from './Device';
 import type { SerializedPattern, Step } from './Patttern';
 import { normalizeStepData, Pattern } from './Patttern';
+import { getNextPatternIndex } from './patternNavigation';
 
 export type SerializedSequencerDevice = SerializedDeviceBase & {
   name: 'Sequencer';
@@ -91,7 +92,6 @@ export class SequencerDevice extends Device<SequencerEvents> {
   emitChange = () => this.emit('change', this);
 
   rewindSequence = () => {
-    console.log('startSequence');
     this.stopSequence();
     this.getPattern()?.start();
     this.engine.transport.scheduleOnce(() => {
@@ -100,7 +100,6 @@ export class SequencerDevice extends Device<SequencerEvents> {
   };
 
   stopSequence = () => {
-    console.log('stopSequence');
     this.getPattern()?.stop();
     this.engine.transport.clear(this.scheduledFollowUpAction);
   };
@@ -116,7 +115,7 @@ export class SequencerDevice extends Device<SequencerEvents> {
     this.patterns = [
       ...this.patterns.slice(0, index),
       pattern,
-      ...this.patterns.slice(index + 2),
+      ...this.patterns.slice(index),
     ];
 
     this.emit('patternAdded', pattern);
@@ -135,7 +134,7 @@ export class SequencerDevice extends Device<SequencerEvents> {
 
     this.set({
       currentPatternIndex:
-        (this.patterns.length + index - 1) & this.patterns.length,
+        (this.patterns.length + index - 1) % this.patterns.length,
     });
 
     this.emit('patternRemoved', pattern);
@@ -199,9 +198,7 @@ export class SequencerDevice extends Device<SequencerEvents> {
     const stepTime = Time(`${subdivision}${subdivisionType}`).toSeconds();
 
     const time = Time(
-      Time(this.engine.transport.position).quantize(
-        pattern.sequence.subdivision,
-      ) +
+      Time(this.engine.transport.position).quantize(stepTime) +
         (followupAction.linked
           ? stepTime * patternLength * followupAction.multiplicator
           : stepTime * followupAction.triggerTime),
@@ -240,7 +237,6 @@ export class SequencerDevice extends Device<SequencerEvents> {
     }
 
     if (nextPatternIndex < this.patterns.length) {
-      console.log({ currentPatternIndex: nextPatternIndex });
       this.set({ currentPatternIndex: nextPatternIndex });
     }
 
@@ -250,34 +246,13 @@ export class SequencerDevice extends Device<SequencerEvents> {
   }
 
   getNextPatternIndex() {
-    const {
-      followupAction,
-      steps: { length: patternLength },
-    } = this.patterns[this.currentPatternIndex];
+    const { followupAction } = this.patterns[this.currentPatternIndex];
 
-    switch (followupAction?.type) {
-      case 'any':
-        return Math.floor(Math.random() * patternLength);
-      case 'other':
-        return this.patterns
-          .map((_, index) => index)
-          .splice(this.currentPatternIndex, 1)[
-          Math.floor(Math.random() * (patternLength - 1))
-        ];
-      case 'next':
-        return (this.currentPatternIndex + 1) % patternLength;
-      case 'previous': {
-        return patternLength + ((this.currentPatternIndex - 1) % patternLength);
-      }
-      case 'first':
-        return 0;
-      case 'last':
-        return patternLength - 1;
-      case 'jump':
-        return followupAction.targetIndex % patternLength;
-      default:
-        return this.currentPatternIndex;
-    }
+    return getNextPatternIndex(
+      followupAction,
+      this.currentPatternIndex,
+      this.patterns.length,
+    );
   }
 
   serialize() {
@@ -299,9 +274,13 @@ export class SequencerDevice extends Device<SequencerEvents> {
 
     this.patterns.forEach((pattern) => pattern.dispose());
 
-    this.engine.off('start', this.rewindSequence);
-    this.engine.off('stop', this.stopSequence);
+    // Mirror the single listener registered in the constructor.
+    this.engine.off('stop', this.rewindSequence);
     this.removeAllListeners();
+
+    // Release the base device's input/output Gain nodes too (this was
+    // leaking two nodes per track on removal).
+    super.dispose();
   }
 }
 

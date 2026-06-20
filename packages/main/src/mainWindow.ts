@@ -1,14 +1,29 @@
 import { BrowserWindow } from 'electron';
 import { join } from 'path';
-import { URL } from 'url';
+import { loadRenderer } from './channel';
 import { UpsertKeyValue } from './util';
 
 async function createWindow() {
   const browserWindow = new BrowserWindow({
     show: false, // Use 'ready-to-show' event to show window
     webPreferences: {
-      nodeIntegration: true,
-      webSecurity: false,
+      // Locked-down renderer: no Node in the renderer, an isolated context, and
+      // a sandboxed preload. All privileged work (youtubei.js search/metadata,
+      // yt-dlp downloads, the preview server, the on-disk cache) runs in the
+      // main process and is reached only through the minimal contextBridge API
+      // in preload/src/exposedVars.ts.
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+      // Let the search-panel audio preview start playing after its async
+      // (yt-dlp) fetch, which breaks the user-gesture chain Chromium normally
+      // requires for autoplay.
+      autoplayPolicy: 'no-user-gesture-required',
+      // Full same-origin enforcement: every cross-origin fetch now goes through
+      // the main process (youtubei.js search/metadata, yt-dlp, the preview
+      // server, and the image proxy that returns thumbnails as data URLs), so
+      // the renderer never needs to reach the network directly.
+      webSecurity: true,
       webviewTag: false, // The webview tag is not recommended. Consider alternatives like iframe or Electron's BrowserView. https://www.electronjs.org/docs/latest/api/webview-tag#warning
       preload: join(__dirname, '../../preload/dist/index.cjs'),
     },
@@ -21,6 +36,8 @@ async function createWindow() {
    * @see https://github.com/electron/electron/issues/25012
    */
   browserWindow.on('ready-to-show', () => {
+    // Open maximized so the rack has room by default.
+    browserWindow?.maximize();
     browserWindow?.show();
 
     if (import.meta.env.DEV) {
@@ -47,20 +64,10 @@ async function createWindow() {
     },
   );
 
-  /**
-   * URL for main window.
-   * Vite dev server for development.
-   * `file://../renderer/index.html` for production and test
-   */
-  const pageUrl =
-    import.meta.env.DEV && import.meta.env.VITE_DEV_SERVER_URL !== undefined
-      ? import.meta.env.VITE_DEV_SERVER_URL
-      : new URL(
-          '../renderer/dist/index.html',
-          'file://' + __dirname,
-        ).toString();
-
-  await browserWindow.loadURL(pageUrl);
+  // Load the renderer: the Vite dev server in development; otherwise the active
+  // remote channel (the GitHub Pages deployment for the selected branch), with
+  // an automatic fallback to the bundled copy. See ./channel.
+  await loadRenderer(browserWindow);
 
   return browserWindow;
 }

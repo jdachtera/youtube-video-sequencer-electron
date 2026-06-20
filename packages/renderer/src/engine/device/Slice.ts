@@ -3,7 +3,6 @@ import { batch, createUniqueId } from 'solid-js';
 import { GrainPlayer, Player, ToneAudioBuffer } from 'tone';
 import { debounce } from 'ts-debounce';
 import type { Engine } from '../Engine';
-import { loadAudioBuffer, storeAudioBuffer } from '../blobStore';
 import type { PropertyUpdateEvents } from '../helpers';
 import { entries, randomColor } from '../helpers';
 import type { DeepPartial } from '../types';
@@ -96,19 +95,31 @@ export class Slice extends Device<SliceEvents> {
     this.on('startUpdated', this.updateBuffer);
     this.on('endUpdated', this.updateBuffer);
 
-    this.engine.on('draw', (now) => {
-      this.currentPosition = now - this.firstFrameTime;
+    this.engine.on('draw', this.handleDraw);
 
-      this.emit(
-        'currentPositionUpdated',
-        this.currentPosition / this.player.playbackRate,
-      );
-    });
+    // A Tone.Player, once started, plays its buffer to the end independently of
+    // the transport — so without this a long sample triggered near the end of a
+    // loop keeps ringing after the user presses stop. Silence the slice when
+    // the transport stops.
+    this.engine.on('stop', this.handleTransportStop);
 
     this.set(serializedSlice);
     this.sampler = this.engine.getOrCreateSampler(this.url);
     this.sampler.addSlice(this);
   }
+
+  handleDraw = (now: number) => {
+    this.currentPosition = now - this.firstFrameTime;
+
+    this.emit(
+      'currentPositionUpdated',
+      this.currentPosition / this.player.playbackRate,
+    );
+  };
+
+  handleTransportStop = () => {
+    this.stop();
+  };
 
   emitChange = () => this.emit('change', this);
 
@@ -119,6 +130,12 @@ export class Slice extends Device<SliceEvents> {
       }
 
       this.play(time);
+
+      // Piano-roll notes carry a gate: release the slice when the note ends
+      // instead of letting it ring to the buffer's natural end.
+      if (step.gateSeconds && step.gateSeconds > 0) {
+        this.player.stop(time + step.gateSeconds);
+      }
     }
     const playbackRate = this.playbackRate * step.playbackRate;
     if (playbackRate !== this.player.playbackRate) {
@@ -202,19 +219,10 @@ export class Slice extends Device<SliceEvents> {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   updateBuffer = debounce(async (..._args: unknown[]) => {
-    const savedData = await loadAudioBuffer(this.id);
-    const hash = `${this.url}:${this.start}-${this.end}`;
-
-    if (savedData?.hash === hash) {
-      this.player.buffer = new ToneAudioBuffer().fromArray(savedData.buffer);
-    } else {
-      this.player.buffer = await this.loadBufferFromSampler();
-
-      await storeAudioBuffer(this.id, {
-        hash,
-        buffer: this.player.buffer.toArray(),
-      });
-    }
+    // Slice the (decoded) sampler buffer in memory. The compressed source it
+    // comes from is cached on disk by the main process, so there's no need to
+    // persist decoded PCM per slice.
+    this.player.buffer = await this.loadBufferFromSampler();
 
     this.emit('load');
   }, 10);
@@ -225,9 +233,17 @@ export class Slice extends Device<SliceEvents> {
       this.player.dispose();
     }
     switch (this.warpmode) {
-      case 'resample':
-        this.player = new Player();
+      case 'resample': {
+        const player = new Player();
+        // Tiny fades to declick slice boundaries: chopping a sample mid-
+        // waveform otherwise pops on start/stop. A couple of milliseconds is
+        // inaudible but smooths the discontinuity. (GrainPlayer's grain
+        // envelopes already smooth its boundaries.)
+        player.fadeIn = 0.002;
+        player.fadeOut = 0.005;
+        this.player = player;
         break;
+      }
       case 'stretch':
         this.player = new GrainPlayer();
     }
@@ -262,16 +278,17 @@ export class Slice extends Device<SliceEvents> {
   }
 
   dispose() {
-    super.dispose();
     this.sampler.removeSlice(this);
+    this.engine.off('draw', this.handleDraw);
+    this.engine.off('stop', this.handleTransportStop);
 
     this.player.stop();
     this.player.disconnect();
-    this.output.disconnect();
-
-    this.output.dispose();
     this.player.dispose();
 
+    // super.dispose() disconnects and disposes input/output; do it last so we
+    // don't touch the output node after it's already been disposed.
+    super.dispose();
     this.removeAllListeners();
   }
 
@@ -291,8 +308,9 @@ export class Slice extends Device<SliceEvents> {
       this.player.stop(time);
       this.player.start(time);
       this.firstFrameTime = time ?? this.player.immediate();
-    } catch (e) {
-      console.log({ e, time, p: this.player });
+    } catch {
+      // Tone throws if start/stop land on an identical transport time; the
+      // retrigger is dropped, which is fine — no need to surface it.
     }
 
     requestAnimationFrame(() => this.emit('playingUpdated', true));

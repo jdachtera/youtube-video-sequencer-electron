@@ -1,4 +1,5 @@
-import { Sequence, Time } from 'tone';
+import type { Note } from 'solid-pianoroll';
+import { Part, Sequence, Time } from 'tone';
 import type { TransportTime } from 'tone/build/esm/core/type/Units';
 import type { Engine } from '../Engine';
 import { EngineBase } from '../EngineBase';
@@ -44,6 +45,8 @@ export const followupActionTypes: FollowupAction['type'][] = [
   'other',
 ];
 
+export type PatternMode = 'steps' | 'pianoroll';
+
 export type SerializedPattern = {
   name: string;
   color: string;
@@ -51,7 +54,17 @@ export type SerializedPattern = {
   subdivisionType: typeof subdivisionTypes[number];
   followupAction?: FollowupAction;
   steps: Step[];
+  // Melodic piano-roll mode: notes (MIDI/PPQ based) that pitch-shift the
+  // downstream slice instead of just triggering it.
+  mode: PatternMode;
+  notes: Note[];
+  ppq: number;
+  duration: number;
 };
+
+// MIDI note the sample plays back at its natural pitch (C4). Notes above pitch
+// up, notes below pitch down.
+export const PIANO_ROLL_ROOT_MIDI = 60;
 
 export type Step = {
   play: boolean;
@@ -59,17 +72,39 @@ export type Step = {
   playbackRate: number;
   pitch: number;
   reverse: boolean;
+  // Optional note-off gate in seconds. The step grid never sets this (a step
+  // plays the slice to its natural end); the piano roll sets it from the
+  // note's length so melodies release on time. Monophonic per slice.
+  gateSeconds?: number;
 };
 
 type PatternEvents = {
   change: (pattern: Pattern) => void;
 };
 
+/**
+ * A pattern owns the two schedulers a track can play back with and keeps both
+ * editable while the transport is running:
+ *
+ * - Step mode: a Tone.Sequence whose events are swapped in place
+ *   (`sequence.events = steps`) on every step edit, so toggling steps never
+ *   tears the sequence down. Tone.Sequence's subdivision is constructor-only,
+ *   so changing the division is the one case that rebuilds the sequence — and
+ *   createSequence then restarts it aligned to the transport so the channel
+ *   doesn't drop out. Tone.Sequence also owns looping and the per-schedule
+ *   start offset that pattern-chaining (follow-up actions) relies on.
+ * - Piano-roll mode: a single long-lived Tone.Part whose events are refreshed
+ *   in place (clear + re-add) on note edits, never disposed/restarted mid-play.
+ *
+ * Switching mode stops the inactive scheduler and starts the active one; only
+ * the sequencer's current pattern is ever in the 'started' state.
+ */
 export class Pattern extends EngineBase<
   PatternEvents & PropertyUpdateEvents<SerializedPattern>
 > {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   sequence: Sequence<Step> = null!;
+  part: Part<{ time: string; note: Note }> | null = null;
   engine: Engine;
 
   name = '';
@@ -78,6 +113,11 @@ export class Pattern extends EngineBase<
   subdivision = 16;
   subdivisionType: typeof subdivisionTypes[number] = 'n';
   followupAction?: FollowupAction;
+
+  mode: PatternMode = 'steps';
+  notes: Note[] = [];
+  ppq = 192;
+  duration = 192 * 16;
 
   public constructor(
     public sequencer: SequencerDevice,
@@ -104,6 +144,12 @@ export class Pattern extends EngineBase<
           subdivision: pattern.subdivision ?? 16,
           subdivisionType: pattern.subdivisionType ?? 'n',
           steps: (pattern.steps ?? []).map((step) => normalizeStepData(step)),
+          mode: pattern.mode === 'pianoroll' ? 'pianoroll' : 'steps',
+          notes: Array.isArray(pattern.notes)
+            ? pattern.notes.map((note) => normalizeNoteData(note))
+            : [],
+          ppq: pattern.ppq ?? 192,
+          duration: pattern.duration ?? 192 * 16,
         };
 
   set(patternPartial: Partial<SerializedPattern>) {
@@ -134,6 +180,38 @@ export class Pattern extends EngineBase<
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this.followupAction = entry[1]!;
           break;
+        case 'mode':
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          this.mode = entry[1]!;
+          // Swap schedulers: stop the step sequence and sync the note part
+          // (syncPart tears the part down when leaving piano-roll mode).
+          this.sequence?.stop();
+          this.syncPart();
+          if (
+            this.engine.transport.state === 'started' &&
+            this.sequencer.getPattern() === this
+          ) {
+            this.start();
+          }
+          break;
+        case 'notes':
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          this.notes = entry[1]!;
+          // Live-update the running part in place (no restart) so editing
+          // notes mid-playback doesn't flood the slice with retriggers.
+          if (this.mode === 'pianoroll') this.syncPart();
+          break;
+        case 'ppq':
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          this.ppq = entry[1]!;
+          if (this.mode === 'pianoroll') this.syncPart();
+          break;
+        case 'duration':
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          this.duration = entry[1]!;
+          // Visual timeline only; the playback loop derives from the notes
+          // (loopLengthTicks), so this doesn't drive loopEnd.
+          break;
         case 'name':
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this.name = entry[1]!;
@@ -158,6 +236,9 @@ export class Pattern extends EngineBase<
     ).toSeconds();
 
     const previousSequence = this.sequence;
+    // Whether the sequence we're about to replace was actively playing. Only
+    // the current pattern of a running sequencer is in the 'started' state.
+    const wasStarted = previousSequence?.state === 'started';
 
     if (previousSequence) {
       previousSequence.stop();
@@ -171,7 +252,83 @@ export class Pattern extends EngineBase<
       subdivision,
     });
 
+    // If we just replaced a sequence that was playing (e.g. the user changed
+    // the subdivision/type mid-playback), start the new one so the channel
+    // keeps playing instead of falling silent until the next stop/start.
+    if (wasStarted) {
+      this.start();
+    }
+
     return this.sequence;
+  }
+
+  // Convert piano-roll ticks (in this pattern's ppq) to a Tone transport-tick
+  // time string, so note timing stays correct across tempo changes. Guards
+  // against a missing/NaN transport PPQ, which would otherwise produce an
+  // invalid "NaNi" time and collapse the loop to zero length.
+  protected ticksToToneTime(ticks: number) {
+    const ppq = this.ppq || 192;
+    const transportPPQ = Number.isFinite(this.engine.transport.PPQ)
+      ? this.engine.transport.PPQ
+      : 192;
+    const toneTicks = Math.max(0, Math.round((ticks / ppq) * transportPPQ));
+    return `${toneTicks}i`;
+  }
+
+  protected loopLengthTicks() {
+    return pianoRollLoopLengthTicks(this.notes, this.ppq);
+  }
+
+  // Lazily create the Tone.Part. It's created once and kept alive; note edits
+  // update its events in place (see syncPart) instead of disposing and
+  // restarting it, which while playing would flood the slice with retriggers.
+  protected ensurePart() {
+    if (this.part) return this.part;
+
+    const part = new Part<{ time: string; note: Note }>((time, value) => {
+      const { note } = value;
+      const semitones = note.midi - PIANO_ROLL_ROOT_MIDI;
+      // Note length in seconds at the current tempo, so the slice releases
+      // when the note ends.
+      const bpm = this.engine.transport.bpm.value;
+      const gateSeconds =
+        note.durationTicks > 0
+          ? (note.durationTicks / (this.ppq || 192)) * (60 / bpm)
+          : 0;
+      this.sequencer.onSequenceEvent(time, {
+        play: true,
+        volume: note.velocity ?? 1,
+        playbackRate: Math.pow(2, semitones / 12),
+        pitch: 0,
+        reverse: false,
+        gateSeconds,
+      });
+    }, []);
+
+    part.loop = true;
+    this.part = part;
+    return part;
+  }
+
+  // Push the current notes and loop length into the Part in place (no restart),
+  // or tear the part down when the pattern leaves piano-roll mode.
+  protected syncPart() {
+    if (this.mode !== 'pianoroll') {
+      if (this.part) {
+        this.part.stop();
+        this.part.clear();
+        this.part.dispose();
+        this.part = null;
+      }
+      return;
+    }
+
+    const part = this.ensurePart();
+    part.clear();
+    this.notes.forEach((note) =>
+      part.add({ time: this.ticksToToneTime(note.ticks), note }),
+    );
+    part.loopEnd = this.ticksToToneTime(this.loopLengthTicks());
   }
 
   setLength(newLength: number) {
@@ -190,6 +347,12 @@ export class Pattern extends EngineBase<
   }
 
   start(time?: TransportTime) {
+    if (this.mode === 'pianoroll') {
+      const part = this.ensurePart();
+      this.syncPart();
+      part.start(time ?? 0);
+      return;
+    }
     if (time === undefined && this.engine.transport.state === 'started') {
       const sequenceDuration =
         this.sequence.toSeconds(this.sequence.subdivision) *
@@ -215,7 +378,22 @@ export class Pattern extends EngineBase<
   }
 
   stop(time?: TransportTime) {
-    this.sequence.stop(time);
+    this.sequence?.stop(time);
+    this.part?.stop(time);
+  }
+
+  // The musical length of one loop of this pattern, in seconds at the current
+  // tempo. Used to size the mixdown render so a beat exports as a full loop.
+  loopDurationSeconds() {
+    if (this.mode === 'pianoroll') {
+      const beats =
+        pianoRollLoopLengthTicks(this.notes, this.ppq) / (this.ppq || 192);
+      return beats * (60 / this.engine.transport.bpm.value);
+    }
+    return (
+      this.steps.length *
+      Time(`${this.subdivision}${this.subdivisionType}`).toSeconds()
+    );
   }
 
   serialize(): SerializedPattern {
@@ -228,14 +406,43 @@ export class Pattern extends EngineBase<
       steps: this.steps.map((step) => ({
         ...step,
       })),
+      mode: this.mode,
+      notes: this.notes.map((note) => ({ ...note })),
+      ppq: this.ppq,
+      duration: this.duration,
     };
   }
 
   dispose() {
     this.removeAllListeners();
-    this.sequence.dispose();
+    this.sequence?.dispose();
+    this.part?.dispose();
   }
 }
+
+// The playback loop length, in ticks: the notes' extent rounded up to whole
+// bars, with a one-bar floor. Deriving this from the notes (rather than the
+// piano roll's visual duration) keeps the loop musical and never zero — a
+// zero-length loop would retrigger the slice at audio rate (a loud buzz).
+export const pianoRollLoopLengthTicks = (
+  notes: Note[],
+  ppq: number,
+): number => {
+  const ticksPerBar = (ppq || 192) * 4;
+  let maxEnd = 0;
+  for (const note of notes) {
+    maxEnd = Math.max(maxEnd, note.ticks + Math.max(0, note.durationTicks));
+  }
+  const bars = Math.max(1, Math.ceil(maxEnd / ticksPerBar));
+  return bars * ticksPerBar;
+};
+
+export const normalizeNoteData = (note: DeepPartial<Note>): Note => ({
+  ticks: note.ticks ?? 0,
+  durationTicks: note.durationTicks ?? 0,
+  midi: note.midi ?? PIANO_ROLL_ROOT_MIDI,
+  velocity: note.velocity ?? 1,
+});
 
 export const normalizeStepData = (
   step: DeepPartial<Step & { actions: unknown[] }>,
