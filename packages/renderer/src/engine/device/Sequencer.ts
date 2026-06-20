@@ -198,9 +198,7 @@ export class SequencerDevice extends Device<SequencerEvents> {
     const stepTime = Time(`${subdivision}${subdivisionType}`).toSeconds();
 
     const time = Time(
-      Time(this.engine.transport.position).quantize(
-        pattern.sequence.subdivision,
-      ) +
+      Time(this.engine.transport.position).quantize(stepTime) +
         (followupAction.linked
           ? stepTime * patternLength * followupAction.multiplicator
           : stepTime * followupAction.triggerTime),

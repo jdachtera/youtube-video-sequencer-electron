@@ -82,6 +82,23 @@ type PatternEvents = {
   change: (pattern: Pattern) => void;
 };
 
+/**
+ * A pattern owns the two schedulers a track can play back with and keeps both
+ * editable while the transport is running:
+ *
+ * - Step mode: a Tone.Sequence whose events are swapped in place
+ *   (`sequence.events = steps`) on every step edit, so toggling steps never
+ *   tears the sequence down. Tone.Sequence's subdivision is constructor-only,
+ *   so changing the division is the one case that rebuilds the sequence — and
+ *   createSequence then restarts it aligned to the transport so the channel
+ *   doesn't drop out. Tone.Sequence also owns looping and the per-schedule
+ *   start offset that pattern-chaining (follow-up actions) relies on.
+ * - Piano-roll mode: a single long-lived Tone.Part whose events are refreshed
+ *   in place (clear + re-add) on note edits, never disposed/restarted mid-play.
+ *
+ * Switching mode stops the inactive scheduler and starts the active one; only
+ * the sequencer's current pattern is ever in the 'started' state.
+ */
 export class Pattern extends EngineBase<
   PatternEvents & PropertyUpdateEvents<SerializedPattern>
 > {
@@ -258,18 +275,8 @@ export class Pattern extends EngineBase<
     return `${toneTicks}i`;
   }
 
-  // The playback loop length, in ticks: the notes' extent rounded up to whole
-  // bars, with a one-bar floor. Deriving this from the notes (rather than the
-  // piano roll's visual duration) keeps the loop musical and never zero — a
-  // zero-length loop would retrigger the slice at audio rate (a loud buzz).
   protected loopLengthTicks() {
-    const ticksPerBar = (this.ppq || 192) * 4;
-    let maxEnd = 0;
-    for (const note of this.notes) {
-      maxEnd = Math.max(maxEnd, note.ticks + Math.max(0, note.durationTicks));
-    }
-    const bars = Math.max(1, Math.ceil(maxEnd / ticksPerBar));
-    return bars * ticksPerBar;
+    return pianoRollLoopLengthTicks(this.notes, this.ppq);
   }
 
   // Lazily create the Tone.Part. It's created once and kept alive; note edits
@@ -398,6 +405,23 @@ export class Pattern extends EngineBase<
     this.part?.dispose();
   }
 }
+
+// The playback loop length, in ticks: the notes' extent rounded up to whole
+// bars, with a one-bar floor. Deriving this from the notes (rather than the
+// piano roll's visual duration) keeps the loop musical and never zero — a
+// zero-length loop would retrigger the slice at audio rate (a loud buzz).
+export const pianoRollLoopLengthTicks = (
+  notes: Note[],
+  ppq: number,
+): number => {
+  const ticksPerBar = (ppq || 192) * 4;
+  let maxEnd = 0;
+  for (const note of notes) {
+    maxEnd = Math.max(maxEnd, note.ticks + Math.max(0, note.durationTicks));
+  }
+  const bars = Math.max(1, Math.ceil(maxEnd / ticksPerBar));
+  return bars * ticksPerBar;
+};
 
 export const normalizeNoteData = (note: DeepPartial<Note>): Note => ({
   ticks: note.ticks ?? 0,
