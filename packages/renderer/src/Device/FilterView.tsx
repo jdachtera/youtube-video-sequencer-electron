@@ -168,7 +168,7 @@ const FrequencyResponseDisplay = (props: { filter: FilterDevice }) => {
 
   return (
     <LCD>
-      <canvas ref={canvasRef} width={500} height={150} />
+      <canvas ref={canvasRef} width={260} height={80} />
     </LCD>
   );
 };
