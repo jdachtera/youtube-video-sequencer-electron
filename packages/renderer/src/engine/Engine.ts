@@ -196,6 +196,27 @@ export class Engine extends EngineBase<EngineEvents> {
     return this.samplers.find((sampler) => sampler.id === id);
   }
 
+  // Find a sample slot matching a source + region, creating one if none exists.
+  // Used to migrate pre-slot slices (which carried their own url + region) onto
+  // a shared slot, so identical regions across tracks collapse to one slot.
+  findOrCreateSampleSlot(data: {
+    url: string;
+    start?: number;
+    end?: number;
+    title?: string;
+    color?: string;
+  }) {
+    const start = data.start ?? 0;
+    const end = data.end ?? 0;
+    const match = this.samplers.find(
+      (sampler) =>
+        sampler.url === data.url &&
+        sampler.start === start &&
+        sampler.end === end,
+    );
+    return match ?? this.createSample(data);
+  }
+
   removeSample(sampler: SamplerDevice) {
     const index = this.samplers.indexOf(sampler);
     sampler.off('change', this.emitChange);
@@ -415,29 +436,6 @@ export class Engine extends EngineBase<EngineEvents> {
 
     const longest = durations.length ? Math.max(...durations) : 0;
     return Math.max(longest, 2);
-  }
-
-  getOrCreateSampler(url: string) {
-    const existingSampler = this.samplers.find(
-      (sampler) => sampler.url === url,
-    );
-
-    if (existingSampler) return existingSampler;
-
-    const newSampler = new SamplerDevice(
-      this,
-      SamplerDevice.normalizeData({ url }),
-    );
-    newSampler.on('change', this.emitChange);
-
-    this.samplers = [...this.samplers, newSampler];
-
-    this.emit(
-      'samplersUpdated',
-      this.samplers.map((sampler) => sampler.serialize()),
-    );
-
-    return newSampler;
   }
 
   async renderToBuffer(timeToRender: number) {

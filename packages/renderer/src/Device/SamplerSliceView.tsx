@@ -1,5 +1,5 @@
 import { css } from '@emotion/css';
-import { Show } from 'solid-js';
+import { For, Show } from 'solid-js';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { Column } from '../UI/Grid';
 import { NumberInputWithLabel } from '../UI/Knob';
@@ -54,11 +54,31 @@ const buttonRow = css`
   gap: 4px;
 `;
 
+const sampleSelect = css`
+  width: 100%;
+  font-family: 'Oswald';
+  font-size: 12px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  background: #e9e9e9;
+  color: #3a3a3a;
+  cursor: pointer;
+`;
+
 export const SamplerSliceView = (props: { slice: Slice }) => {
   const sliceState = createStoreFromEventEmitter(
     () => props.slice,
     (slice) => slice.serialize(),
     'change',
+  );
+
+  // The prepared sample slots, for the "which sample does this sequencer play"
+  // dropdown.
+  const samplers = createSignalFromEventEmitter(
+    () => props.slice.engine,
+    (engine) => engine.samplers,
+    ['samplersUpdated'],
   );
 
   const currentPlayPosition = createSignalFromEventEmitter(
@@ -96,6 +116,24 @@ export const SamplerSliceView = (props: { slice: Slice }) => {
       <Show when={!sliceState.collapsed}>
         <div class={panel}>
           <LCDLabel>Sample</LCDLabel>
+          {/* Which prepared sample slot this sequencer's voice plays. */}
+          <select
+            class={sampleSelect}
+            onChange={(event) =>
+              props.slice.selectSampler(event.currentTarget.value)
+            }
+          >
+            <For each={samplers()}>
+              {(sampler) => (
+                <option
+                  value={sampler.id}
+                  selected={sampler.id === sliceState.samplerId}
+                >
+                  {sampler.title || sampler.url || 'Untitled sample'}
+                </option>
+              )}
+            </For>
+          </select>
           <WaveformSliceView
             collapsed={sliceState.collapsed}
             slice={props.slice}

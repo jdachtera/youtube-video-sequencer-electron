@@ -15,6 +15,11 @@ export type SerializedSlice = SerializedDeviceBase & {
   name: 'Slice';
   title: string;
   id: string;
+  // Id of the prepared sample slot (SamplerDevice) this voice plays. The slot
+  // owns the source url + selected region + root note; the voice owns its own
+  // tuning (volume, speed, warp, …). Empty on pre-slot projects — migrated on
+  // load by binding to / creating a matching slot (see Slice.bindSampler).
+  samplerId: string;
   url: string;
   warpmode: 'resample' | 'stretch';
   start: number;
@@ -35,13 +40,14 @@ export type SliceEvents = {
 } & PropertyUpdateEvents<SerializedSlice>;
 
 export class Slice extends Device<SliceEvents> {
-  sampler: SamplerDevice;
+  sampler: SamplerDevice = null!;
 
   player: Player | GrainPlayer = null!;
   name = 'Slice';
   title = '';
 
   id = '';
+  samplerId = '';
   url = '';
   start = 0;
   end = 1;
@@ -70,6 +76,7 @@ export class Slice extends Device<SliceEvents> {
     title: slice.title ?? '',
     inputGain: slice.inputGain ?? 1,
     id: slice.id && slice.id !== '' ? slice.id : createUniqueId(),
+    samplerId: slice.samplerId ?? '',
     url: slice.url ?? '',
     collapsed: slice.collapsed ?? false,
     warpmode: slice.warpmode ?? 'resample',
@@ -104,8 +111,62 @@ export class Slice extends Device<SliceEvents> {
     this.engine.on('stop', this.handleTransportStop);
 
     this.set(serializedSlice);
-    this.sampler = this.engine.getOrCreateSampler(this.url);
-    this.sampler.addSlice(this);
+    this.bindSampler();
+  }
+
+  // Re-derive the voice from its slot whenever the slot's source/region/root
+  // note changes (edited in the sampler), so edits propagate to every voice
+  // that plays the slot.
+  private samplerChangeHandler = () => this.syncFromSampler();
+
+  /**
+   * Resolve and bind the sample slot this voice plays. By id when set;
+   * otherwise migrate this voice's url + region into a matching slot (projects
+   * that predate sample slots have no samplerId).
+   */
+  bindSampler() {
+    const resolved =
+      (this.samplerId && this.engine.findSampler(this.samplerId)) ||
+      this.engine.findOrCreateSampleSlot({
+        url: this.url,
+        start: this.start,
+        end: this.end,
+        title: this.title,
+        color: this.color,
+      });
+
+    if (this.sampler && this.sampler !== resolved) {
+      this.sampler.off('change', this.samplerChangeHandler);
+      this.sampler.removeSlice(this);
+    }
+
+    const isRebind = this.sampler !== resolved;
+    this.sampler = resolved;
+    this.samplerId = resolved.id;
+
+    if (isRebind) {
+      this.sampler.addSlice(this);
+      this.sampler.on('change', this.samplerChangeHandler);
+    }
+
+    this.syncFromSampler();
+  }
+
+  /** Point this voice at a different prepared slot (the sequencer's dropdown). */
+  selectSampler(samplerId: string) {
+    if (samplerId === this.samplerId) return;
+    this.samplerId = samplerId;
+    this.bindSampler();
+    this.emit('change', this);
+  }
+
+  // Mirror the slot's source + region onto the voice so the existing player /
+  // buffer code keeps working, then rebuild the sliced buffer.
+  private syncFromSampler() {
+    this.url = this.sampler.url;
+    this.start = this.sampler.start;
+    this.end = this.sampler.end;
+    this.updateBuffer();
   }
 
   handleDraw = (now: number) => {
@@ -137,13 +198,20 @@ export class Slice extends Device<SliceEvents> {
         this.player.stop(time + step.gateSeconds);
       }
     }
-    const playbackRate = this.playbackRate * step.playbackRate;
+    // The slot's root note plus the step's pitch offset transpose the sample.
+    // Grain (stretch) playback shifts pitch via detune, preserving tempo;
+    // resample playback shifts it by changing the playback rate.
+    const pitchCents = this.sampler.rootNote * 100 + step.pitch;
+    const isGrain = this.player instanceof GrainPlayer;
+    const pitchFactor = isGrain ? 1 : Math.pow(2, pitchCents / 1200);
+
+    const playbackRate = this.playbackRate * step.playbackRate * pitchFactor;
     if (playbackRate !== this.player.playbackRate) {
       this.player.playbackRate = playbackRate;
     }
 
     if (this.player instanceof GrainPlayer) {
-      this.player.detune = this.pitch + step.pitch;
+      this.player.detune = this.pitch + pitchCents;
       this.player.grainSize = this.grainSize;
     }
 
@@ -151,6 +219,26 @@ export class Slice extends Device<SliceEvents> {
   };
 
   set(slicePartial: Partial<SerializedSlice>) {
+    // When bound to a sample slot, the region (start/end) is owned by the slot,
+    // so route region edits there; the slot's change syncs them back onto every
+    // voice that plays it. (During construction this.sampler isn't set yet, so
+    // the initial region is applied to the voice and then used to seed the slot
+    // in bindSampler.)
+    if (
+      this.sampler &&
+      this.samplerId &&
+      (slicePartial.start !== undefined || slicePartial.end !== undefined)
+    ) {
+      this.sampler.set({
+        ...(slicePartial.start !== undefined
+          ? { start: slicePartial.start }
+          : {}),
+        ...(slicePartial.end !== undefined ? { end: slicePartial.end } : {}),
+      });
+      const { start: _start, end: _end, ...rest } = slicePartial;
+      slicePartial = rest;
+    }
+
     batch(() => {
       entries(slicePartial).forEach((entry) => {
         if (!entry) return;
@@ -178,6 +266,7 @@ export class Slice extends Device<SliceEvents> {
             this.reverse = entry[1] ?? false;
             break;
           case 'id':
+          case 'samplerId':
           case 'url':
           case 'color':
           case 'title':
@@ -210,7 +299,12 @@ export class Slice extends Device<SliceEvents> {
     const { buffer } = this.sampler;
 
     const start = Math.max(this.start, 0);
-    const end = Math.min(this.end, buffer.duration);
+    // A slot can leave its region open-ended (end <= start) to mean "the whole
+    // sample"; resolve that against the loaded buffer here.
+    const end =
+      this.end > this.start
+        ? Math.min(this.end, buffer.duration)
+        : buffer.duration;
 
     const slicedBuffer =
       start < end ? buffer.slice(start, end) : new ToneAudioBuffer();
@@ -256,6 +350,7 @@ export class Slice extends Device<SliceEvents> {
       name: 'Slice',
       title: this.title,
       id: this.id,
+      samplerId: this.samplerId,
       url: this.url,
       inputGain: this.input.gain.value,
       warpmode: this.warpmode,
@@ -278,6 +373,7 @@ export class Slice extends Device<SliceEvents> {
   }
 
   dispose() {
+    this.sampler.off('change', this.samplerChangeHandler);
     this.sampler.removeSlice(this);
     this.engine.off('draw', this.handleDraw);
     this.engine.off('stop', this.handleTransportStop);
@@ -296,13 +392,17 @@ export class Slice extends Device<SliceEvents> {
     if (!this.player.buffer.loaded) return;
 
     try {
-      if (this.playbackRate !== this.player.playbackRate) {
-        this.player.playbackRate = this.playbackRate;
-      }
-
+      // Honour the slot's root note when auditioning/playing directly (no step).
+      const pitchCents = this.sampler.rootNote * 100;
       if (this.player instanceof GrainPlayer) {
-        this.player.detune = this.pitch;
+        if (this.playbackRate !== this.player.playbackRate) {
+          this.player.playbackRate = this.playbackRate;
+        }
+        this.player.detune = this.pitch + pitchCents;
         this.player.grainSize = this.grainSize;
+      } else {
+        const rate = this.playbackRate * Math.pow(2, pitchCents / 1200);
+        if (rate !== this.player.playbackRate) this.player.playbackRate = rate;
       }
 
       this.player.stop(time);

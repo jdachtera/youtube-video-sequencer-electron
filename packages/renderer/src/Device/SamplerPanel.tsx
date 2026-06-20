@@ -150,18 +150,15 @@ const SamplerSlotView = (props: { sampler: SamplerDevice; engine: Engine }) => {
     }
   };
 
-  // Create a sequencer track that plays the current selection. (Until the
-  // per-sequencer sample dropdown lands, this is how a prepared slot is wired
-  // up to make sound.)
+  // Create a sequencer track whose voice is bound to this prepared slot. The
+  // voice derives its source/region/root note from the slot, and the
+  // sequencer's sample dropdown can repoint it later.
   const addToSequencer = () =>
     props.engine.createSliceTrack(
       Slice.normalizeData({
-        url: props.sampler.url,
+        samplerId: props.sampler.id,
         title: props.sampler.title,
         color: state.color,
-        start: state.start,
-        end: selectionEnd(),
-        pitch: state.rootNote,
       }),
     );
 
