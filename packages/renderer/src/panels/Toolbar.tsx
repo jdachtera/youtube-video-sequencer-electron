@@ -204,7 +204,16 @@ export const Toolbar = (props: { engine: Engine }) => {
           padding: 8px;
         `}
       >
-        <Row>
+        <Row
+          classList={{
+            [css`
+              flex-wrap: wrap;
+              align-items: center;
+              row-gap: 6px;
+              column-gap: 2px;
+            `]: true,
+          }}
+        >
           <ButtonWithLabel
             type="button"
             activated={engineState.playing}
