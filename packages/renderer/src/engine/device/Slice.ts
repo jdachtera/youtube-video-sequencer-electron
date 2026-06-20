@@ -95,14 +95,7 @@ export class Slice extends Device<SliceEvents> {
     this.on('startUpdated', this.updateBuffer);
     this.on('endUpdated', this.updateBuffer);
 
-    this.engine.on('draw', (now) => {
-      this.currentPosition = now - this.firstFrameTime;
-
-      this.emit(
-        'currentPositionUpdated',
-        this.currentPosition / this.player.playbackRate,
-      );
-    });
+    this.engine.on('draw', this.handleDraw);
 
     // A Tone.Player, once started, plays its buffer to the end independently of
     // the transport — so without this a long sample triggered near the end of a
@@ -114,6 +107,15 @@ export class Slice extends Device<SliceEvents> {
     this.sampler = this.engine.getOrCreateSampler(this.url);
     this.sampler.addSlice(this);
   }
+
+  handleDraw = (now: number) => {
+    this.currentPosition = now - this.firstFrameTime;
+
+    this.emit(
+      'currentPositionUpdated',
+      this.currentPosition / this.player.playbackRate,
+    );
+  };
 
   handleTransportStop = () => {
     this.stop();
@@ -278,6 +280,7 @@ export class Slice extends Device<SliceEvents> {
   dispose() {
     super.dispose();
     this.sampler.removeSlice(this);
+    this.engine.off('draw', this.handleDraw);
     this.engine.off('stop', this.handleTransportStop);
 
     this.player.stop();
