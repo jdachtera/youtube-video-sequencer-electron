@@ -21,6 +21,11 @@ type PingPongDelayEvents = {
 export class PingPongDelayDevice extends Device<PingPongDelayEvents> {
   pingPongDelayNode = new PingPongDelayNode();
 
+  // The wet level the user dialled in. The node's actual wet is ducked to 0
+  // while the transport is stopped so the feedback echoes don't keep ringing
+  // after the user presses stop, then ramped back when playback resumes.
+  private configuredWet = 0.2;
+
   static normalizeData = (
     pingPongDelay: DeepPartial<SerializedPingPongDelayDevice>,
   ): SerializedPingPongDelayDevice => ({
@@ -42,9 +47,25 @@ export class PingPongDelayDevice extends Device<PingPongDelayEvents> {
     this.input.connect(this.pingPongDelayNode);
     this.pingPongDelayNode.connect(this.output);
     this.set(serializedPingPongDelay);
+
+    this.engine.on('start', this.handleTransportStart);
+    this.engine.on('stop', this.handleTransportStop);
+    // Start ducked unless already playing, so loading a project doesn't leave a
+    // tail armed.
+    if (this.engine.transport.state !== 'started') {
+      this.pingPongDelayNode.wet.value = 0;
+    }
   }
 
   emitChange = () => this.emit('change', this);
+
+  private handleTransportStart = () => {
+    this.pingPongDelayNode.wet.rampTo(this.configuredWet, 0.03);
+  };
+
+  private handleTransportStop = () => {
+    this.pingPongDelayNode.wet.rampTo(0, 0.05);
+  };
 
   set(partialSerializedPingPongDelay: Partial<SerializedPingPongDelayDevice>) {
     entries(partialSerializedPingPongDelay).forEach((entry) => {
@@ -62,9 +83,12 @@ export class PingPongDelayDevice extends Device<PingPongDelayEvents> {
           });
           break;
         case 'wet':
-          this.pingPongDelayNode.set({
-            wet: entry[1] ?? 100,
-          });
+          this.configuredWet = entry[1] ?? 0.2;
+          // Only drive the live node while playing; when stopped it stays
+          // ducked so adjusting the knob doesn't reawaken the echo tail.
+          if (this.engine.transport.state === 'started') {
+            this.pingPongDelayNode.set({ wet: this.configuredWet });
+          }
           break;
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -76,6 +100,8 @@ export class PingPongDelayDevice extends Device<PingPongDelayEvents> {
 
   dispose(): void {
     super.dispose();
+    this.engine.off('start', this.handleTransportStart);
+    this.engine.off('stop', this.handleTransportStop);
     this.pingPongDelayNode.dispose();
   }
 

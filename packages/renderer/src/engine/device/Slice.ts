@@ -104,10 +104,20 @@ export class Slice extends Device<SliceEvents> {
       );
     });
 
+    // A Tone.Player, once started, plays its buffer to the end independently of
+    // the transport — so without this a long sample triggered near the end of a
+    // loop keeps ringing after the user presses stop. Silence the slice when
+    // the transport stops.
+    this.engine.on('stop', this.handleTransportStop);
+
     this.set(serializedSlice);
     this.sampler = this.engine.getOrCreateSampler(this.url);
     this.sampler.addSlice(this);
   }
+
+  handleTransportStop = () => {
+    this.stop();
+  };
 
   emitChange = () => this.emit('change', this);
 
@@ -260,6 +270,7 @@ export class Slice extends Device<SliceEvents> {
   dispose() {
     super.dispose();
     this.sampler.removeSlice(this);
+    this.engine.off('stop', this.handleTransportStop);
 
     this.player.stop();
     this.player.disconnect();
