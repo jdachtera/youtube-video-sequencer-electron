@@ -49,13 +49,7 @@ export const TrackView = (props: { track: Track }) => {
         }}
         background={trackState.color}
       >
-        <ScreenPrintBackground
-          background={'rgba(255,255,255,0.2)'}
-          class={css`
-            flex: 1;
-            align-self: stretch;
-          `}
-        >
+        <ScreenPrintBackground background={'rgba(255,255,255,0.2)'}>
           <Row
             classList={{
               [css`
@@ -95,15 +89,13 @@ export const TrackView = (props: { track: Track }) => {
             />
           </Row>
 
-          {/* Volume fader fills the channel strip like a mixer channel. */}
+          {/* Compact volume slider (double-click resets to 0 dB). */}
           <div
             class={css`
-              flex: 1;
               display: flex;
-              align-items: stretch;
-              gap: 8px;
-              padding: 8px 6px 4px;
-              min-height: 90px;
+              align-items: center;
+              gap: 6px;
+              padding: 4px 2px 0;
             `}
           >
             <input
@@ -118,17 +110,16 @@ export const TrackView = (props: { track: Track }) => {
               }
               onDblClick={() => props.track.set({ volume: 0 })}
               class={css`
-                writing-mode: vertical-lr;
-                direction: rtl;
-                width: 26px;
-                height: 100%;
+                flex: 1;
+                height: 14px;
                 cursor: pointer;
-                accent-color: #222;
+                accent-color: #333;
               `}
             />
             <span
               class={css`
-                align-self: flex-start;
+                min-width: 42px;
+                text-align: right;
                 font-family: 'oswald';
                 font-size: 11px;
                 color: rgba(0, 0, 0, 0.6);
