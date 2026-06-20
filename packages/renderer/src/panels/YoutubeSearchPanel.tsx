@@ -19,10 +19,32 @@ const messageStyle = css`
   font-size: 12px;
 `;
 
+// A bunch of sample-worthy starting points so the browser doesn't always open
+// on the same search. One is picked at random each time the panel mounts.
+const defaultSearches = [
+  'soul samples',
+  'lofi hip hop',
+  'jazz piano loop',
+  'funk breaks',
+  'vintage drum break',
+  'boom bap instrumental',
+  'rhodes piano loop',
+  'gospel chords',
+  '70s soul',
+  'vinyl crackle drums',
+  'ambient pad',
+  'guitar loop',
+  'vocal chops',
+  'trap melody loop',
+  'old school funk',
+  'cinematic strings',
+];
+
 export const YoutubeSearchPanel = (props: { engine: Engine }) => {
   // `term` mirrors the input immediately; `query` is debounced and drives the
   // actual search so typing doesn't fire a request per keystroke.
-  const initialTerm = 'Short Beat';
+  const initialTerm =
+    defaultSearches[Math.floor(Math.random() * defaultSearches.length)];
   const [term, setTerm] = createSignal(initialTerm);
   const [query, setQuery] = createSignal(initialTerm);
 
