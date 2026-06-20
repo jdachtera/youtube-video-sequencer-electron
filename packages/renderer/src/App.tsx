@@ -5,6 +5,7 @@ import { Transport } from 'tone';
 import { SamplerView } from './Device/SamplerView';
 import { TrackView } from './Device/TrackView';
 import { Downloads } from './UI/Downloads';
+import { EmptyState } from './UI/EmptyState';
 import { GlobalStyles } from './UI/GlobalStyles';
 import { Column, Row } from './UI/Grid';
 import { Toaster } from './UI/Toaster';
@@ -70,17 +71,22 @@ export function App() {
                   {(sampler) => <SamplerView sampler={sampler} />}
                 </Show>
               </Row>
-              <Column
-                flex={1}
-                overflow={'auto'}
-                class={css`
-                  zoom: ${zoom()};
-                `}
+              <Show
+                when={tracks().length > 0}
+                fallback={<EmptyState engine={engine} />}
               >
-                <For each={tracks()}>
-                  {(track) => <TrackView track={track} />}
-                </For>
-              </Column>
+                <Column
+                  flex={1}
+                  overflow={'auto'}
+                  class={css`
+                    zoom: ${zoom()};
+                  `}
+                >
+                  <For each={tracks()}>
+                    {(track) => <TrackView track={track} />}
+                  </For>
+                </Column>
+              </Show>
             </Column>
           </Row>
         </Column>
