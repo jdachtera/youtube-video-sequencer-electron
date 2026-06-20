@@ -1,15 +1,12 @@
 name: Release
 on:
+  # Releases are deliberate, to keep Actions minutes down: the 3-OS build
+  # matrix runs only when a version tag (v*) is pushed or the workflow is run
+  # manually — never automatically on every branch or commit.
   push:
-    branches:
-      - main
-    paths-ignore:
-      - '**.md'
-      - '**.spec.js'
-      - '.idea'
-      - '.gitignore'
-      - '.github/**'
-      - '!.github/workflows/release.yml'
+    tags:
+      - 'v*'
+  workflow_dispatch:
 
 concurrency:
   group: release-${{ github.ref }}
@@ -26,21 +23,21 @@ jobs:
       version: ${{ steps.version.outputs.build-version }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
-          node-version: 14
+          node-version: 20
 
       - name: Get last git tag
         id: tag
-        run: echo "::set-output name=last-tag::$(git describe --tags --abbrev=0 || git rev-list --max-parents=0 ${{github.ref}})"
+        run: echo "last-tag=$(git describe --tags --abbrev=0 || git rev-list --max-parents=0 ${{github.ref}})" >> "$GITHUB_OUTPUT"
 
       - name: Get version from current date
         id: version
-        run: echo "::set-output name=build-version::$(node -e "try{console.log(require('./.electron-builder.config.js').extraMetadata.version)}catch(e){console.error(e);process.exit(1)}")"
+        run: echo "build-version=$(node -e "try{console.log(require('./.electron-builder.config.js').extraMetadata.version)}catch(e){console.error(e);process.exit(1)}")" >> "$GITHUB_OUTPUT"
 
       - name: Waiting on All checks
         uses: lewagon/wait-on-check-action@v0.2
@@ -74,14 +71,14 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
-          node-version: 16 # Need for npm >=7.7
+          node-version: 20
           cache: 'pnpm'
 
       - name: Install dependencies
