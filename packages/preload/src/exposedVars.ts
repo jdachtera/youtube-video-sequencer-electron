@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ipcRenderer } from 'electron';
-import yt from './youtube';
+// Type-only: lets us type the search bridge without bundling youtubei.js into
+// the (now sandboxed) preload — search/metadata run in the main process.
+import type { search as searchYoutube } from '@jdachtera/youtube-search-without-api-key';
 
 export type ExposedVars = typeof exposedVars;
 
@@ -31,9 +33,14 @@ const exposedVars = {
     },
   },
   yt: {
-    ...yt,
-    // Override the browser-only stub: route audio downloads to yt-dlp running
-    // in the main process (see packages/main/src/youtubeDownload.ts).
+    // Search + metadata run in the main process (youtubei.js); the preload
+    // only forwards over IPC so it needs no Node modules.
+    search: (term: string): ReturnType<typeof searchYoutube> =>
+      ipcRenderer.invoke('yt:search', term),
+    getInfo: (url: string): Promise<{ basic_info: { title: string } }> =>
+      ipcRenderer.invoke('yt:getInfo', url),
+    // Audio downloads go to yt-dlp running in the main process (see
+    // packages/main/src/youtubeDownload.ts).
     fetchVideo: (url: string): Promise<ArrayBuffer> =>
       ipcRenderer.invoke('yt:download', url),
     // Subscribe to download progress emitted by the main process. Returns an

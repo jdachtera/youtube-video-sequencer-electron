@@ -7,15 +7,20 @@ async function createWindow() {
   const browserWindow = new BrowserWindow({
     show: false, // Use 'ready-to-show' event to show window
     webPreferences: {
-      nodeIntegration: true,
+      // Locked-down renderer: no Node in the renderer, an isolated context, and
+      // a sandboxed preload. All privileged work (youtubei.js search/metadata,
+      // yt-dlp downloads, the preview server, the on-disk cache) runs in the
+      // main process and is reached only through the minimal contextBridge API
+      // in preload/src/exposedVars.ts.
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
       // Let the search-panel audio preview start playing after its async
       // (yt-dlp) fetch, which breaks the user-gesture chain Chromium normally
       // requires for autoplay.
       autoplayPolicy: 'no-user-gesture-required',
-      // Keep the renderer/preload unsandboxed: the preload relies on Node
-      // built-ins (and bundles youtubei.js). Newer Electron sandboxes renderers
-      // by default, so set this explicitly to preserve behaviour across the bump.
-      sandbox: false,
+      // TODO: cross-origin fetches now happen in main, so webSecurity should be
+      // re-enabled once thumbnail/preview loading is verified in the real app.
       webSecurity: false,
       webviewTag: false, // The webview tag is not recommended. Consider alternatives like iframe or Electron's BrowserView. https://www.electronjs.org/docs/latest/api/webview-tag#warning
       preload: join(__dirname, '../../preload/dist/index.cjs'),
