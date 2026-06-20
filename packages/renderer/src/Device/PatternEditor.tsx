@@ -72,9 +72,22 @@ export const PatternEditor = (
       followupAction: pattern?.followupAction,
       steps: pattern?.steps,
       mode: pattern?.mode ?? 'steps',
+      duration: pattern?.duration ?? 0,
+      ppq: pattern?.ppq ?? 192,
     }),
     ['change'],
   );
+
+  // Clip length in bars for piano-roll mode (the loop length), derived from the
+  // pattern's tick duration.
+  const lengthInBars = () =>
+    Math.max(
+      1,
+      Math.round(
+        selectedPatternState().duration /
+          ((selectedPatternState().ppq || 192) * 4),
+      ),
+    );
 
   const [selectedMode, setSelectedMode] = createSignal<SequencerMode>('play');
 
@@ -189,6 +202,22 @@ export const PatternEditor = (
                 }}
               />
             </Show>
+            <Show when={selectedPatternState().mode === 'pianoroll'}>
+              <NumberInputWithArrowButtons
+                label={'Bars'}
+                size={3}
+                step={1}
+                min={1}
+                max={64}
+                value={lengthInBars()}
+                onChange={(bars) => {
+                  const ppq = selectedPattern()?.ppq || 192;
+                  selectedPattern()?.set({
+                    duration: Math.max(1, Math.round(bars)) * ppq * 4,
+                  });
+                }}
+              />
+            </Show>
             <ButtonWithLabel
               label={
                 selectedPatternState().mode === 'pianoroll'
@@ -267,7 +296,13 @@ export const PatternEditor = (
             }
           >
             <Show keyed when={selectedPattern()}>
-              {(pattern) => <PianoRollView pattern={pattern} />}
+              {(pattern) => (
+                // Re-mount when the clip length changes so the roll's visible
+                // duration follows the Bars control.
+                <Show keyed when={selectedPatternState().duration}>
+                  {() => <PianoRollView pattern={pattern} />}
+                </Show>
+              )}
             </Show>
           </Show>
         </ScreenPrintBackground>

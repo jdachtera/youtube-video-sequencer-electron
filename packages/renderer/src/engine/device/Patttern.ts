@@ -276,7 +276,11 @@ export class Pattern extends EngineBase<
   }
 
   protected loopLengthTicks() {
-    return pianoRollLoopLengthTicks(this.notes, this.ppq);
+    // The piano-roll clip length is explicit — the editor's duration (set via
+    // the Length control) — so the loop is exactly that length, floored to one
+    // bar so it's never zero. Notes past the clip end simply aren't looped.
+    const ticksPerBar = (this.ppq || 192) * 4;
+    return Math.max(ticksPerBar, Math.round(this.duration) || ticksPerBar);
   }
 
   // Lazily create the Tone.Part. It's created once and kept alive; note edits
@@ -386,8 +390,7 @@ export class Pattern extends EngineBase<
   // tempo. Used to size the mixdown render so a beat exports as a full loop.
   loopDurationSeconds() {
     if (this.mode === 'pianoroll') {
-      const beats =
-        pianoRollLoopLengthTicks(this.notes, this.ppq) / (this.ppq || 192);
+      const beats = this.loopLengthTicks() / (this.ppq || 192);
       return beats * (60 / this.engine.transport.bpm.value);
     }
     return (
