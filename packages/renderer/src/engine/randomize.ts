@@ -18,16 +18,35 @@ export const euclideanRhythm = (pulses: number, steps: number): boolean[] => {
 const randomInt = (min: number, max: number) =>
   min + Math.floor(Math.random() * (max - min + 1));
 
+const clamp = (value: number, min: number, max: number) =>
+  Math.max(min, Math.min(max, value));
+
+// Metric accent: hits on the beat hit hardest, eighths a touch softer, the
+// in-between sixteenths lighter — the dynamic shape that makes a rhythm groove
+// rather than sound like a metronome.
+const metricAccent = (index: number) => {
+  if (index % 4 === 0) return 1;
+  if (index % 2 === 0) return 0.82;
+  return 0.68;
+};
+
 // A musically-plausible step pattern: a Euclidean rhythm with a sensible onset
 // density (a fifth to a half of the steps), so it grooves instead of either
-// machine-gunning every step or being nearly empty.
+// machine-gunning every step or being nearly empty. Hits are velocity-accented
+// by metric position with a little humanising jitter.
 export const randomMusicalSteps = (length: number): Step[] => {
   if (length <= 0) return [];
   const minHits = Math.max(1, Math.round(length * 0.2));
   const maxHits = Math.max(minHits, Math.round(length * 0.5));
   const hits = randomInt(minHits, maxHits);
   const rhythm = euclideanRhythm(hits, length);
-  return rhythm.map((play) => ({ ...normalizeStepData({}), play }));
+  return rhythm.map((play, index) => ({
+    ...normalizeStepData({}),
+    play,
+    volume: play
+      ? clamp(metricAccent(index) + (Math.random() - 0.5) * 0.12, 0.4, 1)
+      : 1,
+  }));
 };
 
 // Minor pentatonic: five notes that sound consonant in essentially any order,

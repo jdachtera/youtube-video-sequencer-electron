@@ -56,6 +56,18 @@ describe('randomMusicalSteps', () => {
   it('handles an empty pattern length', () => {
     expect(randomMusicalSteps(0)).toEqual([]);
   });
+
+  it('accents hits with velocities in (0, 1]', () => {
+    for (let run = 0; run < 50; run++) {
+      const steps = randomMusicalSteps(16);
+      for (const step of steps) {
+        if (step.play) {
+          expect(step.volume).toBeGreaterThan(0);
+          expect(step.volume).toBeLessThanOrEqual(1);
+        }
+      }
+    }
+  });
 });
 
 describe('randomMusicalNotes', () => {
