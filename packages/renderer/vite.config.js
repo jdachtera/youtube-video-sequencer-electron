@@ -31,7 +31,13 @@ const config = {
   },
   define: {
     'process.versions.node': '"24.0.0"',
-    'process.env.NODE_ENV': '"development"',
+    // Follow the build mode. Production builds (the Pages deploy and `compile`,
+    // which set MODE=production) ship the production paths of bundled libraries
+    // — emotion, Apollo, etc. run far slower in their development builds, which
+    // this app feels because it creates emotion styles all over the render tree.
+    // Dev/watch keeps 'development' for better diagnostics.
+    'process.env.NODE_ENV':
+      process.env.MODE === 'production' ? '"production"' : '"development"',
     'process.nextTick': 'requestAnimationFrame',
   },
   plugins: [solidPlugin()],
