@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { css } from '@emotion/css';
 import { createSignal, onMount, onCleanup, createEffect, Show } from 'solid-js';
+import { Waveform, Regions } from 'solid-waveform';
 import { Transport } from 'tone';
 import { AkaiButton } from '../UI/AkaiButton';
 import { LCDFrame, LCDLine } from '../UI/LCD';
@@ -13,7 +14,6 @@ import {
 } from '../engine/EngineBase';
 import type { SamplerDevice } from '../engine/device/Sampler';
 import { Slice } from '../engine/device/Slice';
-import { Waveform } from './Waveform/Waveform';
 
 export const SamplerView = (props: { sampler: SamplerDevice }) => {
   const [waveformCenter, setWaveformCenter] = createSignal(0);
@@ -40,6 +40,10 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
   };
 
   const [chopCount, setChopCount] = createSignal(8);
+
+  // Vertical waveform amplitude scale (shift+wheel). Kept as local view
+  // state since the Sampler device only persists position/zoom.
+  const [scale, setScale] = createSignal(1);
 
   // Slice the whole sample into N equal pieces, each its own playable track —
   // the classic chop workflow for turning a YouTube clip into an instrument.
@@ -225,25 +229,30 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
               buffer={buffer()}
               zoom={zoom()}
               position={position()}
-              cacheKey={props.sampler.url}
-              onStateChange={(state) => props.sampler.set(state)}
-              regions={regions()}
-              onCreateRegion={(region) =>
-                props.sampler.engine.createSliceTrack(
-                  Slice.normalizeData({ ...region, url: props.sampler.url }),
-                )
-              }
-              onUpdateRegion={(region) => {
-                props.sampler.findSlice(region.id)?.set(region);
-              }}
-              onClickRegion={(region) => {
-                props.sampler.findSlice(region.id)?.play();
-              }}
+              scale={scale()}
+              onZoomChange={(zoom) => props.sampler.set({ zoom })}
+              onPositionChange={(position) => props.sampler.set({ position })}
+              onScaleChange={setScale}
               class={css`
                 width: 100%;
                 height: ${waveHeight()}px;
               `}
-            />
+            >
+              <Regions
+                regions={regions().map((region) => region())}
+                onCreateRegion={(region) =>
+                  props.sampler.engine.createSliceTrack(
+                    Slice.normalizeData({ ...region, url: props.sampler.url }),
+                  )
+                }
+                onUpdateRegion={(region) => {
+                  props.sampler.findSlice(region.id)?.set(region);
+                }}
+                onClickRegion={(region) => {
+                  props.sampler.findSlice(region.id)?.play();
+                }}
+              />
+            </Waveform>
             {/* Drag to resize the waveform height. */}
             <div
               onMouseDown={startResize}

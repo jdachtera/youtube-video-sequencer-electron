@@ -77,6 +77,9 @@ importers:
       solid-pianoroll:
         specifier: ^0.0.28
         version: 0.0.28(solid-js@1.6.3)
+      solid-waveform:
+        specifier: ^1.0.11
+        version: 1.0.11(solid-js@1.6.3)
       stream-browserify:
         specifier: ^3.0.0
         version: 3.0.0
@@ -3888,6 +3891,11 @@ packages:
     resolution: {integrity: sha512-F3aPsX6hVw9ttm5LYlth8Q15x6MlI/J3Dn+o3EQyRTtTxidepSTwAYdozt01/YA+7ObcciagGEyXIopGZzQtbA==}
     peerDependencies:
       solid-js: ^1.3
+
+  solid-waveform@1.0.11:
+    resolution: {integrity: sha512-4zCSMInWQwiBm304cBRQ04FHCBddWQK4yjLXeWyMIWD0G9u+ZdHWZtdD8msmE4WQPjPKF6qo4VFSKjUitiX0kg==}
+    peerDependencies:
+      solid-js: '>=1.0.0'
 
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
@@ -8952,6 +8960,10 @@ snapshots:
       solid-js: 1.6.3
     transitivePeerDependencies:
       - supports-color
+
+  solid-waveform@1.0.11(solid-js@1.6.3):
+    dependencies:
+      solid-js: 1.6.3
 
   source-map-js@1.2.1: {}
 

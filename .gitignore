@@ -60,3 +60,9 @@ yarn-error.log
 # Editor-based Rest Client
 .idea/httpRequests
 /.idea/csv-plugin.xml
+
+# Claude Code personal settings
+.claude/settings.local.json
+
+# Local piano-roll smoke-test screenshots
+pianoroll-*.png
