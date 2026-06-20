@@ -1,5 +1,6 @@
 import { app } from 'electron';
 import './security-restrictions';
+import { installDefaultMenu, registerMenuApi } from './appMenu';
 import { registerHostApi } from './hostApi';
 import { registerImageProxy } from './imageProxy';
 import { restoreOrCreateWindow } from './mainWindow';
@@ -18,6 +19,7 @@ registerYoutubeDownload();
 registerPreviewServer();
 registerImageProxy();
 registerHostApi();
+registerMenuApi();
 
 /**
  * Prevent multiple instances
@@ -56,6 +58,7 @@ app.on('activate', restoreOrCreateWindow);
  */
 app
   .whenReady()
+  .then(installDefaultMenu)
   .then(restoreOrCreateWindow)
   .catch((e) => console.error('Failed create window:', e));
 

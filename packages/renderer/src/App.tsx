@@ -16,6 +16,7 @@ import { ThemeProvider } from './emotion-solid';
 import { Engine } from './engine/Engine';
 import { createSignalFromEventEmitter } from './engine/EngineBase';
 import { notify } from './notifications';
+import { AppMenu } from './panels/AppMenu';
 import { SidePanel } from './panels/SidePanel';
 import { Toolbar } from './panels/Toolbar';
 
@@ -85,6 +86,10 @@ export function App() {
             position: relative;
           `}
         >
+          {/* Renders nothing; owns the native menu + its keyboard shortcuts.
+              Mounted before Toolbar so undo/redo history starts capturing
+              before Toolbar's localStorage load fires. */}
+          <AppMenu engine={engine} />
           <Toolbar engine={engine} />
 
           <Row overflow={'hidden'} flex={1}>

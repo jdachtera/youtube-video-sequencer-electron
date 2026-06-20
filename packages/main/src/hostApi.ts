@@ -11,7 +11,10 @@ import { getChannel, hasRemote, listBranches, setChannel } from './channel';
  * read this via `window.host.getInfo()` and warn the user to update, instead of
  * silently calling methods the shell doesn't have.
  */
-export const SHELL_API_VERSION = 1;
+// v2 added the renderer-driven menu bridge (host:setMenu / menu:click). It's
+// optional (the renderer degrades gracefully without it), so the renderer's
+// REQUIRED_SHELL_API_VERSION need not move in lockstep.
+export const SHELL_API_VERSION = 2;
 
 export interface HostInfo {
   apiVersion: number;
