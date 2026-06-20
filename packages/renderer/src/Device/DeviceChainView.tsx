@@ -5,7 +5,6 @@ import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { DeviceWrapper, DummyDevice } from '../UI/DeviceWrapper';
 import { Column, Row } from '../UI/Grid';
 import { SameHeightContainer } from '../UI/SameHeightContainer';
-import { SelectWithArrowButtons } from '../UI/SelectWithArrowButtons';
 import {
   createSignalFromEventEmitter,
   createStoreFromEventEmitter,
@@ -26,6 +25,35 @@ const deviceNames: SerializedDevice['name'][] = [
   'Compressor',
 ];
 
+// Friendlier labels for the one-click add buttons.
+const effectLabels: Partial<Record<SerializedDevice['name'], string>> = {
+  PingPongDelay: 'Delay',
+  Distortion: 'Dist',
+  Compressor: 'Comp',
+};
+
+const addEffectPanel = css`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 2px;
+`;
+
+const addEffectLabel = css`
+  font-family: 'oswald';
+  font-size: 11px;
+  color: #2b2b2b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+const addEffectButtons = css`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  max-width: 150px;
+`;
+
 export const DeviceChainView = (
   propsWithoutDefaults: {
     deviceChain: DeviceChain;
@@ -37,8 +65,6 @@ export const DeviceChainView = (
     'deviceChain',
     'renderDummy',
   ]);
-  const [selectedDeviceName, setSelectedDeviceName] =
-    createSignal<SerializedDevice['name']>('Filter');
 
   const viewMode = createStoreFromEventEmitter(
     () => props.deviceChain.engine,
@@ -245,24 +271,28 @@ export const DeviceChainView = (
           </SameHeightContainer>
 
           <DeviceWrapper background="#969696" classList={{ device: true }}>
-            <SelectWithArrowButtons
-              options={deviceNames}
-              selectedOption={selectedDeviceName()}
-              onChange={(deviceName) => setSelectedDeviceName(deviceName)}
-            />
-            <ButtonWithLabel
-              label="Add device"
-              labelOnButton={true}
-              onClick={() => {
-                props.deviceChain.addDevice(
-                  createDevice(
-                    props.deviceChain.engine,
-                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                    normalizeDeviceData({ name: selectedDeviceName() })!,
-                  ),
-                );
-              }}
-            />
+            <div class={addEffectPanel}>
+              <span class={addEffectLabel}>Add effect</span>
+              <div class={addEffectButtons}>
+                <For each={deviceNames}>
+                  {(name) => (
+                    <ButtonWithLabel
+                      label={`＋ ${effectLabels[name] ?? name}`}
+                      labelOnButton
+                      onClick={() =>
+                        props.deviceChain.addDevice(
+                          createDevice(
+                            props.deviceChain.engine,
+                            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                            normalizeDeviceData({ name })!,
+                          ),
+                        )
+                      }
+                    />
+                  )}
+                </For>
+              </div>
+            </div>
           </DeviceWrapper>
           <DummyDevice />
         </Row>
