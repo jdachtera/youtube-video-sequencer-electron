@@ -6,6 +6,7 @@ import { ButtonGroup } from '../UI/ButtonGroup';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { Row } from '../UI/Grid';
 import { LoadFileButton } from '../UI/LoadFileButton';
+import { MasterMeter } from '../UI/MasterMeter';
 import { NumberInputWithArrowButtons } from '../UI/NumberInputWithArrowButtons';
 import { RangeInput } from '../UI/RangeInput';
 import { camelCaseToSpaced } from '../UI/format';
@@ -390,6 +391,7 @@ export const Toolbar = (props: { engine: Engine }) => {
             }}
             label="Master Volume"
           />
+          <MasterMeter engine={props.engine} />
           <AccountMenu />
         </Row>
       </div>

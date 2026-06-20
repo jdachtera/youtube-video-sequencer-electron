@@ -4,6 +4,7 @@ import {
   Gain,
   getContext,
   Limiter,
+  Meter,
   OfflineContext,
   setContext,
   start,
@@ -65,6 +66,9 @@ export class Engine extends EngineBase<EngineEvents> {
   // easily push the sum past 0 dBFS and clip into harsh digital distortion;
   // this catches the peaks so the mix (and exports) stay clean.
   public limiter = new Limiter(-1);
+
+  // Post-limiter level meter (0..1) driving the toolbar's master meter.
+  public meter = new Meter({ normalRange: true, smoothing: 0.7 });
 
   public currentPatternIndex = 0;
 
@@ -135,6 +139,7 @@ export class Engine extends EngineBase<EngineEvents> {
     });
     this.gain.connect(this.limiter);
     this.limiter.toDestination();
+    this.limiter.connect(this.meter);
   }
 
   emitChange = () => this.emit('change', this);
@@ -193,6 +198,7 @@ export class Engine extends EngineBase<EngineEvents> {
     this.tracks.forEach((track) => this.removeTrack(track));
     this.gain.dispose();
     this.limiter.dispose();
+    this.meter.dispose();
   }
 
   set(serializedEngine: DeepPartial<SerializedEngine>) {
