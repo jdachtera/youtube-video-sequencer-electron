@@ -49,10 +49,44 @@ export const NumberInputWithArrowButtons = (
   const handleUp = () => triggerChange(props.value + step());
   const handleDown = () => triggerChange(props.value - step());
 
+  // Click-and-drag scrubbing: drag up/down on the readout to change the value
+  // (Alt for fine steps). A plain click without moving still focuses the input
+  // for typing.
+  let scrubStartY = 0;
+  let scrubStartValue = 0;
+  let scrubbing = false;
+
+  const onScrubMove = (event: MouseEvent) => {
+    const deltaY = scrubStartY - event.clientY;
+    if (!scrubbing && Math.abs(deltaY) < 3) return;
+    scrubbing = true;
+    event.preventDefault();
+    const fine = event.altKey ? 0.25 : 1;
+    const increment = Math.round(deltaY / 4) * step() * fine;
+    triggerChange(scrubStartValue + increment);
+  };
+
+  const onScrubEnd = () => {
+    scrubbing = false;
+    window.removeEventListener('mousemove', onScrubMove);
+    window.removeEventListener('mouseup', onScrubEnd);
+  };
+
+  const onScrubStart = (event: MouseEvent) => {
+    if (event.button !== 0 || allProps.disabled) return;
+    scrubStartY = event.clientY;
+    scrubStartValue = props.value;
+    scrubbing = false;
+    window.addEventListener('mousemove', onScrubMove);
+    window.addEventListener('mouseup', onScrubEnd);
+  };
+
   return (
     <InputWithArrowButtons
       {...inputProps}
       value={props.format(props.value)}
+      title="Drag up/down to change · Alt for fine"
+      onMouseDown={onScrubStart}
       onKeyDown={(event) => {
         setCursorPosition(event.currentTarget.selectionStart);
         switch (event.key) {

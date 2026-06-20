@@ -66,6 +66,7 @@ export const InputWithArrowButtons = (
               classList={{
                 [css`
                   text-align: right;
+                  cursor: ns-resize;
                 `]: true,
               }}
             />
