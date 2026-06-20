@@ -7,6 +7,24 @@ import type { search as searchYoutube } from '@jdachtera/youtube-search-without-
 
 export type ExposedVars = typeof exposedVars;
 
+/**
+ * A serializable native-menu item the renderer sends to the shell over IPC
+ * (no functions cross the bridge). Items with an `id` route their click back to
+ * the renderer via `host.onMenuClick`; items with a built-in `role` (copy,
+ * paste, quit, togglefullscreen, …) use Electron's native behavior.
+ */
+export interface MenuItemSpec {
+  id?: string;
+  label?: string;
+  role?: string;
+  type?: 'normal' | 'separator' | 'submenu' | 'checkbox' | 'radio';
+  accelerator?: string;
+  registerAccelerator?: boolean;
+  enabled?: boolean;
+  checked?: boolean;
+  submenu?: MenuItemSpec[];
+}
+
 const exposedVars = {
   host: {
     myPing() {
@@ -50,6 +68,18 @@ const exposedVars = {
     // Branch names available to switch to (from the GitHub API, via main).
     listBranches: (): Promise<string[]> =>
       ipcRenderer.invoke('host:listBranches'),
+    // Native application menu, defined by the renderer so menu changes ship with
+    // the web UI — no Electron rebuild. Replace it any time (e.g. to reflect
+    // enabled/checked state).
+    setMenu: (template: MenuItemSpec[]): Promise<void> =>
+      ipcRenderer.invoke('host:setMenu', template),
+    // Subscribe to clicks on renderer-defined (id'd) menu items. Returns an
+    // unsubscribe function.
+    onMenuClick: (callback: (id: string) => void): (() => void) => {
+      const listener = (_event: unknown, id: string) => callback(id);
+      ipcRenderer.on('menu:click', listener);
+      return () => ipcRenderer.removeListener('menu:click', listener);
+    },
   },
   yt: {
     // Search + metadata run in the main process (youtubei.js); the preload
