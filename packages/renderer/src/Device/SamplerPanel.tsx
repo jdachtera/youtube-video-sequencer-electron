@@ -189,7 +189,7 @@ const SamplerSlotView = (props: { sampler: SamplerDevice; engine: Engine }) => {
     >
       <Column
         class={css`
-          width: 140px;
+          width: 104px;
           flex-shrink: 0;
           gap: 4px;
         `}
@@ -321,7 +321,7 @@ const SamplerSlotView = (props: { sampler: SamplerDevice; engine: Engine }) => {
           onScaleChange={setScale}
           class={css`
             width: 100%;
-            height: 150px;
+            height: 104px;
           `}
         >
           <Regions
@@ -364,8 +364,8 @@ const Cover = (props: { url: string }) => {
   return (
     <div
       class={css`
-        width: 140px;
-        height: 78px;
+        width: 104px;
+        height: 58px;
         border-radius: 4px;
         background: #222;
         overflow: hidden;

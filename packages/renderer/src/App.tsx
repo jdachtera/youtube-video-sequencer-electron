@@ -89,23 +89,27 @@ export function App() {
           <Row overflow={'hidden'} flex={1}>
             <SidePanel engine={engine} />
             <Column overflow={'hidden'} flex={1}>
-              <SamplerPanel engine={engine} />
-              <Show
-                when={tracks().length > 0}
-                fallback={<EmptyState engine={engine} />}
+              {/* The title-bar zoom scales the whole work area — sampler
+                  included — so everything sizes together. */}
+              <Column
+                flex={1}
+                overflow={'hidden'}
+                class={css`
+                  zoom: ${zoom()};
+                `}
               >
-                <Column
-                  flex={1}
-                  overflow={'auto'}
-                  class={css`
-                    zoom: ${zoom()};
-                  `}
+                <SamplerPanel engine={engine} />
+                <Show
+                  when={tracks().length > 0}
+                  fallback={<EmptyState engine={engine} />}
                 >
-                  <For each={tracks()}>
-                    {(track) => <TrackView track={track} />}
-                  </For>
-                </Column>
-              </Show>
+                  <Column flex={1} overflow={'auto'}>
+                    <For each={tracks()}>
+                      {(track) => <TrackView track={track} />}
+                    </For>
+                  </Column>
+                </Show>
+              </Column>
             </Column>
           </Row>
         </Column>
