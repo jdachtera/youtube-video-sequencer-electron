@@ -277,6 +277,10 @@ export class SequencerDevice extends Device<SequencerEvents> {
     // Mirror the single listener registered in the constructor.
     this.engine.off('stop', this.rewindSequence);
     this.removeAllListeners();
+
+    // Release the base device's input/output Gain nodes too (this was
+    // leaking two nodes per track on removal).
+    super.dispose();
   }
 }
 
