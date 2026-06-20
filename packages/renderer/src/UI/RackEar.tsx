@@ -29,18 +29,18 @@ export const RackEar = (
     >
       <RackMountHole
         class={css`
-          margin: 5px 2px;
+          margin: 4px 1px;
         `}
       >
-        <Screw width="13px" />
+        <Screw width="9px" />
       </RackMountHole>
       <RackMountHole
         class={css`
-          margin: 5px 2px;
+          margin: 4px 1px;
           display: ${props.collapsed ? 'none' : 'flex'};
         `}
       >
-        <Screw width="13px" />
+        <Screw width="9px" />
       </RackMountHole>
     </div>
   );

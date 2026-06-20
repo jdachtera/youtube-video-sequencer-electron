@@ -52,14 +52,14 @@ export const TrackView = (props: { track: Track }) => {
             classList={{
               [css`
                 flex: 1;
-                margin-top: 20px 0;
+                align-items: center;
               `]: true,
             }}
           >
             <InputLCD
               classList={{
                 [css`
-                  width: 150px;
+                  width: 130px;
                   white-space: nowrap;
                   text-overflow: ellipsis;
                 `]: true,

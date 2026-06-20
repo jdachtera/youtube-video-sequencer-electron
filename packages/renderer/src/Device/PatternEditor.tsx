@@ -90,7 +90,9 @@ export const PatternEditor = (
         >
           <Row
             class={css`
-              margin: 10px;
+              margin: 4px 10px;
+              flex-wrap: wrap;
+              align-items: flex-end;
             `}
           >
             <ButtonWithLabel
@@ -163,18 +165,6 @@ export const PatternEditor = (
               optionLabel={(mode) => sequencerModeLabels[mode]}
               onChange={setSelectedMode}
             />
-          </Row>
-        </ScreenPrintBackground>
-
-        <ScreenPrintBackground
-          hidden={sequencerState.collapsed}
-          background={'rgba(255,255,255,0.2)'}
-        >
-          <Row
-            class={css`
-              margin: 10px;
-            `}
-          >
             <FollowupActionControls
               numberOfPatterns={sequencerState.numberOfPatterns}
               followupAction={selectedPatternState().followupAction}

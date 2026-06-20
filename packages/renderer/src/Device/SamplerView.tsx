@@ -70,10 +70,6 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
     props.sampler.stop();
   };
 
-  const setZoom = (zoom: number) => {
-    props.sampler.set({ zoom });
-  };
-
   const handleSliceSelected = (slice?: Slice) => {
     if (!slice) return;
 
@@ -225,22 +221,6 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
             />
           </Show>
         </LCD>
-        <Show when={!collapsed()}>
-          <div
-            class={css`
-              display: flex;
-              justify-content: space-evenly;
-              margin-top: 20px;
-              padding: 0 5px;
-            `}
-          >
-            <AkaiButton onClick={() => setZoom(1)} />
-            <AkaiButton onClick={() => setZoom(2)} />
-            <AkaiButton onClick={() => setZoom(3)} />
-            <AkaiButton onClick={() => setZoom(4)} />
-            <AkaiButton onClick={() => setZoom(5)} />
-          </div>
-        </Show>
       </LCDFrame>
     </div>
   );

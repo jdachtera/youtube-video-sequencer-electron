@@ -12,7 +12,7 @@ export const RackMountHole = (
     <div
       class={[
         css`
-          width: ${props.width ?? '14px'};
+          width: ${props.width ?? '10px'};
           height: ${props.height ?? '4px'};
           background-color: black;
           border-radius: 14px;
