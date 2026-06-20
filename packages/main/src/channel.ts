@@ -78,9 +78,27 @@ const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> =>
   ]);
 
 /**
+ * Whether a deployment actually exists at `url`. A branch the channel picker
+ * lists may have no Pages deploy (its preview workflow hasn't run, or it isn't
+ * renderer-affecting); GitHub then serves the SPA 404 fallback, whose relative
+ * asset URLs resolve under the missing path and fail to load — a white screen.
+ * `loadURL` resolves even on an HTTP 404, so it can't detect this; a preflight
+ * request can. Anything other than a 2xx means "no live deploy here".
+ */
+const remoteIsLive = async (url: string): Promise<boolean> => {
+  try {
+    const response = await withTimeout(net.fetch(url, { method: 'GET' }), 8000);
+    return response.ok;
+  } catch {
+    return false;
+  }
+};
+
+/**
  * Load the renderer into `window`: the Vite dev server in development; otherwise
- * the active remote channel (with an 8s timeout) and, if that fails, the bundled
- * copy. A fresh loadURL supersedes any still-pending remote navigation.
+ * the active remote channel (when a deploy is actually live there) and, if not,
+ * the bundled copy. A fresh loadURL supersedes any still-pending remote
+ * navigation.
  */
 export const loadRenderer = async (window: BrowserWindow): Promise<void> => {
   if (
@@ -92,7 +110,7 @@ export const loadRenderer = async (window: BrowserWindow): Promise<void> => {
   }
 
   const remote = resolveRendererUrl();
-  if (remote) {
+  if (remote && (await remoteIsLive(remote))) {
     try {
       await withTimeout(window.loadURL(remote), 8000);
       return;
@@ -102,6 +120,8 @@ export const loadRenderer = async (window: BrowserWindow): Promise<void> => {
         error,
       );
     }
+  } else if (remote) {
+    console.warn(`[renderer] no live deploy at ${remote}; using bundled copy`);
   }
 
   await window.loadURL(bundledUrl());
