@@ -170,6 +170,12 @@ export class Slice extends Device<SliceEvents> {
   }
 
   handleDraw = (now: number) => {
+    // Only voices that are actually sounding need a moving playhead. Emitting a
+    // position update for every slice on every 40Hz frame is the bulk of the
+    // playback-time UI churn, and it scales with track count — so skip the ones
+    // that aren't playing.
+    if (this.player.state !== 'started') return;
+
     this.currentPosition = now - this.firstFrameTime;
 
     this.emit(
