@@ -89,8 +89,9 @@ export class Track extends EngineBase<TrackEvents> {
 
   setSolo(solo: boolean, multi = false) {
     if (solo && !multi) {
-      this.engine.tracks.forEach((slice) =>
-        slice.set({ solo: this === slice }),
+      // Exclusive solo: solo this track and clear every other.
+      this.engine.tracks.forEach((track) =>
+        track.set({ solo: this === track }),
       );
     } else {
       this.set({ solo });
@@ -102,7 +103,14 @@ export class Track extends EngineBase<TrackEvents> {
   }
 
   dispose() {
+    // Release the solo bus first: disposing a still-soloed track would
+    // otherwise leave every other track muted (a stuck solo).
+    this.soloNode.solo = false;
     this.chain.dispose();
+    this.volume.disconnect();
+    this.soloNode.disconnect();
+    this.volume.dispose();
+    this.soloNode.dispose();
   }
 
   serialize(): SerializedTrack {
