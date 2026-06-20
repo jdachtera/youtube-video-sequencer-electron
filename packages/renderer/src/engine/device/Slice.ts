@@ -231,9 +231,17 @@ export class Slice extends Device<SliceEvents> {
       this.player.dispose();
     }
     switch (this.warpmode) {
-      case 'resample':
-        this.player = new Player();
+      case 'resample': {
+        const player = new Player();
+        // Tiny fades to declick slice boundaries: chopping a sample mid-
+        // waveform otherwise pops on start/stop. A couple of milliseconds is
+        // inaudible but smooths the discontinuity. (GrainPlayer's grain
+        // envelopes already smooth its boundaries.)
+        player.fadeIn = 0.002;
+        player.fadeOut = 0.005;
+        this.player = player;
         break;
+      }
       case 'stretch':
         this.player = new GrainPlayer();
     }
