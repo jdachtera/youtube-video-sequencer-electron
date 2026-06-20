@@ -6,24 +6,30 @@ on:
   # cheaply, no 3-OS build — so the desktop shell (which loads this URL with a
   # bundled local fallback) gets a new UI without shipping an Electron build.
   #
-  # main deploys to the site root; every other branch deploys to
-  # branches/<slug>/, so a branch's preview build can be selected from inside
-  # the app (the channel switcher). Only renderer-affecting changes redeploy, to
-  # keep Actions minutes down.
+  # `main` deploys to the site root (on renderer-affecting changes only, to keep
+  # Actions minutes down). Pull requests deploy their head branch to
+  # branches/<slug>/ so a PR's preview build can be selected from inside the app
+  # (the channel switcher) or opened in a browser. A PR is a deliberate request
+  # for review, so its preview deploys on every push to the PR regardless of
+  # which files changed — that's why there's no `paths` filter on pull_request.
   push:
     branches:
-      - '**'
+      - main
     paths:
       - 'packages/renderer/**'
       - 'packages/preload/src/**'
       - '.electron-vendors.cache.json'
       - 'pnpm-lock.yaml'
       - '.github/workflows/pages.yml'
+  pull_request:
+    types: [opened, reopened, synchronize]
   workflow_dispatch:
 
-# peaceiris pushes the build to the gh-pages branch.
+# peaceiris pushes the build to the gh-pages branch; the PR preview link is
+# posted back to the pull request as a sticky comment.
 permissions:
   contents: write
+  pull-requests: write
 
 # Serialize all deploys (across branches) so concurrent pushes don't race on the
 # shared gh-pages branch. Let an in-flight deploy finish rather than cancelling.
@@ -38,6 +44,12 @@ defaults:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Fork PRs run with a read-only token and no secrets, so peaceiris can't push
+    # to gh-pages from them (and shouldn't). Only deploy previews for branches in
+    # this repo; fork PRs are skipped rather than failing noisily.
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
 
     steps:
       - uses: actions/checkout@v4
@@ -68,14 +80,29 @@ jobs:
 
       - name: Compute deploy target
         id: target
+        # Branch names are attacker-controlled (a PR author picks them), so read
+        # them from the environment and quote them — never interpolate ${{ }}
+        # expressions straight into the shell, which would allow injection.
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_REF: ${{ github.head_ref }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          branch="${GITHUB_REF_NAME}"
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            branch="$HEAD_REF"
+          else
+            branch="$REF_NAME"
+          fi
           if [ "$branch" = "main" ]; then
             echo "dir=." >> "$GITHUB_OUTPUT"
+            echo "branch=main" >> "$GITHUB_OUTPUT"
+            echo "path=" >> "$GITHUB_OUTPUT"
           else
             # Folder-safe slug; MUST match slug() in packages/main/src/channel.ts.
-            slug=$(echo "$branch" | sed 's#[^a-zA-Z0-9._-]#-#g')
+            slug=$(printf '%s' "$branch" | sed 's#[^a-zA-Z0-9._-]#-#g')
             echo "dir=branches/$slug" >> "$GITHUB_OUTPUT"
+            echo "branch=$branch" >> "$GITHUB_OUTPUT"
+            echo "path=branches/$slug/" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Deploy to gh-pages
@@ -88,4 +115,53 @@ jobs:
           keep_files: true
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
-          commit_message: 'Deploy ${{ github.ref_name }} (${{ github.sha }})'
+          commit_message: 'Deploy ${{ steps.target.outputs.branch }} (${{ github.sha }})'
+
+      - name: Comment preview link on the PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        # Pass values through env (not ${{ }} inside the script body) so a crafted
+        # branch name can't inject JavaScript into the step.
+        env:
+          PREVIEW_PATH: ${{ steps.target.outputs.path }}
+          PREVIEW_BRANCH: ${{ steps.target.outputs.branch }}
+        with:
+          script: |
+            const previewPath = process.env.PREVIEW_PATH;
+            const branch = process.env.PREVIEW_BRANCH;
+            const { owner, repo } = context.repo;
+            const url = `https://${owner}.github.io/${repo}/${previewPath}`;
+            const marker = '<!-- pages-preview -->';
+            const body = [
+              marker,
+              `🚀 **Renderer preview deployed** for \`${branch}\``,
+              '',
+              `- Open in a browser: ${url}`,
+              `- Or in the desktop app: open the channel switcher and select **\`${branch}\`**`,
+              '',
+              '<sub>Updates on every push to this PR. The app falls back to the bundled UI if the preview is unreachable.</sub>',
+            ].join('\n');
+            const issue_number = context.issue.number;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner,
+              repo,
+              issue_number,
+            });
+            const existing = comments.find(
+              (c) => c.body && c.body.includes(marker),
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body,
+              });
+            }
