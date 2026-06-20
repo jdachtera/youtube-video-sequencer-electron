@@ -69,6 +69,23 @@ export const resolveRendererUrl = (): string | null => {
 const bundledUrl = (): string =>
   new URL('../renderer/dist/index.html', 'file://' + __dirname).toString();
 
+/**
+ * Force a fresh fetch of the channel's (unhashed) index.html on every load.
+ *
+ * GitHub Pages serves index.html with a ~10-minute CDN cache, and because the
+ * deploy keeps old hashed bundles around (keep_files), a stale index.html keeps
+ * working — it still points at bundles that exist — so a redeploy silently shows
+ * the *previous* build until the cache expires (a hard reload doesn't help: the
+ * staleness is at the CDN edge). A changing query string makes index.html a
+ * cache miss so the latest deploy is picked up immediately. The hashed asset
+ * URLs it references are content-addressed and still cache normally.
+ */
+const cacheBusted = (url: string): string => {
+  const busted = new URL(url);
+  busted.searchParams.set('_', Date.now().toString());
+  return busted.toString();
+};
+
 const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> =>
   Promise.race([
     promise,
@@ -110,18 +127,25 @@ export const loadRenderer = async (window: BrowserWindow): Promise<void> => {
   }
 
   const remote = resolveRendererUrl();
-  if (remote && (await remoteIsLive(remote))) {
-    try {
-      await withTimeout(window.loadURL(remote), 8000);
-      return;
-    } catch (error) {
+  if (remote) {
+    // Bust the CDN cache once per load; the preflight warms the edge with the
+    // fresh response so the subsequent navigation gets the latest deploy too.
+    const freshRemote = cacheBusted(remote);
+    if (await remoteIsLive(freshRemote)) {
+      try {
+        await withTimeout(window.loadURL(freshRemote), 8000);
+        return;
+      } catch (error) {
+        console.warn(
+          `[renderer] remote load of ${remote} failed; using bundled copy:`,
+          error,
+        );
+      }
+    } else {
       console.warn(
-        `[renderer] remote load of ${remote} failed; using bundled copy:`,
-        error,
+        `[renderer] no live deploy at ${remote}; using bundled copy`,
       );
     }
-  } else if (remote) {
-    console.warn(`[renderer] no live deploy at ${remote}; using bundled copy`);
   }
 
   await window.loadURL(bundledUrl());
