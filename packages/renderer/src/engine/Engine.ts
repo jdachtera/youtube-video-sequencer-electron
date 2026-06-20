@@ -18,7 +18,7 @@ import { Track } from './Track';
 import type { SerializedSampler } from './device/Sampler';
 import { SamplerDevice } from './device/Sampler';
 import { SequencerDevice } from './device/Sequencer';
-import type { SerializedSlice } from './device/Slice';
+import { Slice, type SerializedSlice } from './device/Slice';
 import type { PropertyUpdateEvents } from './helpers';
 import { entries } from './helpers';
 import type { DeepPartial } from './types';
@@ -196,6 +196,29 @@ export class Engine extends EngineBase<EngineEvents> {
     return this.samplers.find((sampler) => sampler.id === id);
   }
 
+  // Duplicate a slot (source + region + tuning) into a new one and select it,
+  // so you can prepare a variation (e.g. reversed, retuned) without re-adding
+  // the video.
+  cloneSample(sampler: SamplerDevice) {
+    const data = sampler.serialize();
+    const clone = this.createSample({
+      ...data,
+      id: '',
+      title: data.title ? `${data.title} copy` : '',
+    });
+    this.setCurrentSampler(clone);
+    return clone;
+  }
+
+  // Tracks whose voice plays this slot.
+  tracksUsingSample(sampler: SamplerDevice) {
+    return this.tracks.filter((track) =>
+      track.chain.devices.some(
+        (device) => device instanceof Slice && device.samplerId === sampler.id,
+      ),
+    );
+  }
+
   // Find a sample slot matching a source + region, creating one if none exists.
   // Used to migrate pre-slot slices (which carried their own url + region) onto
   // a shared slot, so identical regions across tracks collapse to one slot.
@@ -218,6 +241,11 @@ export class Engine extends EngineBase<EngineEvents> {
   }
 
   removeSample(sampler: SamplerDevice) {
+    // Remove tracks whose voice plays this slot first, so deleting a sample
+    // never leaves orphaned sequencers bound to a slot that's gone (which left
+    // the project in a stuck, unusable state).
+    this.tracksUsingSample(sampler).forEach((track) => this.removeTrack(track));
+
     const index = this.samplers.indexOf(sampler);
     sampler.off('change', this.emitChange);
     this.samplers = this.samplers.filter((existing) => existing !== sampler);

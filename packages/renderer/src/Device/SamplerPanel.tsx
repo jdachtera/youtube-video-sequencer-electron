@@ -150,6 +150,23 @@ const SamplerSlotView = (props: { sampler: SamplerDevice; engine: Engine }) => {
     }
   };
 
+  const cloneSlot = () => props.engine.cloneSample(props.sampler);
+
+  const deleteSlot = () => {
+    const count = props.engine.tracksUsingSample(props.sampler).length;
+    if (
+      count > 0 &&
+      !confirm(
+        `This sample is used by ${count} sequencer track${
+          count > 1 ? 's' : ''
+        }, which will be removed too. Delete it?`,
+      )
+    ) {
+      return;
+    }
+    props.engine.removeSample(props.sampler);
+  };
+
   // Create a sequencer track whose voice is bound to this prepared slot. The
   // voice derives its source/region/root note from the slot, and the
   // sequencer's sample dropdown can repoint it later.
@@ -217,11 +234,8 @@ const SamplerSlotView = (props: { sampler: SamplerDevice; engine: Engine }) => {
             labelOnButton
             onClick={addToSequencer}
           />
-          <ButtonWithLabel
-            label="🗑"
-            labelOnButton
-            onClick={() => props.engine.removeSample(props.sampler)}
-          />
+          <ButtonWithLabel label="⧉ Clone" labelOnButton onClick={cloneSlot} />
+          <ButtonWithLabel label="🗑" labelOnButton onClick={deleteSlot} />
         </Row>
       </Column>
 
