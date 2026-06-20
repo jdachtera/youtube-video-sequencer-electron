@@ -6,6 +6,8 @@ export const BrowserListItem = (props: {
   isSelected: boolean;
   thumbnail: string;
   name: string;
+  /** Optional short overlay on the thumbnail (e.g. a video duration). */
+  meta?: string;
   onSelect: () => void;
   onAdd: () => void;
 }) => {
@@ -53,6 +55,7 @@ export const BrowserListItem = (props: {
     >
       <div
         class={css`
+          position: relative;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -73,6 +76,24 @@ export const BrowserListItem = (props: {
         onClick={() => props.onSelect()}
       >
         <Show when={!resolvedThumbnail()}>♪</Show>
+        <Show when={props.meta}>
+          <span
+            class={css`
+              position: absolute;
+              right: 3px;
+              bottom: 3px;
+              padding: 1px 4px;
+              border-radius: 3px;
+              background: rgba(0, 0, 0, 0.8);
+              color: #fff;
+              font-family: 'oswald';
+              font-size: 11px;
+              line-height: 1.3;
+            `}
+          >
+            {props.meta}
+          </span>
+        </Show>
       </div>
       <div
         class={css`
