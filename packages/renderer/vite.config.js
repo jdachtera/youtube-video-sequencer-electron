@@ -9,6 +9,20 @@ const whitelistedBuiltinModules = ['events'];
 
 const PACKAGE_ROOT = __dirname;
 
+// The renderer is built twice from this config:
+//  - For Electron, which runs inside the bundled Chromium (pinned via
+//    .electron-vendors.cache.json), so it can target that exact version.
+//  - For the GitHub Pages web preview, where the same bundle must run in
+//    ordinary visitor browsers. The Pages workflow sets PAGES_BUILD=true so the
+//    web build targets a broad evergreen baseline instead.
+//
+// Targeting the bleeding-edge Electron Chromium also makes esbuild emit syntax
+// that Rollup's build-import-analysis parser can reject in CI ("Parse error"),
+// so the broader web target keeps the Pages build green as well.
+const buildTarget = process.env.PAGES_BUILD
+  ? ['chrome111', 'edge111', 'firefox111', 'safari16']
+  : `chrome${chrome}`;
+
 /**
  * @type {import('vite').UserConfig}
  * @see https://vitejs.dev/config/
@@ -49,7 +63,7 @@ const config = {
   },
   build: {
     sourcemap: true,
-    target: `chrome${chrome}`,
+    target: buildTarget,
     outDir: 'dist',
     assetsDir: '.',
     rollupOptions: {
