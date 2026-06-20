@@ -78,8 +78,8 @@ importers:
         specifier: ^0.0.28
         version: 0.0.28(solid-js@1.6.3)
       solid-waveform:
-        specifier: ^1.0.11
-        version: 1.0.11(solid-js@1.6.3)
+        specifier: ^1.0.12
+        version: 1.0.12(solid-js@1.6.3)
       stream-browserify:
         specifier: ^3.0.0
         version: 3.0.0
@@ -3892,8 +3892,8 @@ packages:
     peerDependencies:
       solid-js: ^1.3
 
-  solid-waveform@1.0.11:
-    resolution: {integrity: sha512-4zCSMInWQwiBm304cBRQ04FHCBddWQK4yjLXeWyMIWD0G9u+ZdHWZtdD8msmE4WQPjPKF6qo4VFSKjUitiX0kg==}
+  solid-waveform@1.0.12:
+    resolution: {integrity: sha512-0U7DF3oo7b6rYMyvMIyTlfzxMvU0SBIQLeGGkI3BEsao9sAh9hi78J+zIZTTQLb57V2i6JITRFmV1JlxKspNeQ==}
     peerDependencies:
       solid-js: '>=1.0.0'
 
@@ -8961,7 +8961,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  solid-waveform@1.0.11(solid-js@1.6.3):
+  solid-waveform@1.0.12(solid-js@1.6.3):
     dependencies:
       solid-js: 1.6.3
 
