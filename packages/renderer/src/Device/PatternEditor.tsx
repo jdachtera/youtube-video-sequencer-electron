@@ -16,6 +16,7 @@ import {
   followupActionTypes,
   normalizeFollowupActionData,
 } from '../engine/device/Patttern';
+import { clearedSteps, rotateSteps } from '../engine/patternOps';
 import { randomMusicalNotes, randomMusicalSteps } from '../engine/randomize';
 import { subdivisions, subdivisionTypes } from '../engine/types';
 import { PianoRollView } from './PianoRollView';
@@ -169,6 +170,24 @@ export const PatternEditor = (
                 optionLabel={(mode) => sequencerModeLabels[mode]}
                 onChange={setSelectedMode}
               />
+              <ButtonWithLabel
+                label="‹"
+                labelOnButton={true}
+                onClick={() => {
+                  const pattern = selectedPattern();
+                  if (pattern)
+                    pattern.set({ steps: rotateSteps(pattern.steps, -1) });
+                }}
+              />
+              <ButtonWithLabel
+                label="›"
+                labelOnButton={true}
+                onClick={() => {
+                  const pattern = selectedPattern();
+                  if (pattern)
+                    pattern.set({ steps: rotateSteps(pattern.steps, 1) });
+                }}
+              />
             </Show>
             <ButtonWithLabel
               label={
@@ -201,6 +220,19 @@ export const PatternEditor = (
                   pattern.set({
                     steps: randomMusicalSteps(pattern.steps.length || 16),
                   });
+                }
+              }}
+            />
+            <ButtonWithLabel
+              label="Clear"
+              labelOnButton={true}
+              onClick={() => {
+                const pattern = selectedPattern();
+                if (!pattern) return;
+                if (pattern.mode === 'pianoroll') {
+                  pattern.set({ notes: [] });
+                } else {
+                  pattern.set({ steps: clearedSteps(pattern.steps) });
                 }
               }}
             />
