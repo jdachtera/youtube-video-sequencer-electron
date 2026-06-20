@@ -1,18 +1,21 @@
 import { app } from 'electron';
 import './security-restrictions';
+import { registerImageProxy } from './imageProxy';
 import { restoreOrCreateWindow } from './mainWindow';
 import { registerPreviewServer } from './previewServer';
 import { registerYoutubeApi } from './youtubeApi';
 import { registerYoutubeDownload } from './youtubeDownload';
 
 /**
- * Expose the YouTube search/metadata, yt-dlp-backed audio download, and
- * seekable video preview bridges to the renderer. All run in the main process
- * so the preload can stay a thin, sandboxed contextBridge layer.
+ * Expose the YouTube search/metadata, yt-dlp-backed audio download, seekable
+ * video preview, and cross-origin image proxy bridges to the renderer. All run
+ * in the main process so the preload can stay a thin, sandboxed contextBridge
+ * layer.
  */
 registerYoutubeApi();
 registerYoutubeDownload();
 registerPreviewServer();
+registerImageProxy();
 
 /**
  * Prevent multiple instances

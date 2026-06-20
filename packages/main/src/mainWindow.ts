@@ -19,9 +19,11 @@ async function createWindow() {
       // (yt-dlp) fetch, which breaks the user-gesture chain Chromium normally
       // requires for autoplay.
       autoplayPolicy: 'no-user-gesture-required',
-      // TODO: cross-origin fetches now happen in main, so webSecurity should be
-      // re-enabled once thumbnail/preview loading is verified in the real app.
-      webSecurity: false,
+      // Full same-origin enforcement: every cross-origin fetch now goes through
+      // the main process (youtubei.js search/metadata, yt-dlp, the preview
+      // server, and the image proxy that returns thumbnails as data URLs), so
+      // the renderer never needs to reach the network directly.
+      webSecurity: true,
       webviewTag: false, // The webview tag is not recommended. Consider alternatives like iframe or Electron's BrowserView. https://www.electronjs.org/docs/latest/api/webview-tag#warning
       preload: join(__dirname, '../../preload/dist/index.cjs'),
     },

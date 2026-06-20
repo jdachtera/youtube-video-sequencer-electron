@@ -1,5 +1,5 @@
 import { css } from '@emotion/css';
-import { Show } from 'solid-js';
+import { createResource, Show } from 'solid-js';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 
 export const BrowserListItem = (props: {
@@ -9,6 +9,24 @@ export const BrowserListItem = (props: {
   onSelect: () => void;
   onAdd: () => void;
 }) => {
+  // Remote thumbnails are fetched in the main process and returned as data URLs
+  // so they render with webSecurity enabled (and from a remote origin). Empty
+  // or already-local thumbnails pass through unchanged; if the bridge is absent
+  // (web fallback) we use the URL directly.
+  const [resolvedThumbnail] = createResource(
+    () => props.thumbnail,
+    async (url) => {
+      if (!url || url.startsWith('data:')) return url;
+      const fetchImage = window.media?.fetchImage;
+      if (!fetchImage) return url;
+      try {
+        return (await fetchImage(url)) || '';
+      } catch {
+        return '';
+      }
+    },
+  );
+
   return (
     <li
       classList={{
@@ -48,13 +66,13 @@ export const BrowserListItem = (props: {
           font-size: 26px;
         `}
         style={
-          props.thumbnail
-            ? { 'background-image': `url('${props.thumbnail}')` }
+          resolvedThumbnail()
+            ? { 'background-image': `url('${resolvedThumbnail()}')` }
             : undefined
         }
         onClick={() => props.onSelect()}
       >
-        <Show when={!props.thumbnail}>♪</Show>
+        <Show when={!resolvedThumbnail()}>♪</Show>
       </div>
       <div
         class={css`

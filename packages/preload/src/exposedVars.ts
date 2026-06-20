@@ -70,6 +70,14 @@ const exposedVars = {
     getPreviewUrl: (url: string): Promise<string> =>
       ipcRenderer.invoke('yt:preview', url),
   },
+  media: {
+    // Fetch a cross-origin image (e.g. a YouTube thumbnail) in the main process
+    // and get it back as a `data:` URL, so the sandboxed renderer can show it
+    // with webSecurity enabled / when served from a remote origin. Resolves to
+    // an empty string on any failure.
+    fetchImage: (url: string): Promise<string> =>
+      ipcRenderer.invoke('media:fetchImage', url),
+  },
 };
 
 export default exposedVars;
