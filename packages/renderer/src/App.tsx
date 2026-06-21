@@ -20,7 +20,18 @@ import { AppMenu } from './panels/AppMenu';
 import { SidePanel } from './panels/SidePanel';
 import { Toolbar } from './panels/Toolbar';
 
+// Replaced at build time by Vite's `define` (vite.config.js); true only when
+// VITE_EXPOSE_ENGINE=true, so the branch below is stripped from shipped builds.
+declare const __EXPOSE_ENGINE__: boolean;
+
 const engine = new Engine(Transport);
+
+// Test hook: expose the engine to the headless audio harness
+// (scripts/audiotest.mjs) so it can drive an offline render and assert the
+// output isn't silent.
+if (__EXPOSE_ENGINE__) {
+  (window as unknown as { __engine: Engine }).__engine = engine;
+}
 
 // Lowest desktop-shell IPC/contextBridge contract this UI needs. When the UI is
 // served remotely (GitHub Pages) and loaded into an older installed shell, warn

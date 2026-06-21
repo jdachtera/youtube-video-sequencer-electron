@@ -347,6 +347,14 @@ export class Slice extends Device<SliceEvents> {
     return slicedBuffer;
   }
 
+  // The device chain's hasLoaded awaits this. Decode the source and set the
+  // sliced player buffer synchronously here, so an offline render / WAV export
+  // (engine.renderToBuffer) captures audio instead of starting before any voice
+  // is ready and rendering silence.
+  async hasLoaded() {
+    this.player.buffer = await this.loadBufferFromSampler();
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   updateBuffer = debounce(async (..._args: unknown[]) => {
     // Slice the (decoded) sampler buffer in memory. The compressed source it
