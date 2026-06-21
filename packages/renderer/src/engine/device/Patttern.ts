@@ -60,6 +60,13 @@ export type SerializedPattern = {
   notes: Note[];
   ppq: number;
   duration: number;
+  // Loop start (ticks) within the clip — the loop plays [loopStart, duration].
+  loopStart: number;
+  // Time signature: a bar is `timeSignatureNumerator` beats, each a
+  // 1/`timeSignatureDenominator` note. Drives bar length (Bars control, loop
+  // snap, roll grid). Defaults to 4/4.
+  timeSignatureNumerator: number;
+  timeSignatureDenominator: number;
 };
 
 // MIDI note the sample plays back at its natural pitch (C4). Notes above pitch
@@ -126,6 +133,9 @@ export class Pattern extends EngineBase<
   notes: Note[] = [];
   ppq = 192;
   duration = 192 * 16;
+  loopStart = 0;
+  timeSignatureNumerator = 4;
+  timeSignatureDenominator = 4;
 
   public constructor(
     public sequencer: SequencerDevice,
@@ -158,6 +168,9 @@ export class Pattern extends EngineBase<
             : [],
           ppq: pattern.ppq ?? 192,
           duration: pattern.duration ?? 192 * 16,
+          loopStart: pattern.loopStart ?? 0,
+          timeSignatureNumerator: pattern.timeSignatureNumerator ?? 4,
+          timeSignatureDenominator: pattern.timeSignatureDenominator ?? 4,
         };
 
   set(patternPartial: Partial<SerializedPattern>) {
@@ -217,8 +230,23 @@ export class Pattern extends EngineBase<
         case 'duration':
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this.duration = entry[1]!;
-          // Visual timeline only; the playback loop derives from the notes
-          // (loopLengthTicks), so this doesn't drive loopEnd.
+          // Clip length == loop end; refresh the running part's loop bounds.
+          if (this.mode === 'pianoroll') this.syncPart();
+          break;
+        case 'loopStart':
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          this.loopStart = entry[1]!;
+          if (this.mode === 'pianoroll') this.syncPart();
+          break;
+        case 'timeSignatureNumerator':
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          this.timeSignatureNumerator = entry[1]!;
+          if (this.mode === 'pianoroll') this.syncPart();
+          break;
+        case 'timeSignatureDenominator':
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          this.timeSignatureDenominator = entry[1]!;
+          if (this.mode === 'pianoroll') this.syncPart();
           break;
         case 'name':
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -283,12 +311,27 @@ export class Pattern extends EngineBase<
     return `${toneTicks}i`;
   }
 
+  // Ticks in one bar at this pattern's time signature.
+  ticksPerBar() {
+    const num = this.timeSignatureNumerator || 4;
+    const den = this.timeSignatureDenominator || 4;
+    return (num * (this.ppq || 192) * 4) / den;
+  }
+
   protected loopLengthTicks() {
     // The piano-roll clip length is explicit — the editor's duration (set via
-    // the Length control) — so the loop is exactly that length, floored to one
-    // bar so it's never zero. Notes past the clip end simply aren't looped.
-    const ticksPerBar = (this.ppq || 192) * 4;
+    // the Length/Bars control) — so the loop is exactly that length, floored to
+    // one bar so it's never zero. Notes past the clip end simply aren't looped.
+    const ticksPerBar = this.ticksPerBar();
     return Math.max(ticksPerBar, Math.round(this.duration) || ticksPerBar);
+  }
+
+  // Where the loop begins, clamped to leave at least one bar of loop.
+  protected loopStartTicks() {
+    return Math.max(
+      0,
+      Math.min(this.loopStart, this.loopLengthTicks() - this.ticksPerBar()),
+    );
   }
 
   // Lazily create the Tone.Part. It's created once and kept alive; note edits
@@ -340,6 +383,9 @@ export class Pattern extends EngineBase<
     this.notes.forEach((note) =>
       part.add({ time: this.ticksToToneTime(note.ticks), note }),
     );
+    // Loop window [loopStart, loopEnd]. loopStart must be set before loopEnd so
+    // Tone doesn't transiently see start >= end.
+    part.loopStart = this.ticksToToneTime(this.loopStartTicks());
     part.loopEnd = this.ticksToToneTime(this.loopLengthTicks());
   }
 
@@ -421,6 +467,9 @@ export class Pattern extends EngineBase<
       notes: this.notes.map((note) => ({ ...note })),
       ppq: this.ppq,
       duration: this.duration,
+      loopStart: this.loopStart,
+      timeSignatureNumerator: this.timeSignatureNumerator,
+      timeSignatureDenominator: this.timeSignatureDenominator,
     };
   }
 

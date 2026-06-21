@@ -8,10 +8,10 @@ import { PIANO_ROLL_ROOT_MIDI } from '../engine/device/Patttern';
 // slice, and audition a pitch by clicking the on-screen keys. Bound to the
 // pattern's `notes`; edits are pushed back through `set({ notes })`.
 export const PianoRollView = (props: { pattern: Pattern }) => {
-  // The clip length (the loop). The timeline shows a little extra room past it
-  // so the loop brace's right edge can be dragged out to extend the clip, not
-  // just shrink it.
-  const barTicks = (props.pattern.ppq || 192) * 4;
+  // The clip length (the loop). A bar honours the pattern's time signature. The
+  // timeline shows a little extra room past the loop so the brace's right edge
+  // can be dragged out to extend the clip, not just shrink it.
+  const barTicks = props.pattern.ticksPerBar();
   const loopBars = Math.max(1, Math.round(props.pattern.duration / barTicks));
   const headroomBars = Math.min(4, Math.max(1, Math.round(loopBars / 4)));
   const viewDurationTicks = (loopBars + headroomBars) * barTicks;
@@ -23,6 +23,10 @@ export const PianoRollView = (props: { pattern: Pattern }) => {
     // Timeline range = loop + headroom; the loop brace marks the real clip end.
     duration: viewDurationTicks,
     loopEnd: props.pattern.duration,
+    loopStart: props.pattern.loopStart,
+    // Bar grid + brace snap follow the pattern's time signature.
+    beatsPerBar: props.pattern.timeSignatureNumerator,
+    beatUnit: props.pattern.timeSignatureDenominator,
     mode: 'keys',
     // Fit the whole clip to the (small, embedded) view with a couple of octaves
     // of keys, instead of the library's heavily zoomed-in demo defaults.
@@ -62,6 +66,16 @@ export const PianoRollView = (props: { pattern: Pattern }) => {
     // through onTracksChange and never touch duration, so they don't remount.
     onLoopEndChange: (loopEnd: number) => {
       props.pattern.set({ duration: Math.max(barTicks, Math.round(loopEnd)) });
+    },
+    // Dragging the brace's left edge moves the loop start (where playback loops
+    // back to), clamped to leave at least one bar.
+    onLoopStartChange: (loopStart: number) => {
+      props.pattern.set({
+        loopStart: Math.max(
+          0,
+          Math.min(Math.round(loopStart), props.pattern.duration - barTicks),
+        ),
+      });
     },
   } as unknown as Parameters<typeof createPianoRollstate>[0]);
 
