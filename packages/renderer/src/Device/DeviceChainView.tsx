@@ -33,25 +33,39 @@ const effectLabels: Partial<Record<SerializedDevice['name'], string>> = {
 };
 
 const addEffectPanel = css`
+  position: relative;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
   padding: 2px;
 `;
 
-const addEffectLabel = css`
-  font-family: 'oswald';
-  font-size: 11px;
-  color: #2b2b2b;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+// Popover menu of effects, opened by the compact "＋ FX" button. Floats over the
+// chain so it doesn't add a permanent column of buttons to every track.
+const addEffectMenu = css`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 20;
+  margin-top: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px;
+  border-radius: 6px;
+  background: #2b2b2b;
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
 `;
 
-const addEffectButtons = css`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-  max-width: 150px;
+const addEffectMenuLabel = css`
+  font-family: 'oswald';
+  font-size: 10px;
+  color: #cfcfcf;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 1px;
 `;
 
 export const DeviceChainView = (
@@ -83,6 +97,9 @@ export const DeviceChainView = (
     (chain) => chain.collapsed,
     'collapsedUpdated',
   );
+
+  // Compact "＋ FX" popover (replaces a permanent column of effect buttons).
+  const [showAddMenu, setShowAddMenu] = createSignal(false);
 
   // Drag-and-drop reordering of effects.
   const [draggedIndex, setDraggedIndex] = createSignal<number | null>(null);
@@ -272,26 +289,36 @@ export const DeviceChainView = (
 
           <DeviceWrapper background="#969696" classList={{ device: true }}>
             <div class={addEffectPanel}>
-              <span class={addEffectLabel}>Add effect</span>
-              <div class={addEffectButtons}>
-                <For each={deviceNames}>
-                  {(name) => (
-                    <ButtonWithLabel
-                      label={`＋ ${effectLabels[name] ?? name}`}
-                      labelOnButton
-                      onClick={() =>
-                        props.deviceChain.addDevice(
-                          createDevice(
-                            props.deviceChain.engine,
-                            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                            normalizeDeviceData({ name })!,
-                          ),
-                        )
-                      }
-                    />
-                  )}
-                </For>
-              </div>
+              <ButtonWithLabel
+                label={showAddMenu() ? '✕ FX' : '＋ FX'}
+                labelOnButton
+                title="Add an effect to this track"
+                activated={showAddMenu()}
+                onClick={() => setShowAddMenu((open) => !open)}
+              />
+              <Show when={showAddMenu()}>
+                <div class={addEffectMenu}>
+                  <span class={addEffectMenuLabel}>Add effect</span>
+                  <For each={deviceNames}>
+                    {(name) => (
+                      <ButtonWithLabel
+                        label={`＋ ${effectLabels[name] ?? name}`}
+                        labelOnButton
+                        onClick={() => {
+                          props.deviceChain.addDevice(
+                            createDevice(
+                              props.deviceChain.engine,
+                              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                              normalizeDeviceData({ name })!,
+                            ),
+                          );
+                          setShowAddMenu(false);
+                        }}
+                      />
+                    )}
+                  </For>
+                </div>
+              </Show>
             </div>
           </DeviceWrapper>
           <DummyDevice />
