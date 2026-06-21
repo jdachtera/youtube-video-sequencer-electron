@@ -79,6 +79,10 @@ export const SamplerPanel = (props: { engine: Engine }) => {
     ['samplersUpdated', 'currentSamplerChanged'],
   );
 
+  // Collapse to just the header so the tracks below get the vertical space —
+  // important once a project has many tracks.
+  const [collapsed, setCollapsed] = createSignal(false);
+
   return (
     <div
       class={css`
@@ -95,12 +99,39 @@ export const SamplerPanel = (props: { engine: Engine }) => {
               gap: 8px;
             `}
           >
-            <span>Sampler</span>
+            <span
+              class={css`
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                min-width: 0;
+              `}
+            >
+              <ButtonWithLabel
+                label={collapsed() ? '▸' : '▾'}
+                labelOnButton
+                onClick={() => setCollapsed((value) => !value)}
+              />
+              <span>Sampler</span>
+              <Show when={collapsed()}>
+                <span
+                  class={css`
+                    opacity: 0.75;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                  `}
+                >
+                  — {currentSampler()?.title || currentSampler()?.url || '—'}
+                </span>
+              </Show>
+            </span>
             <span
               class={css`
                 display: flex;
                 gap: 4px;
                 align-items: center;
+                flex-shrink: 0;
               `}
             >
               <ButtonWithLabel
@@ -125,40 +156,42 @@ export const SamplerPanel = (props: { engine: Engine }) => {
             </span>
           </LCDLine>
 
-          <Show
-            when={currentSampler()}
-            fallback={
-              <LCDLine
-                class={css`
-                  display: flex;
-                  flex-direction: column;
-                  align-items: center;
-                  justify-content: center;
-                  gap: 6px;
-                  padding: 22px 0;
-                  text-align: center;
-                  opacity: 0.7;
-                `}
-              >
-                <span
+          <Show when={!collapsed()}>
+            <Show
+              when={currentSampler()}
+              fallback={
+                <LCDLine
                   class={css`
-                    font-size: 30px;
-                    opacity: 0.5;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
+                    padding: 22px 0;
+                    text-align: center;
+                    opacity: 0.7;
                   `}
                 >
-                  ♪
-                </span>
-                <span>
-                  Add a YouTube video from the panel on the left to create a
-                  sample.
-                </span>
-              </LCDLine>
-            }
-            keyed
-          >
-            {(sampler) => (
-              <SamplerSlotView sampler={sampler} engine={props.engine} />
-            )}
+                  <span
+                    class={css`
+                      font-size: 30px;
+                      opacity: 0.5;
+                    `}
+                  >
+                    ♪
+                  </span>
+                  <span>
+                    Add a YouTube video from the panel on the left to create a
+                    sample.
+                  </span>
+                </LCDLine>
+              }
+              keyed
+            >
+              {(sampler) => (
+                <SamplerSlotView sampler={sampler} engine={props.engine} />
+              )}
+            </Show>
           </Show>
         </LCD>
       </LCDFrame>
