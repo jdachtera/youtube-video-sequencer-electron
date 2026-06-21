@@ -24,6 +24,10 @@ import { Toolbar } from './panels/Toolbar';
 // VITE_EXPOSE_ENGINE=true, so the branch below is stripped from shipped builds.
 declare const __EXPOSE_ENGINE__: boolean;
 
+// Short commit the renderer was built from (Vite `define`); shown in a corner
+// so we can tell which deployed version is running.
+declare const __BUILD_COMMIT__: string;
+
 const engine = new Engine(Transport);
 
 // Test hook: expose the engine to the headless audio harness
@@ -123,6 +127,30 @@ export function App() {
               </Column>
             </Column>
           </Row>
+
+          {/* Build version — which renderer commit is running. Subtle, but
+              selectable so it can be copied into a bug report. */}
+          <div
+            title="Renderer build commit"
+            class={css`
+              position: absolute;
+              right: 6px;
+              bottom: 3px;
+              z-index: 50;
+              font-family: monospace;
+              font-size: 10px;
+              line-height: 1;
+              letter-spacing: 0.5px;
+              color: #fff;
+              opacity: 0.35;
+              user-select: text;
+              &:hover {
+                opacity: 0.75;
+              }
+            `}
+          >
+            {__BUILD_COMMIT__}
+          </div>
         </Column>
       </ApolloProvider>
     </ThemeProvider>

@@ -1,5 +1,6 @@
 /* eslint-env node */
 
+import { execSync } from 'child_process';
 import { builtinModules } from 'module';
 import { join } from 'path';
 import solidPlugin from 'vite-plugin-solid';
@@ -7,6 +8,23 @@ import solidPlugin from 'vite-plugin-solid';
 const whitelistedBuiltinModules = ['events'];
 
 const PACKAGE_ROOT = __dirname;
+
+// Short commit the renderer was built from, surfaced in the UI so we can tell
+// which version is running (the shipped app loads the renderer from GitHub
+// Pages, which can update independently of the Electron shell). Prefer git;
+// fall back to CI's GITHUB_SHA, then 'dev' for local-without-git.
+const BUILD_COMMIT = (() => {
+  try {
+    return execSync('git rev-parse --short HEAD', {
+      cwd: PACKAGE_ROOT,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    })
+      .toString()
+      .trim();
+  } catch {
+    return (process.env.GITHUB_SHA || '').slice(0, 7) || 'dev';
+  }
+})();
 
 // Target a broad evergreen baseline for ALL builds (Electron + Pages). Electron
 // 148 runs this fine, while targeting the exact bleeding-edge Chromium made
@@ -52,6 +70,7 @@ const config = {
     __EXPOSE_ENGINE__: JSON.stringify(
       process.env.VITE_EXPOSE_ENGINE === 'true',
     ),
+    __BUILD_COMMIT__: JSON.stringify(BUILD_COMMIT),
   },
   plugins: [solidPlugin()],
   base: '',
