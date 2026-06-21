@@ -3,25 +3,18 @@
 import { builtinModules } from 'module';
 import { join } from 'path';
 import solidPlugin from 'vite-plugin-solid';
-import { chrome } from '../../.electron-vendors.cache.json';
 
 const whitelistedBuiltinModules = ['events'];
 
 const PACKAGE_ROOT = __dirname;
 
-// The renderer is built twice from this config:
-//  - For Electron, which runs inside the bundled Chromium (pinned via
-//    .electron-vendors.cache.json), so it can target that exact version.
-//  - For the GitHub Pages web preview, where the same bundle must run in
-//    ordinary visitor browsers. The Pages workflow sets PAGES_BUILD=true so the
-//    web build targets a broad evergreen baseline instead.
-//
-// Targeting the bleeding-edge Electron Chromium also makes esbuild emit syntax
-// that Rollup's build-import-analysis parser can reject in CI ("Parse error"),
-// so the broader web target keeps the Pages build green as well.
-const buildTarget = process.env.PAGES_BUILD
-  ? ['chrome111', 'edge111', 'firefox111', 'safari16']
-  : `chrome${chrome}`;
+// Target a broad evergreen baseline for ALL builds (Electron + Pages). Electron
+// 148 runs this fine, while targeting the exact bleeding-edge Chromium made
+// esbuild emit syntax that Rollup's build-import-analysis parser rejects
+// ("Parse error @ index-*.js") — which broke the Pages deploy *and* local
+// production builds (screenshot / compile / audiotest). The browserslist /
+// Solid babel transform still keys off .electron-vendors.cache.json separately.
+const buildTarget = ['chrome111', 'edge111', 'firefox111', 'safari16'];
 
 /**
  * @type {import('vite').UserConfig}
@@ -53,6 +46,12 @@ const config = {
     'process.env.NODE_ENV':
       process.env.MODE === 'production' ? '"production"' : '"development"',
     'process.nextTick': 'requestAnimationFrame',
+    // Build-time flag: when true the app exposes window.__engine for the
+    // headless audio test harness (scripts/audiotest.mjs). False in shipped
+    // builds, so the dead branch is stripped.
+    __EXPOSE_ENGINE__: JSON.stringify(
+      process.env.VITE_EXPOSE_ENGINE === 'true',
+    ),
   },
   plugins: [solidPlugin()],
   base: '',

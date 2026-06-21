@@ -69,10 +69,6 @@ jobs:
         run: pnpm build:renderer
         env:
           MODE: production
-          # Serve a broad evergreen target to visitor browsers (not just the
-          # Electron Chromium). Also keeps esbuild from emitting syntax that
-          # Rollup's build-import-analysis rejects. See packages/renderer/vite.config.js.
-          PAGES_BUILD: 'true'
 
       - name: Prepare artifact
         run: |
