@@ -545,14 +545,22 @@ const SamplerSlotView = (props: { sampler: SamplerDevice; engine: Engine }) => {
           `}
         >
           <Regions
-            regions={[
-              {
-                id: 'selection',
-                color: state.color || 'rgba(255,145,0,0.4)',
-                start: state.start,
-                end: selectionEnd(),
-              },
-            ]}
+            // Only draw a selection once the user has actually made one (drag
+            // to select). A freshly loaded sample has no region — it plays the
+            // whole buffer — so don't paint a box over the entire waveform.
+            // Pass [] (not undefined) so drag-to-create still works.
+            regions={
+              state.end > state.start
+                ? [
+                    {
+                      id: 'selection',
+                      color: state.color || 'rgba(255,145,0,0.4)',
+                      start: state.start,
+                      end: state.end,
+                    },
+                  ]
+                : []
+            }
             onCreateRegion={(region) => setSelection(region.start, region.end)}
             onUpdateRegion={(region) => setSelection(region.start, region.end)}
             onClickRegion={() => props.sampler.audition()}
