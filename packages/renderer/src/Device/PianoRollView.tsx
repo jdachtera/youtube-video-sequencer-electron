@@ -8,11 +8,21 @@ import { PIANO_ROLL_ROOT_MIDI } from '../engine/device/Patttern';
 // slice, and audition a pitch by clicking the on-screen keys. Bound to the
 // pattern's `notes`; edits are pushed back through `set({ notes })`.
 export const PianoRollView = (props: { pattern: Pattern }) => {
+  // The clip length (the loop). The timeline shows a little extra room past it
+  // so the loop brace's right edge can be dragged out to extend the clip, not
+  // just shrink it.
+  const barTicks = (props.pattern.ppq || 192) * 4;
+  const loopBars = Math.max(1, Math.round(props.pattern.duration / barTicks));
+  const headroomBars = Math.min(4, Math.max(1, Math.round(loopBars / 4)));
+  const viewDurationTicks = (loopBars + headroomBars) * barTicks;
+
   // solid-pianoroll's published types omit the keyboard callbacks (onNoteDown/
   // onNoteUp) that its runtime supports, so cast past them.
   const state = createPianoRollstate({
     ppq: props.pattern.ppq,
-    duration: props.pattern.duration,
+    // Timeline range = loop + headroom; the loop brace marks the real clip end.
+    duration: viewDurationTicks,
+    loopEnd: props.pattern.duration,
     mode: 'keys',
     // Fit the whole clip to the (small, embedded) view with a couple of octaves
     // of keys, instead of the library's heavily zoomed-in demo defaults.
@@ -47,9 +57,12 @@ export const PianoRollView = (props: { pattern: Pattern }) => {
         gateSeconds: 0.5,
       });
     },
-    // Clip length is owned by the Bars control (PatternEditor). We deliberately
-    // do NOT forward the roll's internal duration back to the pattern: that
-    // round-trip re-mounted the roll and interrupted click/drag edits.
+    // Dragging the loop brace's right edge commits a new clip length here (once,
+    // on release — it snaps to the bar, like the Bars control). Note edits go
+    // through onTracksChange and never touch duration, so they don't remount.
+    onLoopEndChange: (loopEnd: number) => {
+      props.pattern.set({ duration: Math.max(barTicks, Math.round(loopEnd)) });
+    },
   } as unknown as Parameters<typeof createPianoRollstate>[0]);
 
   return (
