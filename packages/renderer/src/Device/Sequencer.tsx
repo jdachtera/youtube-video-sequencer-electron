@@ -123,8 +123,12 @@ export const Sequencer = (
           [css`
             border-radius: 4px;
             padding: 4px 8px;
-            width: ${44 * 16}px;
+            width: ${31 * 16}px;
             background: none;
+            /* Collapse inline-block line-box whitespace so a single row of
+               steps is only as tall as the steps themselves. */
+            font-size: 0;
+            line-height: 0;
           `]: true,
         }}
       >

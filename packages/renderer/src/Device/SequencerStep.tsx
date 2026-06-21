@@ -66,12 +66,12 @@ const sequencerStepStyles = (color = 'transparent') => {
     list-style: none;
     user-select: none;
     display: inline-flex;
-    margin: 3px;
+    margin: 2px;
 
     cursor: pointer;
     padding: 1px;
-    border: 3px inset #ffffff9d;
-    border-radius: 7px;
+    border: 2px inset #ffffff9d;
+    border-radius: 6px;
     background: #555;
     box-shadow: inset 0 0 2px 2px #222;
     display: inline-flex;
@@ -80,11 +80,11 @@ const sequencerStepStyles = (color = 'transparent') => {
     > div {
       display: inline-block;
       user-select: none;
-      width: 20px;
-      height: 20px;
-      margin: 2px;
-      border-radius: 4px;
-      border: 3px outset #eee;
+      width: 14px;
+      height: 14px;
+      margin: 1px;
+      border-radius: 3px;
+      border: 2px outset #eee;
       background: rgb(198, 198, 198);
       background: linear-gradient(
         138deg,
@@ -93,7 +93,7 @@ const sequencerStepStyles = (color = 'transparent') => {
       );
 
       &:active {
-        border: 3px inset white;
+        border: 2px inset white;
       }
 
       &:nth-of-type(8n + 5),
@@ -110,7 +110,7 @@ const sequencerStepStyles = (color = 'transparent') => {
 
     &.sequencerStepIsCurrent > div {
       box-shadow: 0px 0px 4px white;
-      border: 3px outset #ffffff !important;
+      border: 2px outset #ffffff !important;
       background: rgb(254, 243, 241) !important;
       background: radial-gradient(
         circle,
@@ -121,13 +121,13 @@ const sequencerStepStyles = (color = 'transparent') => {
 
     &.sequencerStepIsSelected > div {
       box-shadow: 0px 0px 6px white;
-      border: 3px outset white;
+      border: 2px outset white;
       background-color: ${theme.colors.primary};
     }
 
     &.sequencerStepIsActive > div {
       box-shadow: 0px 0px 6px #ee8624;
-      border: 3px outset #ee5724;
+      border: 2px outset #ee5724;
       background: rgb(254, 243, 241);
       background: radial-gradient(
         circle,
@@ -138,7 +138,7 @@ const sequencerStepStyles = (color = 'transparent') => {
       &:nth-of-type(8n + 6),
       &:nth-of-type(8n + 7),
       &:nth-of-type(8n + 8) {
-        border: 3px outset #52c723;
+        border: 2px outset #52c723;
 
         background: radial-gradient(
           circle,
