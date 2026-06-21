@@ -37,9 +37,15 @@ export const LCDFrame = (allProps: JSX.IntrinsicElements['div']) => {
       <div
         class={css`
           position: absolute;
+          /* Decorative screen-glare overlay, inset to fill the frame. It has no
+             content, so the old 60px padding only inflated the box: at 120px of
+             vertical padding it couldn't fit the (~81px) collapsed frame, so the
+             box overflowed downward and — being z-index 999 — drew its border
+             and gradient over the devices below. Drop the padding (and pin
+             border-box) so the glare is always clipped to the LCD. */
+          box-sizing: border-box;
           background-color: none;
           border: 2px outset #666;
-          padding: 60px;
           top: 0;
           left: 0;
           bottom: 0;
