@@ -66,6 +66,14 @@ export type SerializedPattern = {
 // up, notes below pitch down.
 export const PIANO_ROLL_ROOT_MIDI = 60;
 
+// Piano-roll notes carry a MIDI-style velocity (0–127, the editor draws new
+// notes at 100). The engine's voice gain is a 0–1 multiplier, though, so a raw
+// velocity fed in as `volume` played ~100× too loud. Normalize on the way in.
+export const MAX_MIDI_VELOCITY = 127;
+export const DEFAULT_NOTE_VELOCITY = 100;
+const velocityToGain = (velocity: number) =>
+  Math.min(1, Math.max(0, velocity / MAX_MIDI_VELOCITY));
+
 export type Step = {
   play: boolean;
   volume: number;
@@ -301,7 +309,7 @@ export class Pattern extends EngineBase<
           : 0;
       this.sequencer.onSequenceEvent(time, {
         play: true,
-        volume: note.velocity ?? 1,
+        volume: velocityToGain(note.velocity ?? DEFAULT_NOTE_VELOCITY),
         playbackRate: Math.pow(2, semitones / 12),
         pitch: 0,
         reverse: false,
@@ -444,7 +452,7 @@ export const normalizeNoteData = (note: DeepPartial<Note>): Note => ({
   ticks: note.ticks ?? 0,
   durationTicks: note.durationTicks ?? 0,
   midi: note.midi ?? PIANO_ROLL_ROOT_MIDI,
-  velocity: note.velocity ?? 1,
+  velocity: note.velocity ?? DEFAULT_NOTE_VELOCITY,
 });
 
 export const normalizeStepData = (
