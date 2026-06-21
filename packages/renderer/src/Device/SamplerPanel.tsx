@@ -23,6 +23,46 @@ const controlGroup = css`
   gap: 4px;
 `;
 
+const controlRow = css`
+  display: flex;
+  align-items: center;
+  gap: 10px 14px;
+  flex-wrap: wrap;
+`;
+
+// Faint inset panel that groups the slot's controls under the cover/waveform.
+const controlsPanel = css`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.14);
+  box-shadow: inset 0 0 1px rgba(0, 0, 0, 0.4);
+`;
+
+const slotTitle = css`
+  font-weight: bold;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const coverFrame = css`
+  width: 104px;
+  height: 58px;
+  border-radius: 4px;
+  background: linear-gradient(145deg, #2b2b2b, #151515);
+  border: 1px solid rgba(0, 0, 0, 0.55);
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+`;
+
 // The always-visible "classic sampler" at the top of the app: cover/title of
 // the current slot on the left, a waveform sample-selector in the middle, and
 // browse (◀/▶) + audition controls. Each added YouTube video is a new slot.
@@ -90,11 +130,28 @@ export const SamplerPanel = (props: { engine: Engine }) => {
             fallback={
               <LCDLine
                 class={css`
+                  display: flex;
+                  flex-direction: column;
+                  align-items: center;
+                  justify-content: center;
+                  gap: 6px;
+                  padding: 22px 0;
+                  text-align: center;
                   opacity: 0.7;
                 `}
               >
-                Add a YouTube video from the panel on the left to create a
-                sample.
+                <span
+                  class={css`
+                    font-size: 30px;
+                    opacity: 0.5;
+                  `}
+                >
+                  ♪
+                </span>
+                <span>
+                  Add a YouTube video from the panel on the left to create a
+                  sample.
+                </span>
               </LCDLine>
             }
             keyed
@@ -202,15 +259,7 @@ const SamplerSlotView = (props: { sampler: SamplerDevice; engine: Engine }) => {
         `}
       >
         <Cover url={state.cover} />
-        <div
-          class={css`
-            font-weight: bold;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-          `}
-          title={state.title || state.url}
-        >
+        <div class={slotTitle} title={state.title || state.url}>
           {state.title || state.url}
         </div>
         <Row
@@ -253,128 +302,104 @@ const SamplerSlotView = (props: { sampler: SamplerDevice; engine: Engine }) => {
           min-width: 0;
         `}
       >
-        <Row
-          class={css`
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-          `}
-        >
-          <span
-            class={css`
-              display: flex;
-              align-items: center;
-              gap: 4px;
-            `}
-          >
-            <LCDLabel>Root</LCDLabel>
-            <NumberInputWithArrowButtons
-              value={state.rootNote}
-              min={-24}
-              max={24}
-              step={1}
-              onChange={(rootNote) => props.sampler.set({ rootNote })}
-            />
-          </span>
-          <span
-            class={css`
-              display: flex;
-              align-items: center;
-              gap: 4px;
-            `}
-          >
-            <LCDLabel>Zoom</LCDLabel>
-            <NumberInputWithArrowButtons
-              value={state.zoom}
-              onChange={(zoom) => props.sampler.set({ zoom })}
-              parse={(value) => Math.round(parseFloat(value)) / 100}
-              format={(value) => Math.round(value * 100).toString()}
-            />
-          </span>
-          <span
-            class={css`
-              display: flex;
-              align-items: center;
-              gap: 4px;
-            `}
-          >
-            <LCDLabel>Chop</LCDLabel>
-            <NumberInputWithArrowButtons
-              value={chopCount()}
-              min={1}
-              max={64}
-              step={1}
-              onChange={setChopCount}
-            />
-            <ButtonWithLabel
-              label="Chop"
-              labelOnButton
-              onClick={chopIntoSlots}
-            />
-          </span>
-          <span>
-            {formatTime(state.start)}s – {formatTime(selectionEnd())}s
-          </span>
-        </Row>
-
-        {/* Sound-shaping — these define the slot's sound; every voice that plays
-            it follows. Clone the slot for a different variation. */}
-        <Row
-          class={css`
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-          `}
-        >
-          <span class={controlGroup}>
-            <LCDLabel>Vol</LCDLabel>
-            <NumberInputWithArrowButtons
-              value={state.volume}
-              min={0}
-              max={3}
-              step={0.01}
-              onChange={(volume) => props.sampler.set({ volume })}
-            />
-          </span>
-          <span class={controlGroup}>
-            <LCDLabel>Speed</LCDLabel>
-            <NumberInputWithArrowButtons
-              value={state.playbackRate}
-              min={0}
-              max={4}
-              step={0.01}
-              onChange={(playbackRate) => props.sampler.set({ playbackRate })}
-            />
-          </span>
-          <span class={controlGroup}>
-            <LCDLabel>Warp</LCDLabel>
-            <SelectWithArrowButtons
-              options={['resample', 'stretch'] as ('resample' | 'stretch')[]}
-              size={9}
-              selectedOption={state.warpmode}
-              onChange={(warpmode) => props.sampler.set({ warpmode })}
-            />
-          </span>
-          <ButtonWithLabel
-            label="Reverse"
-            labelOnButton
-            activated={state.reverse}
-            onClick={() => props.sampler.set({ reverse: !state.reverse })}
-          />
-          <Show when={state.warpmode === 'stretch'}>
+        <div class={controlsPanel}>
+          <Row class={controlRow}>
             <span class={controlGroup}>
-              <LCDLabel>Grain</LCDLabel>
+              <LCDLabel>Root</LCDLabel>
               <NumberInputWithArrowButtons
-                value={state.grainSize}
-                min={0.001}
-                max={1}
-                step={0.001}
-                onChange={(grainSize) => props.sampler.set({ grainSize })}
+                value={state.rootNote}
+                min={-24}
+                max={24}
+                step={1}
+                onChange={(rootNote) => props.sampler.set({ rootNote })}
               />
             </span>
-          </Show>
-        </Row>
+            <span class={controlGroup}>
+              <LCDLabel>Zoom</LCDLabel>
+              <NumberInputWithArrowButtons
+                value={state.zoom}
+                onChange={(zoom) => props.sampler.set({ zoom })}
+                parse={(value) => Math.round(parseFloat(value)) / 100}
+                format={(value) => Math.round(value * 100).toString()}
+              />
+            </span>
+            <span class={controlGroup}>
+              <LCDLabel>Chop</LCDLabel>
+              <NumberInputWithArrowButtons
+                value={chopCount()}
+                min={1}
+                max={64}
+                step={1}
+                onChange={setChopCount}
+              />
+              <ButtonWithLabel
+                label="Chop"
+                labelOnButton
+                onClick={chopIntoSlots}
+              />
+            </span>
+            <span
+              class={css`
+                margin-left: auto;
+                opacity: 0.85;
+              `}
+            >
+              {formatTime(state.start)}s – {formatTime(selectionEnd())}s
+            </span>
+          </Row>
+
+          {/* Sound-shaping — these define the slot's sound; every voice that plays
+            it follows. Clone the slot for a different variation. */}
+          <Row class={controlRow}>
+            <span class={controlGroup}>
+              <LCDLabel>Vol</LCDLabel>
+              <NumberInputWithArrowButtons
+                value={state.volume}
+                min={0}
+                max={3}
+                step={0.01}
+                onChange={(volume) => props.sampler.set({ volume })}
+              />
+            </span>
+            <span class={controlGroup}>
+              <LCDLabel>Speed</LCDLabel>
+              <NumberInputWithArrowButtons
+                value={state.playbackRate}
+                min={0}
+                max={4}
+                step={0.01}
+                onChange={(playbackRate) => props.sampler.set({ playbackRate })}
+              />
+            </span>
+            <span class={controlGroup}>
+              <LCDLabel>Warp</LCDLabel>
+              <SelectWithArrowButtons
+                options={['resample', 'stretch'] as ('resample' | 'stretch')[]}
+                size={9}
+                selectedOption={state.warpmode}
+                onChange={(warpmode) => props.sampler.set({ warpmode })}
+              />
+            </span>
+            <ButtonWithLabel
+              label="Reverse"
+              labelOnButton
+              activated={state.reverse}
+              onClick={() => props.sampler.set({ reverse: !state.reverse })}
+            />
+            <Show when={state.warpmode === 'stretch'}>
+              <span class={controlGroup}>
+                <LCDLabel>Grain</LCDLabel>
+                <NumberInputWithArrowButtons
+                  value={state.grainSize}
+                  min={0.001}
+                  max={1}
+                  step={0.001}
+                  onChange={(grainSize) => props.sampler.set({ grainSize })}
+                />
+              </span>
+            </Show>
+          </Row>
+        </div>
 
         <Waveform
           buffer={buffer()}
@@ -427,19 +452,7 @@ const Cover = (props: { url: string }) => {
   );
 
   return (
-    <div
-      class={css`
-        width: 104px;
-        height: 58px;
-        border-radius: 4px;
-        background: #222;
-        overflow: hidden;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-      `}
-    >
+    <div class={coverFrame}>
       <Show
         when={src()}
         fallback={
