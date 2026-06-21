@@ -32,7 +32,10 @@ const extractVideoId = (url: string) => {
 };
 
 const yt = {
-  async search(term: string) {
+  // The browser-only fallback can't filter server-side (the scraping search
+  // takes no filter), so `duration` is accepted for signature parity but
+  // ignored — the desktop app's main-process search does the real filtering.
+  async search(term: string, _duration?: string) {
     return await search(term);
   },
   getInfo: async (

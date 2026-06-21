@@ -1,11 +1,37 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ipcRenderer } from 'electron';
-// Type-only: lets us type the search bridge without bundling youtubei.js into
-// the (now sandboxed) preload — search/metadata run in the main process.
-import type { search as searchYoutube } from '@jdachtera/youtube-search-without-api-key';
 
 export type ExposedVars = typeof exposedVars;
+
+// YouTube's native, server-side video-length buckets (passed straight to
+// youtubei.js's search filters in the main process). 'all' means no filter.
+export type YoutubeDuration =
+  | 'all'
+  | 'under_three_mins'
+  | 'three_to_twenty_mins'
+  | 'over_twenty_mins';
+
+// The clone-safe search result the main process returns over IPC. Shaped to
+// match what the search panel consumes (url, title, duration_raw, thumbnail).
+export interface YoutubeSearchResult {
+  id: { videoId: string };
+  url: string;
+  title: string;
+  description: string;
+  // Nullable/undefined because YouTube omits a length for live streams, and the
+  // browser-only scraping fallback can return these as undefined.
+  duration_raw: string | null | undefined;
+  snippet: {
+    url: string;
+    duration: string | null | undefined;
+    publishedAt: string | null | undefined;
+    thumbnails: { url: string };
+    title: string;
+    views: string | number;
+  };
+  views: string | number;
+}
 
 /**
  * A serializable native-menu item the renderer sends to the shell over IPC
@@ -83,9 +109,13 @@ const exposedVars = {
   },
   yt: {
     // Search + metadata run in the main process (youtubei.js); the preload
-    // only forwards over IPC so it needs no Node modules.
-    search: (term: string): ReturnType<typeof searchYoutube> =>
-      ipcRenderer.invoke('yt:search', term),
+    // only forwards over IPC so it needs no Node modules. `duration` is a
+    // server-side length filter applied by YouTube itself.
+    search: (
+      term: string,
+      duration?: YoutubeDuration,
+    ): Promise<YoutubeSearchResult[]> =>
+      ipcRenderer.invoke('yt:search', term, duration),
     getInfo: (
       url: string,
     ): Promise<{ basic_info: { title: string; thumbnail?: string } }> =>

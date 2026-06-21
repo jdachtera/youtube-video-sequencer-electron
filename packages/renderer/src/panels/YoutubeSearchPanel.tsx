@@ -1,6 +1,5 @@
 import { css } from '@emotion/css';
 import {
-  createMemo,
   createResource,
   createSignal,
   ErrorBoundary,
@@ -21,13 +20,14 @@ const messageStyle = css`
   font-size: 12px;
 `;
 
-// Length filters for the result list. `maxSeconds: Infinity` means "don't
-// filter". Samplers usually want short loops/breaks, so the presets bias short.
+// Server-side length filter, applied by YouTube itself (passed through to
+// youtubei.js in the main process) — so a "short" search isn't starved by a
+// page full of long videos. These are YouTube's own native buckets.
 const durationFilters = [
-  { label: 'Any', maxSeconds: Infinity },
-  { label: '≤1m', maxSeconds: 60 },
-  { label: '≤4m', maxSeconds: 240 },
-  { label: '≤10m', maxSeconds: 600 },
+  { label: 'Any', value: 'all' },
+  { label: '<3m', value: 'under_three_mins' },
+  { label: '3–20m', value: 'three_to_twenty_mins' },
+  { label: '>20m', value: 'over_twenty_mins' },
 ] as const;
 
 type DurationFilter = typeof durationFilters[number];
@@ -88,30 +88,21 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
     debounceTimer = setTimeout(() => setQuery(value), 300);
   };
 
-  const [results] = createResource(
-    () => query(),
-    (searchTerm) => {
-      if (!searchTerm.length) return [];
-      return window.yt.search(searchTerm);
-    },
-  );
-
-  type Result = NonNullable<ReturnType<typeof results>>[number];
-
-  // Client-side length filter over whatever the search returned.
+  // The length bucket is sent with the query so YouTube filters server-side;
+  // changing it re-runs the search.
   const [durationFilter, setDurationFilter] = createSignal<DurationFilter>(
     durationFilters[0],
   );
 
-  const filteredResults = createMemo(() => {
-    const all = results() ?? [];
-    const max = durationFilter().maxSeconds;
-    if (!Number.isFinite(max)) return all;
-    return all.filter((item) => {
-      const seconds = parseDuration(item.duration_raw);
-      return seconds !== undefined && seconds <= max;
-    });
-  });
+  const [results] = createResource(
+    () => ({ term: query(), duration: durationFilter().value }),
+    ({ term, duration }) => {
+      if (!term.length) return [];
+      return window.yt.search(term, duration);
+    },
+  );
+
+  type Result = NonNullable<ReturnType<typeof results>>[number];
 
   const [selectedResult, setSelectedResult] = createSignal<Result>();
 
@@ -196,22 +187,21 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
         <Suspense fallback={<div class={messageStyle}>Searching…</div>}>
           <Column flex={1} overflowY={'auto'} overflowX={'hidden'}>
             <Show
-              when={filteredResults().length > 0}
+              when={(results()?.length ?? 0) > 0}
               fallback={
                 <Show when={query().length}>
                   <div class={messageStyle}>
-                    <Show
-                      when={(results()?.length ?? 0) > 0}
-                      fallback={<>No results for “{query()}”</>}
-                    >
-                      No results under {durationFilter().label} for “{query()}”
+                    No results for “{query()}”
+                    <Show when={durationFilter().value !== 'all'}>
+                      {' '}
+                      ({durationFilter().label})
                     </Show>
                   </div>
                 </Show>
               }
             >
               <ul>
-                <For each={filteredResults()}>
+                <For each={results()}>
                   {(item) => {
                     const seconds = parseDuration(item.duration_raw);
                     return (
