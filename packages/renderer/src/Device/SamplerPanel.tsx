@@ -1,6 +1,12 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { css } from '@emotion/css';
-import { createEffect, createResource, createSignal, Show } from 'solid-js';
+import {
+  createEffect,
+  createResource,
+  createSignal,
+  For,
+  Show,
+} from 'solid-js';
 import { Regions, Waveform } from 'solid-waveform';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { Column, Row } from '../UI/Grid';
@@ -49,6 +55,57 @@ const slotTitle = css`
   white-space: nowrap;
 `;
 
+// Horizontal, scrollable strip of every prepared sample slot — the user's
+// growing "slice database". Click a card to load it into the editor below;
+// double-click to drop it onto a new sequencer track.
+const browserStrip = css`
+  display: flex;
+  gap: 6px;
+  padding: 4px 2px 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+`;
+
+const sampleCardBase = css`
+  flex-shrink: 0;
+  width: 78px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 5px;
+  cursor: pointer;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.18);
+  transition: background 0.1s ease, box-shadow 0.1s ease;
+  &:hover {
+    background: rgba(0, 0, 0, 0.28);
+  }
+`;
+
+const sampleCardCurrent = css`
+  background: rgba(255, 145, 0, 0.22);
+  box-shadow: inset 0 0 0 2px #ff9100;
+  &:hover {
+    background: rgba(255, 145, 0, 0.28);
+  }
+`;
+
+const sampleCardCover = css`
+  width: 100%;
+  height: 42px;
+`;
+
+const sampleCardTitle = css`
+  font-size: 10px;
+  line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.9;
+`;
+
 const coverFrame = css`
   width: 104px;
   height: 58px;
@@ -91,6 +148,18 @@ export const SamplerPanel = (props: { engine: Engine }) => {
     props.engine,
     (engine) => engine.samplers.length,
     ['samplersUpdated', 'currentSamplerChanged'],
+  );
+
+  const samplers = createSignalFromEventEmitter(
+    props.engine,
+    (engine) => engine.samplers,
+    ['samplersUpdated', 'currentSamplerChanged'],
+  );
+
+  const currentId = createSignalFromEventEmitter(
+    props.engine,
+    (engine) => engine.currentSampler?.id,
+    'currentSamplerChanged',
   );
 
   // Collapse to just the header so the tracks below get the vertical space —
@@ -175,6 +244,16 @@ export const SamplerPanel = (props: { engine: Engine }) => {
           </LCDLine>
 
           <Show when={!collapsed()}>
+            {/* The slot browser — your library of prepared samples. Scan and
+                pick (click) or drop onto a new track (double-click). */}
+            <Show when={sampleCount() > 0}>
+              <SampleBrowser
+                engine={props.engine}
+                samplers={samplers()}
+                currentId={currentId()}
+              />
+            </Show>
+
             <Show
               when={currentSampler()}
               fallback={
@@ -484,10 +563,73 @@ const SamplerSlotView = (props: { sampler: SamplerDevice; engine: Engine }) => {
   );
 };
 
+// The slot browser: a scannable strip of every prepared sample. Replaces the
+// one-at-a-time ◀/▶ paging once a project has more than a couple of samples.
+const SampleBrowser = (props: {
+  engine: Engine;
+  samplers: SamplerDevice[];
+  currentId?: string;
+}) => {
+  return (
+    <div class={browserStrip}>
+      <For each={props.samplers}>
+        {(sampler) => (
+          <SampleCard
+            engine={props.engine}
+            sampler={sampler}
+            current={sampler.id === props.currentId}
+          />
+        )}
+      </For>
+    </div>
+  );
+};
+
+const SampleCard = (props: {
+  engine: Engine;
+  sampler: SamplerDevice;
+  current: boolean;
+}) => {
+  const state = createStoreFromEventEmitter(
+    () => props.sampler,
+    (sampler) => ({
+      title: sampler.title,
+      url: sampler.url,
+      cover: sampler.cover,
+    }),
+    'change',
+  );
+
+  const label = () => state.title || state.url || 'Untitled';
+
+  return (
+    <div
+      classList={{
+        [sampleCardBase]: true,
+        [sampleCardCurrent]: props.current,
+      }}
+      title={`${label()} — click to edit, double-click to add to a new track`}
+      onClick={() => props.engine.setCurrentSampler(props.sampler)}
+      onDblClick={() =>
+        props.engine.createSliceTrack(
+          Slice.normalizeData({
+            samplerId: props.sampler.id,
+            title: props.sampler.title,
+            color: props.sampler.color,
+          }),
+        )
+      }
+    >
+      <Cover url={state.cover} class={sampleCardCover} />
+      <span class={sampleCardTitle}>{label()}</span>
+    </div>
+  );
+};
+
 // YouTube covers live on Google CDNs that CORS/CSP block from the renderer, so
 // fetch them through the main-process image proxy (returns a data: URL). Falls
 // back to the raw URL in the browser-only build (no bridge).
-const Cover = (props: { url: string }) => {
+const Cover = (props: { url: string; class?: string }) => {
   const [src] = createResource(
     () => props.url,
     async (url) => {
@@ -503,7 +645,7 @@ const Cover = (props: { url: string }) => {
   );
 
   return (
-    <div class={coverFrame}>
+    <div class={`${coverFrame} ${props.class ?? ''}`}>
       <Show
         when={src()}
         fallback={
