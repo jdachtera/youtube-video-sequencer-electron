@@ -31,12 +31,49 @@ const extractVideoId = (url: string) => {
   return videoId;
 };
 
+// YouTube's native length buckets (mirrors YoutubeDuration in exposedVars).
+type YoutubeDuration =
+  | 'all'
+  | 'under_three_mins'
+  | 'three_to_twenty_mins'
+  | 'over_twenty_mins';
+
+// "1:02:03" / "3:45" -> seconds. null when it can't be parsed.
+const durationToSeconds = (raw?: string | null): number | null => {
+  if (!raw) return null;
+  const parts = raw.split(':').map((p) => Number(p));
+  if (!parts.length || parts.some((p) => Number.isNaN(p))) return null;
+  return parts.reduce((acc, p) => acc * 60 + p, 0);
+};
+
+const matchesDuration = (
+  raw: string | null | undefined,
+  duration?: YoutubeDuration,
+): boolean => {
+  if (!duration || duration === 'all') return true;
+  const seconds = durationToSeconds(raw);
+  // Keep results whose length we can't read rather than dropping them.
+  if (seconds == null) return true;
+  if (duration === 'under_three_mins') return seconds < 180;
+  if (duration === 'three_to_twenty_mins')
+    return seconds >= 180 && seconds <= 1200;
+  if (duration === 'over_twenty_mins') return seconds > 1200;
+  return true;
+};
+
 const yt = {
-  // The browser-only fallback can't filter server-side (the scraping search
-  // takes no filter), so `duration` is accepted for signature parity but
-  // ignored — the desktop app's main-process search does the real filtering.
-  async search(term: string, _duration?: string) {
-    return await search(term);
+  // The desktop app filters server-side (main-process innertube). The browser
+  // fallback's scraping search takes no filter param, so filter its results
+  // client-side by their reported length — best-effort (a page of long videos
+  // can still yield few short hits), but the length buttons now work on web.
+  async search(term: string, duration?: YoutubeDuration) {
+    const results = await search(term);
+    return results.filter((result) =>
+      matchesDuration(
+        result.duration_raw ?? result.snippet?.duration,
+        duration,
+      ),
+    );
   },
   getInfo: async (
     url: string,
