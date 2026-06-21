@@ -64,7 +64,18 @@ export class SequencerDevice extends Device<SequencerEvents> {
         )
         .map(Pattern.normalizePatternData);
 
-      return patterns?.[0]?.steps?.length ? patterns : [createEmptyPattern(16)];
+      // Keep the deserialized patterns when the first one carries content. A
+      // piano-roll pattern has notes but an empty `steps` array, so the old
+      // `steps.length` check discarded it on load — the pattern came back as a
+      // fresh, silent step pattern (piano roll worked until you reloaded). Also
+      // preserve an empty piano-roll pattern so its mode survives a reload.
+      const first = patterns?.[0];
+      const hasContent =
+        !!first &&
+        (first.steps.length > 0 ||
+          first.notes.length > 0 ||
+          first.mode === 'pianoroll');
+      return hasContent ? patterns : [createEmptyPattern(16)];
     })(),
   });
 

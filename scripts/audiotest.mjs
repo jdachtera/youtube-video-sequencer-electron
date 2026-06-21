@@ -165,7 +165,7 @@ const result = await win.evaluate(async () => {
   };
   const w = window;
   await wait(() => w.__engine && w.__engine.samplers && w.__engine.samplers.length > 0);
-  await wait(() => w.__engine.tracks && w.__engine.tracks.length > 0);
+  await wait(() => w.__engine.tracks && w.__engine.tracks.length > 1);
   const e = w.__engine;
 
   // Synthesize a 0.5s 440Hz sine AudioBuffer and inject it into every sampler,
@@ -183,34 +183,55 @@ const result = await win.evaluate(async () => {
   }
   // Rebuild every voice's sliced buffer from the injected sample.
   await e.hasLoaded();
-
-  // Start live playback and watch the post-limiter meter for a non-zero peak.
   await e.gain.context.resume().catch(() => {});
-  e.start();
 
-  let peak = 0;
-  const t0 = Date.now();
-  while (Date.now() - t0 < 1800) {
-    const v = e.meter.getValue();
-    const lv = Array.isArray(v) ? Math.max(...v) : v;
-    if (Number.isFinite(lv) && lv > peak) peak = lv;
-    await sleep(40);
-  }
-  e.stop();
+  // Measure the master peak over a short window of live playback.
+  const measurePeak = async () => {
+    e.start();
+    let peak = 0;
+    const t0 = Date.now();
+    while (Date.now() - t0 < 1800) {
+      const v = e.meter.getValue();
+      const lv = Array.isArray(v) ? Math.max(...v) : v;
+      if (Number.isFinite(lv) && lv > peak) peak = lv;
+      await sleep(40);
+    }
+    e.stop();
+    await sleep(120);
+    return peak;
+  };
+
+  // Isolate each playback path by muting the other track, so a regression in
+  // one mode (e.g. the piano-roll Part not firing) can't be masked by the
+  // other's sound on the shared master meter. tracks[0]=steps, tracks[1]=roll.
+  const [stepTrack, rollTrack] = e.tracks;
+  rollTrack.set({ mute: true });
+  stepTrack.set({ mute: false });
+  const stepPeak = await measurePeak();
+
+  stepTrack.set({ mute: true });
+  rollTrack.set({ mute: false });
+  const rollPeak = await measurePeak();
 
   return {
     samplerCount: e.samplers.length,
     sampleDuration: e.samplers[0].buffer.duration,
     contextState: ctx.state,
-    peakLevel: peak,
+    stepPeak,
+    rollPeak,
   };
 });
 
 console.log('[audiotest] result:', JSON.stringify(result));
 await app.close();
 
-if (!(result && result.peakLevel > 1e-3)) {
-  console.error('[audiotest] FAIL: no audio (meter never moved)');
+const ok = result && result.stepPeak > 1e-3 && result.rollPeak > 1e-3;
+if (!ok) {
+  console.error(
+    `[audiotest] FAIL: step=${result?.stepPeak ?? 'n/a'} roll=${
+      result?.rollPeak ?? 'n/a'
+    } — a sequencer mode produced no audio`,
+  );
   process.exit(1);
 }
-console.log('[audiotest] PASS: sequencer + piano-roll produce audio');
+console.log('[audiotest] PASS: step sequencer AND piano-roll both produce audio');
