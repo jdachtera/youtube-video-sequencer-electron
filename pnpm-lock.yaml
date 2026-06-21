@@ -75,8 +75,8 @@ importers:
         specifier: 1.6.3
         version: 1.6.3
       solid-pianoroll:
-        specifier: ^0.0.28
-        version: 0.0.28(solid-js@1.6.3)
+        specifier: github:jdachtera/solid-pianoroll#claude/funny-cerf-wbzop2
+        version: https://codeload.github.com/jdachtera/solid-pianoroll/tar.gz/692fec6bd7468bfe7d711c92f08ef485bf4370b9(solid-js@1.6.3)
       solid-waveform:
         specifier: ^1.0.11
         version: 1.0.11(solid-js@1.6.3)
@@ -3882,8 +3882,9 @@ packages:
   solid-js@1.6.3:
     resolution: {integrity: sha512-YoieThdhAKt83O86+DjpKXNlVSU5JYdi21RdYqiEIsWxahOphiAfao8e/zRTLyZEM5ZgyZ3ZHPPgW1HO5537Rw==}
 
-  solid-pianoroll@0.0.28:
-    resolution: {integrity: sha512-xQIfKbWpHnxikGquIKCTpCBY/P3uD5svJ93+B95AXi6u6N85eaIb7q5AdVdY53cw1bvuK1r71g7vw/03eH+9pw==}
+  solid-pianoroll@https://codeload.github.com/jdachtera/solid-pianoroll/tar.gz/692fec6bd7468bfe7d711c92f08ef485bf4370b9:
+    resolution: {tarball: https://codeload.github.com/jdachtera/solid-pianoroll/tar.gz/692fec6bd7468bfe7d711c92f08ef485bf4370b9}
+    version: 0.0.29
     peerDependencies:
       solid-js: ^1.6.0
 
@@ -8945,7 +8946,7 @@ snapshots:
     dependencies:
       csstype: 3.2.3
 
-  solid-pianoroll@0.0.28(solid-js@1.6.3):
+  solid-pianoroll@https://codeload.github.com/jdachtera/solid-pianoroll/tar.gz/692fec6bd7468bfe7d711c92f08ef485bf4370b9(solid-js@1.6.3):
     dependencies:
       solid-js: 1.6.3
     optionalDependencies:
