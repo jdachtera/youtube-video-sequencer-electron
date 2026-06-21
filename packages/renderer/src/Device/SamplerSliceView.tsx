@@ -16,8 +16,8 @@ import { WaveformSliceView } from './WaveformSliceView';
 const panel = css`
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 6px;
+  gap: 4px;
+  padding: 5px 6px;
   margin: 4px;
   border-radius: 5px;
   background: linear-gradient(180deg, #c9c9c9, #b0b0b0);
@@ -26,14 +26,22 @@ const panel = css`
   font-size: 12px;
 `;
 
+const controlRow = css`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`;
+
 const buttonRow = css`
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+  flex-wrap: nowrap;
+  gap: 3px;
+  margin-left: auto;
 `;
 
 const sampleSelect = css`
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   font-family: 'Oswald';
   font-size: 12px;
   padding: 2px 4px;
@@ -87,58 +95,63 @@ export const SamplerSliceView = (props: { slice: Slice }) => {
         </div>
       </Show>
 
-      {/* Expanded: pick the sample + see it; shape the sound in the sampler. */}
+      {/* Expanded: pick the sample + see it; shape the sound in the sampler.
+          Laid out tight — a single control row over a slim waveform — so a
+          track stays short and many fit on screen at once. */}
       <Show when={!sliceState.collapsed}>
         <div class={panel}>
-          <LCDLabel>Sample</LCDLabel>
-          {/* Which prepared sample slot this sequencer's voice plays. */}
-          <select
-            class={sampleSelect}
-            onChange={(event) =>
-              props.slice.selectSampler(event.currentTarget.value)
-            }
-          >
-            <For each={samplers()}>
-              {(sampler) => (
-                <option
-                  value={sampler.id}
-                  selected={sampler.id === sliceState.samplerId}
-                >
-                  {sampler.title || sampler.url || 'Untitled sample'}
-                </option>
-              )}
-            </For>
-          </select>
+          <div class={controlRow}>
+            <LCDLabel>Smpl</LCDLabel>
+            {/* Which prepared sample slot this sequencer's voice plays. */}
+            <select
+              class={sampleSelect}
+              onChange={(event) =>
+                props.slice.selectSampler(event.currentTarget.value)
+              }
+            >
+              <For each={samplers()}>
+                {(sampler) => (
+                  <option
+                    value={sampler.id}
+                    selected={sampler.id === sliceState.samplerId}
+                  >
+                    {sampler.title || sampler.url || 'Untitled sample'}
+                  </option>
+                )}
+              </For>
+            </select>
+            <div class={buttonRow}>
+              <ButtonWithLabel
+                labelOnButton
+                title="Edit this sample in the sampler"
+                onClick={() =>
+                  props.slice.engine.setCurrentSampler(props.slice.sampler)
+                }
+                label="✎"
+              />
+              <ButtonWithLabel
+                labelOnButton
+                title="Export the sliced sample as a .wav"
+                onClick={() => {
+                  exportBuffer(
+                    props.slice.player.buffer,
+                    `${encodeURI(
+                      `${props.slice.sampler.title} (${props.slice.start}-${props.slice.end})`,
+                    )}.wav`,
+                  );
+                }}
+                label="⤓"
+              />
+              <ShareSliceButton slice={props.slice} />
+            </div>
+          </div>
           <WaveformSliceView
             collapsed={sliceState.collapsed}
             slice={props.slice}
             center={1}
-            height={64}
+            height={44}
             onClickWaveform={selectSlice}
           />
-
-          <div class={buttonRow}>
-            <ButtonWithLabel
-              labelOnButton
-              onClick={() =>
-                props.slice.engine.setCurrentSampler(props.slice.sampler)
-              }
-              label="Edit in Sampler"
-            />
-            <ButtonWithLabel
-              labelOnButton
-              onClick={() => {
-                exportBuffer(
-                  props.slice.player.buffer,
-                  `${encodeURI(
-                    `${props.slice.sampler.title} (${props.slice.start}-${props.slice.end})`,
-                  )}.wav`,
-                );
-              }}
-              label="Export"
-            />
-            <ShareSliceButton slice={props.slice} />
-          </div>
         </div>
       </Show>
     </Column>

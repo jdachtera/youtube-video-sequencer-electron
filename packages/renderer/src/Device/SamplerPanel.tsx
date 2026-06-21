@@ -63,9 +63,23 @@ const coverFrame = css`
   flex-shrink: 0;
 `;
 
-// The always-visible "classic sampler" at the top of the app: cover/title of
-// the current slot on the left, a waveform sample-selector in the middle, and
-// browse (◀/▶) + audition controls. Each added YouTube video is a new slot.
+// Whether the persisted project already has at least one track. Used to decide
+// the sampler's initial collapsed state without waiting for the engine load.
+const projectHasTracks = () => {
+  try {
+    const raw = localStorage.getItem('track');
+    if (!raw) return false;
+    const data = JSON.parse(raw) as { tracks?: unknown[] };
+    return Array.isArray(data.tracks) && data.tracks.length > 0;
+  } catch {
+    return false;
+  }
+};
+
+// The "classic sampler" at the top of the app: cover/title of the current slot
+// on the left, a waveform sample-selector in the middle, and browse (◀/▶) +
+// audition controls. Each added YouTube video is a new slot. Collapsible so the
+// tracks below can take the vertical space.
 export const SamplerPanel = (props: { engine: Engine }) => {
   const currentSampler = createSignalFromEventEmitter(
     props.engine,
@@ -80,8 +94,12 @@ export const SamplerPanel = (props: { engine: Engine }) => {
   );
 
   // Collapse to just the header so the tracks below get the vertical space —
-  // important once a project has many tracks.
-  const [collapsed, setCollapsed] = createSignal(false);
+  // important once a project has many tracks. Start collapsed when the project
+  // already has tracks (you're arranging — expand to edit a sample); start open
+  // for an empty project so the "add a sample" hint guides a first-time setup.
+  // Read straight from the persisted project (synchronous, available at mount;
+  // the engine's own load runs later in the Toolbar).
+  const [collapsed, setCollapsed] = createSignal(projectHasTracks());
 
   return (
     <div
@@ -444,7 +462,7 @@ const SamplerSlotView = (props: { sampler: SamplerDevice; engine: Engine }) => {
           onScaleChange={setScale}
           class={css`
             width: 100%;
-            height: 104px;
+            height: 82px;
           `}
         >
           <Regions

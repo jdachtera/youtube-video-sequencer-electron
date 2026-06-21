@@ -122,7 +122,7 @@ export const Sequencer = (
           ...ulProps.classList,
           [css`
             border-radius: 4px;
-            padding: 10px;
+            padding: 4px 8px;
             width: ${44 * 16}px;
             background: none;
           `]: true,

@@ -107,9 +107,10 @@ export const PatternEditor = (
         >
           <Row
             class={css`
-              margin: 4px 10px;
+              margin: 3px 8px;
               flex-wrap: wrap;
               align-items: flex-end;
+              gap: 2px;
             `}
           >
             <ButtonWithLabel
