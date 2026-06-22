@@ -16,7 +16,6 @@ import {
   followupActionTypes,
   normalizeFollowupActionData,
 } from '../engine/device/Patttern';
-import { clearedSteps, rotateSteps } from '../engine/patternOps';
 import { randomMusicalNotes, randomMusicalSteps } from '../engine/randomize';
 import { subdivisions, subdivisionTypes } from '../engine/types';
 import { PianoRollView } from './PianoRollView';
@@ -135,14 +134,7 @@ export const PatternEditor = (
               label={'Duplicate'}
               labelOnButton={true}
               onClick={() => {
-                props.sequencer.getPattern()?.set({
-                  steps: [
-                    ...selectedPatternState().steps,
-                    ...selectedPatternState().steps.map((step) => ({
-                      ...step,
-                    })),
-                  ],
-                });
+                selectedPattern()?.duplicate();
               }}
             />
 
@@ -188,20 +180,12 @@ export const PatternEditor = (
               <ButtonWithLabel
                 label="‹"
                 labelOnButton={true}
-                onClick={() => {
-                  const pattern = selectedPattern();
-                  if (pattern)
-                    pattern.set({ steps: rotateSteps(pattern.steps, -1) });
-                }}
+                onClick={() => selectedPattern()?.rotate(-1)}
               />
               <ButtonWithLabel
                 label="›"
                 labelOnButton={true}
-                onClick={() => {
-                  const pattern = selectedPattern();
-                  if (pattern)
-                    pattern.set({ steps: rotateSteps(pattern.steps, 1) });
-                }}
+                onClick={() => selectedPattern()?.rotate(1)}
               />
             </Show>
             <Show when={selectedPatternState().mode === 'pianoroll'}>
@@ -248,8 +232,12 @@ export const PatternEditor = (
                     notes: randomMusicalNotes({ ppq: pattern.ppq, bars: 2 }),
                   });
                 } else {
+                  // Generate a grid pattern, then project it onto notes (the
+                  // single source of truth).
                   pattern.set({
-                    steps: randomMusicalSteps(pattern.steps.length || 16),
+                    notes: pattern.stepsToNotes(
+                      randomMusicalSteps(pattern.slotCount() || 16),
+                    ),
                   });
                 }
               }}
@@ -258,13 +246,9 @@ export const PatternEditor = (
               label="Clear"
               labelOnButton={true}
               onClick={() => {
-                const pattern = selectedPattern();
-                if (!pattern) return;
-                if (pattern.mode === 'pianoroll') {
-                  pattern.set({ notes: [] });
-                } else {
-                  pattern.set({ steps: clearedSteps(pattern.steps) });
-                }
+                // Notes are the single source of truth; clearing them empties
+                // both the grid and the roll.
+                selectedPattern()?.set({ notes: [] });
               }}
             />
             <FollowupActionControls
@@ -290,8 +274,8 @@ export const PatternEditor = (
               <Sequencer
                 mode={selectedMode()}
                 steps={selectedPatternState().steps}
-                onChange={(steps) => {
-                  selectedPattern()?.set({ steps });
+                onStepChange={(index, newStep) => {
+                  selectedPattern()?.setStep(index, newStep);
                 }}
                 sequencer={props.sequencer}
               />

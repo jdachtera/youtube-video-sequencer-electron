@@ -80,6 +80,73 @@ export const velocityToGain = (velocity: number | undefined) =>
     Math.max(0, (velocity ?? DEFAULT_NOTE_VELOCITY) / MAX_MIDI_VELOCITY),
   );
 
+// Ticks spanned by one step-grid cell, in a pattern's own ppq. Tempo
+// independent: a 1/`subdivision` note is `ppq*4/subdivision` ticks, scaled for
+// triplet ('t') / dotted ('d') feels.
+const stepLengthTicks = (
+  ppq: number,
+  subdivision: number,
+  subdivisionType: typeof subdivisionTypes[number],
+): number => {
+  const base = (ppq * 4) / (subdivision || 16);
+  // 't' = triplet (shorter), 'n.' = dotted (longer), 'n' = straight.
+  const factor =
+    subdivisionType === 't' ? 2 / 3 : subdivisionType === 'n.' ? 3 / 2 : 1;
+  return Math.max(1, Math.round(base * factor));
+};
+
+// Project a note onto a step-grid cell (the quantized view the step sequencer
+// renders). Inverse of stepToNote.
+const noteToStep = (note: Note, ppq: number, bpm: number): Step => {
+  const pitchCents =
+    (note.midi - PIANO_ROLL_ROOT_MIDI) * 100 + (note.detune ?? 0);
+  const gateSeconds =
+    note.durationTicks > 0 && bpm > 0
+      ? (note.durationTicks / (ppq || 192)) * (60 / bpm)
+      : undefined;
+  return {
+    play: true,
+    playbackRate: note.playbackRate ?? 1,
+    pitch: pitchCents,
+    volume: velocityToGain(note.velocity),
+    reverse: note.reverse ?? false,
+    ...(gateSeconds !== undefined && { gateSeconds }),
+  };
+};
+
+// Build a note from a step-grid cell at `ticks`. `existing` preserves a note's
+// id/position when a grid edit only changes a field. Inverse of noteToStep.
+const stepToNote = (
+  step: Step,
+  ticks: number,
+  fallbackDurationTicks: number,
+  ppq: number,
+  bpm: number,
+  existing?: Note,
+): Note => {
+  const semitones = Math.round(step.pitch / 100);
+  const midi = Math.max(0, Math.min(127, PIANO_ROLL_ROOT_MIDI + semitones));
+  const detune = step.pitch - semitones * 100;
+  const velocity = Math.min(
+    MAX_MIDI_VELOCITY,
+    Math.max(0, Math.round(step.volume * MAX_MIDI_VELOCITY)),
+  );
+  const durationTicks =
+    step.gateSeconds && step.gateSeconds > 0 && bpm > 0
+      ? Math.max(1, Math.round((step.gateSeconds * bpm * ppq) / 60))
+      : existing?.durationTicks ?? fallbackDurationTicks;
+  return {
+    ...(existing?.id !== undefined && { id: existing.id }),
+    ticks: existing ? existing.ticks : ticks,
+    durationTicks,
+    midi,
+    velocity,
+    detune,
+    playbackRate: step.playbackRate,
+    reverse: step.reverse,
+  };
+};
+
 export type Step = {
   play: boolean;
   volume: number;
@@ -123,16 +190,24 @@ export class Pattern extends EngineBase<
 
   name = '';
   color = '';
-  steps: Step[] = [];
   subdivision = 16;
   subdivisionType: typeof subdivisionTypes[number] = 'n';
   followupAction?: FollowupAction;
 
+  // Single source of truth. The step grid is a derived, quantized *view* of
+  // these notes (see `steps`), so the sequencer and the piano roll always show
+  // the same melody with no conversion between two stored copies.
   mode: PatternMode = 'steps';
   notes: Note[] = [];
   ppq = 192;
   duration = 192 * 16;
   automation: Automation = {};
+
+  // The step grid: a quantized projection of `notes` onto evenly spaced cells.
+  // Read-only — edits go through setStep/setLength/rotate, which mutate `notes`.
+  get steps(): Step[] {
+    return this.deriveSteps();
+  }
 
   public constructor(
     public sequencer: SequencerDevice,
@@ -152,36 +227,44 @@ export class Pattern extends EngineBase<
       ? Pattern.normalizePatternData({
           steps: pattern,
         })
-      : {
-          name: pattern.name ?? '',
-          color: pattern.color ?? randomColor(),
-          followupAction: normalizeFollowupActionData(pattern.followupAction),
-          subdivision: pattern.subdivision ?? 16,
-          subdivisionType: pattern.subdivisionType ?? 'n',
-          steps: (pattern.steps ?? []).map((step) => normalizeStepData(step)),
-          mode: pattern.mode === 'pianoroll' ? 'pianoroll' : 'steps',
-          notes: Array.isArray(pattern.notes)
-            ? pattern.notes.map((note) => normalizeNoteData(note))
-            : [],
-          ppq: pattern.ppq ?? 192,
-          duration: pattern.duration ?? 192 * 16,
-          automation: (pattern.automation as Automation) ?? {},
-        };
+      : (() => {
+          const subdivision = pattern.subdivision ?? 16;
+          const subdivisionType = pattern.subdivisionType ?? 'n';
+          const ppq = pattern.ppq ?? 192;
+          const steps = (pattern.steps ?? []).map((step) =>
+            normalizeStepData(step),
+          );
+          // Notes are canonical. Old projects stored only `steps`; migrate them
+          // to notes once on load so the single-source-of-truth model holds.
+          const hasNotes = Array.isArray(pattern.notes) && pattern.notes.length;
+          const notes = hasNotes
+            ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              pattern.notes!.map((note) => normalizeNoteData(note))
+            : migrateStepsToNotes(steps, ppq, subdivision, subdivisionType);
+          const stepLen = stepLengthTicks(ppq, subdivision, subdivisionType);
+          const duration =
+            pattern.duration ??
+            (steps.length ? steps.length * stepLen : 192 * 16);
+          return {
+            name: pattern.name ?? '',
+            color: pattern.color ?? randomColor(),
+            followupAction: normalizeFollowupActionData(pattern.followupAction),
+            subdivision,
+            subdivisionType,
+            steps,
+            mode: pattern.mode === 'pianoroll' ? 'pianoroll' : 'steps',
+            notes,
+            ppq,
+            duration,
+            automation: (pattern.automation as Automation) ?? {},
+          };
+        })();
 
   set(patternPartial: Partial<SerializedPattern>) {
     entries(patternPartial).forEach((entry) => {
       if (!entry) return;
 
       switch (entry[0]) {
-        case 'steps':
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          this.steps = entry[1]!;
-          if (!this.sequence) {
-            this.createSequence();
-          } else {
-            this.sequence.events = this.steps;
-          }
-          break;
         case 'subdivision':
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this.subdivision = entry[1]!;
@@ -197,40 +280,14 @@ export class Pattern extends EngineBase<
           this.followupAction = entry[1]!;
           break;
         case 'mode': {
-          const previousMode = this.mode;
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this.mode = entry[1]!;
-          // Sync note data between views so the melody is preserved on switch.
-          if (this.mode === 'pianoroll' && previousMode !== 'pianoroll') {
-            const converted = this.stepsToNotes();
-            if (converted.length > 0) {
-              this.notes = converted;
-              // Size the clip to cover all steps at the current subdivision.
-              const bpm = this.engine.transport.bpm.value || 120;
-              const stepDurationSeconds = Time(
-                `${this.subdivision}${this.subdivisionType}`,
-              ).toSeconds();
-              const stepDurationTicks = Math.max(
-                1,
-                Math.round((stepDurationSeconds * bpm * this.ppq) / 60),
-              );
-              const totalTicks = this.steps.length * stepDurationTicks;
-              const tpb = (this.ppq || 192) * 4;
-              this.duration = Math.max(tpb, Math.ceil(totalTicks / tpb) * tpb);
-            }
-          } else if (this.mode === 'steps' && previousMode !== 'steps') {
-            if (this.notes.length > 0) {
-              const converted = this.notesToSteps();
-              this.steps = converted;
-              if (this.sequence) {
-                this.sequence.events = this.steps;
-              }
-            }
-          }
-          // Swap schedulers: stop the step sequence and sync the note part
-          // (syncPart tears the part down when leaving piano-roll mode).
+          // No conversion: both views read the same `notes`. Mode only swaps the
+          // active scheduler — stop the sequence, (re)build the part for the
+          // piano roll or refresh the sequence for the grid.
           this.sequence?.stop();
           this.syncPart();
+          if (this.mode !== 'pianoroll') this.refreshSequence();
           if (
             this.engine.transport.state === 'started' &&
             this.sequencer.getPattern() === this
@@ -242,20 +299,24 @@ export class Pattern extends EngineBase<
         case 'notes':
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this.notes = entry[1]!;
-          // Live-update the running part in place (no restart) so editing
-          // notes mid-playback doesn't flood the slice with retriggers.
+          // Live-update whichever scheduler is active. The step grid is a
+          // derived view, so a note edit refreshes the sequence too.
           if (this.mode === 'pianoroll') this.syncPart();
+          else this.refreshSequence();
           break;
         case 'ppq':
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this.ppq = entry[1]!;
           if (this.mode === 'pianoroll') this.syncPart();
+          else this.refreshSequence();
           break;
         case 'duration':
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this.duration = entry[1]!;
-          // Visual timeline only; the playback loop derives from the notes
-          // (loopLengthTicks), so this doesn't drive loopEnd.
+          // Loop length. Changes the number of derived step cells, so refresh
+          // the sequence (rebuilds if the cell count changed).
+          if (this.mode === 'pianoroll') this.syncPart();
+          else this.refreshSequence();
           break;
         case 'automation':
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -297,7 +358,7 @@ export class Pattern extends EngineBase<
 
     this.sequence = new Sequence({
       callback: this.sequencer.onSequenceEvent,
-      events: this.steps,
+      events: this.deriveSteps(),
       subdivision,
     });
 
@@ -309,6 +370,127 @@ export class Pattern extends EngineBase<
     }
 
     return this.sequence;
+  }
+
+  // Ticks per step-grid cell, in this pattern's ppq.
+  stepDurationTicks() {
+    return stepLengthTicks(this.ppq, this.subdivision, this.subdivisionType);
+  }
+
+  // Number of step-grid cells: the loop length (duration) divided into cells.
+  slotCount() {
+    return Math.max(1, Math.round(this.duration / this.stepDurationTicks()));
+  }
+
+  // The quantized step-grid view of `notes`: each note lands in the nearest
+  // cell (later notes in a shared cell win — the slice is monophonic).
+  deriveSteps(): Step[] {
+    const stepLen = this.stepDurationTicks();
+    const count = this.slotCount();
+    const bpm = this.engine.transport.bpm.value || 120;
+    const steps: Step[] = Array.from({ length: count }, () =>
+      normalizeStepData({}),
+    );
+    for (const note of this.notes) {
+      const slot = Math.round(note.ticks / stepLen);
+      if (slot < 0 || slot >= count) continue;
+      steps[slot] = noteToStep(note, this.ppq, bpm);
+    }
+    return steps;
+  }
+
+  // Re-point the step sequence at the freshly derived grid, rebuilding only when
+  // the cell count changed (Tone.Sequence length is fixed at construction).
+  protected refreshSequence() {
+    const steps = this.deriveSteps();
+    if (!this.sequence) {
+      this.createSequence();
+      return;
+    }
+    if (this.sequence.length !== steps.length) {
+      this.createSequence();
+    } else {
+      this.sequence.events = steps;
+    }
+  }
+
+  // Apply a step-grid edit by mutating the underlying note for that cell:
+  // toggling off deletes the note, toggling on adds one, and a field change
+  // updates the existing note (keeping its id + exact position).
+  setStep(index: number, step: Step) {
+    const stepLen = this.stepDurationTicks();
+    const bpm = this.engine.transport.bpm.value || 120;
+    const existingIndex = this.notes.findIndex(
+      (note) => Math.round(note.ticks / stepLen) === index,
+    );
+    const existing = existingIndex >= 0 ? this.notes[existingIndex] : undefined;
+
+    let notes: Note[];
+    if (!step.play) {
+      if (existingIndex < 0) return; // already empty
+      notes = [
+        ...this.notes.slice(0, existingIndex),
+        ...this.notes.slice(existingIndex + 1),
+      ];
+    } else {
+      const note = stepToNote(
+        step,
+        index * stepLen,
+        stepLen,
+        this.ppq,
+        bpm,
+        existing,
+      );
+      if (existingIndex >= 0) {
+        notes = [
+          ...this.notes.slice(0, existingIndex),
+          note,
+          ...this.notes.slice(existingIndex + 1),
+        ];
+      } else {
+        notes = [...this.notes, note].sort((a, b) => a.ticks - b.ticks);
+      }
+    }
+
+    this.set({ notes });
+  }
+
+  // Rotate the melody by whole grid cells, wrapping within the loop.
+  rotate(direction: number) {
+    const stepLen = this.stepDurationTicks();
+    const span = this.slotCount() * stepLen;
+    const shift = direction * stepLen;
+    const notes = this.notes.map((note) => ({
+      ...note,
+      ticks: (((note.ticks + shift) % span) + span) % span,
+    }));
+    this.set({ notes });
+  }
+
+  // Duplicate the melody after itself, doubling the loop length.
+  duplicate() {
+    const offset = this.duration;
+    const copies = this.notes.map((note) => {
+      const { id: _omit, ...rest } = note;
+      return { ...rest, ticks: note.ticks + offset };
+    });
+    this.set({
+      duration: this.duration * 2,
+      notes: [...this.notes, ...copies],
+    });
+  }
+
+  // Build notes from a step array (e.g. the grid randomizer), replacing the
+  // melody. Cells that aren't playing produce no note.
+  stepsToNotes(steps: Step[]): Note[] {
+    const stepLen = this.stepDurationTicks();
+    const bpm = this.engine.transport.bpm.value || 120;
+    const notes: Note[] = [];
+    steps.forEach((step, index) => {
+      if (!step.play) return;
+      notes.push(stepToNote(step, index * stepLen, stepLen, this.ppq, bpm));
+    });
+    return notes;
   }
 
   // Convert piano-roll ticks (in this pattern's ppq) to a Tone transport-tick
@@ -367,105 +549,6 @@ export class Pattern extends EngineBase<
     return part;
   }
 
-  // Push the current notes and loop length into the Part in place (no restart),
-  // or tear the part down when the pattern leaves piano-roll mode.
-  // Convert the current steps array into piano-roll notes so the melody is
-  // preserved when switching from step mode to piano-roll mode. Each enabled
-  // step becomes a note; pitch/playbackRate are folded into a MIDI number;
-  // volume maps to velocity; gateSeconds (if set) maps to durationTicks.
-  protected stepsToNotes(): Note[] {
-    const bpm = this.engine.transport.bpm.value || 120;
-    const stepDurationSeconds = Time(
-      `${this.subdivision}${this.subdivisionType}`,
-    ).toSeconds();
-    const stepDurationTicks = Math.max(
-      1,
-      Math.round((stepDurationSeconds * bpm * this.ppq) / 60),
-    );
-
-    const notes: Note[] = [];
-    this.steps.forEach((step, index) => {
-      if (!step.play) return;
-
-      // The step's pitch is a cents offset from the root; split it into an
-      // integer midi (so the melody shows on the roll) and a fine detune
-      // remainder. playbackRate and reverse carry over unchanged.
-      const semitones = Math.round(step.pitch / 100);
-      const midi = Math.max(0, Math.min(127, PIANO_ROLL_ROOT_MIDI + semitones));
-      const detune = step.pitch - semitones * 100;
-      const velocity = Math.min(
-        MAX_MIDI_VELOCITY,
-        Math.max(0, Math.round(step.volume * MAX_MIDI_VELOCITY)),
-      );
-      const durationTicks =
-        step.gateSeconds && step.gateSeconds > 0
-          ? Math.max(1, Math.round((step.gateSeconds * bpm * this.ppq) / 60))
-          : stepDurationTicks;
-
-      notes.push({
-        ticks: index * stepDurationTicks,
-        durationTicks,
-        midi,
-        velocity,
-        detune,
-        playbackRate: step.playbackRate,
-        reverse: step.reverse,
-      });
-    });
-
-    return notes;
-  }
-
-  // Convert the current piano-roll notes into steps so the melody is preserved
-  // when switching from piano-roll mode to step mode. Notes are snapped to the
-  // nearest step grid position; pitch is encoded as playbackRate (matching the
-  // piano-roll playback path); velocity maps to volume; durationTicks → gateSeconds.
-  protected notesToSteps(): Step[] {
-    const bpm = this.engine.transport.bpm.value || 120;
-    const stepDurationSeconds = Time(
-      `${this.subdivision}${this.subdivisionType}`,
-    ).toSeconds();
-    const stepDurationTicks = Math.max(
-      1,
-      Math.round((stepDurationSeconds * bpm * this.ppq) / 60),
-    );
-
-    const maxTick = this.notes.reduce((max, n) => Math.max(max, n.ticks), 0);
-    const minStepsNeeded =
-      stepDurationTicks > 0 ? Math.ceil(maxTick / stepDurationTicks) + 1 : 0;
-    const targetLength = Math.max(this.steps.length, minStepsNeeded, 1);
-
-    const steps: Step[] = Array.from({ length: targetLength }).map(() =>
-      normalizeStepData({}),
-    );
-
-    this.notes.forEach((note) => {
-      const stepIndex =
-        stepDurationTicks > 0
-          ? Math.round(note.ticks / stepDurationTicks) % targetLength
-          : 0;
-      // Encode the note's pitch as a cents offset (matching the slice's pitch
-      // path); playbackRate/reverse/volume carry straight across.
-      const pitchCents =
-        (note.midi - PIANO_ROLL_ROOT_MIDI) * 100 + (note.detune ?? 0);
-      const gateSeconds =
-        note.durationTicks > 0 && bpm > 0
-          ? (note.durationTicks / (this.ppq || 192)) * (60 / bpm)
-          : undefined;
-
-      steps[stepIndex] = {
-        play: true,
-        playbackRate: note.playbackRate ?? 1,
-        pitch: pitchCents,
-        volume: velocityToGain(note.velocity),
-        reverse: note.reverse ?? false,
-        ...(gateSeconds !== undefined && { gateSeconds }),
-      };
-    });
-
-    return steps;
-  }
-
   protected syncPart() {
     if (this.mode !== 'pianoroll') {
       if (this.part) {
@@ -485,15 +568,12 @@ export class Pattern extends EngineBase<
     part.loopEnd = this.ticksToToneTime(this.loopLengthTicks());
   }
 
+  // The "Steps" control sets the number of grid cells, which (with the
+  // subdivision) defines the loop length. Notes past the new end aren't looped.
   setLength(newLength: number) {
-    const steps = [
-      ...this.steps.slice(0, newLength),
-      ...Array.from({
-        length: Math.max(newLength - this.steps.length, 0),
-      }).map(() => normalizeStepData({})),
-    ];
-
-    this.set({ steps });
+    this.set({
+      duration: Math.max(1, Math.round(newLength)) * this.stepDurationTicks(),
+    });
   }
 
   remove() {
@@ -544,7 +624,7 @@ export class Pattern extends EngineBase<
       return beats * (60 / this.engine.transport.bpm.value);
     }
     return (
-      this.steps.length *
+      this.slotCount() *
       Time(`${this.subdivision}${this.subdivisionType}`).toSeconds()
     );
   }
@@ -556,9 +636,9 @@ export class Pattern extends EngineBase<
       subdivision: this.subdivision,
       subdivisionType: this.subdivisionType,
       followupAction: this.followupAction,
-      steps: this.steps.map((step) => ({
-        ...step,
-      })),
+      // Derived snapshot of the grid, kept in the payload for backward compat;
+      // `notes` is the source of truth on reload.
+      steps: this.deriveSteps().map((step) => ({ ...step })),
       mode: this.mode,
       notes: this.notes.map((note) => ({ ...note })),
       ppq: this.ppq,
@@ -594,6 +674,37 @@ export const pianoRollLoopLengthTicks = (
   }
   const bars = Math.max(1, Math.ceil(maxEnd / ticksPerBar));
   return bars * ticksPerBar;
+};
+
+// One-time migration for old projects that stored only `steps`: project each
+// playing cell to a note (tempo-independent, in ticks). Pitch splits into an
+// integer midi + fine detune; volume → velocity; playbackRate/reverse carry.
+export const migrateStepsToNotes = (
+  steps: Step[],
+  ppq: number,
+  subdivision: number,
+  subdivisionType: typeof subdivisionTypes[number],
+): Note[] => {
+  const stepLen = stepLengthTicks(ppq, subdivision, subdivisionType);
+  const notes: Note[] = [];
+  steps.forEach((step, index) => {
+    if (!step.play) return;
+    const pitch = step.pitch ?? 0;
+    const semitones = Math.round(pitch / 100);
+    notes.push({
+      ticks: index * stepLen,
+      durationTicks: stepLen,
+      midi: Math.max(0, Math.min(127, PIANO_ROLL_ROOT_MIDI + semitones)),
+      velocity: Math.min(
+        MAX_MIDI_VELOCITY,
+        Math.max(0, Math.round((step.volume ?? 1) * MAX_MIDI_VELOCITY)),
+      ),
+      detune: pitch - semitones * 100,
+      playbackRate: step.playbackRate ?? 1,
+      reverse: step.reverse ?? false,
+    });
+  });
+  return notes;
 };
 
 export const normalizeNoteData = (note: DeepPartial<Note>): Note => ({

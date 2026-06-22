@@ -36,13 +36,13 @@ export const Sequencer = (
     steps: DeepReadonly<Step[]>;
     sequencer: SequencerDevice;
     mode: SequencerMode;
-    onChange: (steps: Step[]) => void;
+    onStepChange: (index: number, step: Step) => void;
   },
 ) => {
   const [ownProps, ulProps] = splitProps(propsWithoutDefaults, [
     'steps',
     'sequencer',
-    'onChange',
+    'onStepChange',
     'mode',
   ]);
   const props = mergeProps(
@@ -85,14 +85,11 @@ export const Sequencer = (
 
   const handleStepChanged = (step: Step, newStep: Step) => {
     const stepIndex = props.steps.indexOf(step);
-
-    const newSteps = [
-      ...props.steps.slice(0, stepIndex),
-      newStep,
-      ...props.steps.slice(stepIndex + 1),
-    ];
+    if (stepIndex < 0) return;
     setSelectedStep(newStep);
-    props.onChange(newSteps);
+    // The grid is a quantized view of the pattern's notes; report the edited
+    // cell so the pattern can mutate the underlying note (add/remove/update).
+    props.onStepChange(stepIndex, newStep);
   };
 
   return (
