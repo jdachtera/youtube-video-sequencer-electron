@@ -459,14 +459,16 @@ export class Pattern extends EngineBase<
   // the cell count changed (Tone.Sequence length is fixed at construction).
   protected refreshSequence() {
     const steps = this.deriveStepsForPlayback();
-    if (!this.sequence) {
+    if (!this.sequence || this.sequence.length !== steps.length) {
       this.createSequence();
       return;
     }
-    if (this.sequence.length !== steps.length) {
-      this.createSequence();
-    } else {
+    try {
       this.sequence.events = steps;
+    } catch {
+      // Reassigning events on a running sequence can trip Tone's monotonic
+      // timeline; rebuild it cleanly instead of letting the error escape.
+      this.createSequence();
     }
   }
 
@@ -642,9 +644,13 @@ export class Pattern extends EngineBase<
 
     const part = this.ensurePart();
     part.clear();
-    this.notes.forEach((note) =>
-      part.add({ time: this.ticksToToneTime(note.ticks), note }),
-    );
+    // Add in time order — Tone's Part timeline must be non-decreasing, and roll
+    // edits (multi-drag, MIDI overdub, …) can leave `notes` unsorted.
+    [...this.notes]
+      .sort((a, b) => a.ticks - b.ticks)
+      .forEach((note) =>
+        part.add({ time: this.ticksToToneTime(note.ticks), note }),
+      );
     // Loop window [loopStart, loopEnd]. loopStart must be set before loopEnd so
     // Tone doesn't transiently see start >= end.
     part.loopStart = this.ticksToToneTime(this.loopStartTicks());
@@ -664,33 +670,53 @@ export class Pattern extends EngineBase<
   }
 
   start(time?: TransportTime) {
+    // When launching while the transport is already running, start at its
+    // current position — never at 0 (the past), which makes Tone schedule
+    // events behind the last scheduled tick and throw "the time must be greater
+    // than or equal to the last scheduled time". On a fresh play the transport
+    // is at ~0, so all patterns still start in sync. We avoid the `offset` arg
+    // (it shifts sub-events earlier, which can also go negative).
+    const startAt =
+      time !== undefined
+        ? time
+        : this.engine.transport.state === 'started'
+        ? this.engine.transport.seconds
+        : 0;
+
     if (this.mode === 'pianoroll') {
       const part = this.ensurePart();
       this.syncPart();
-      part.start(time ?? 0);
+      // Already looping? Leave it — re-starting a playing event re-schedules its
+      // notes behind the last scheduled tick and throws. syncPart already
+      // refreshed the notes in place.
+      if (part.state === 'started') return;
+      try {
+        part.start(startAt);
+      } catch {
+        this.rebuildPart(startAt);
+      }
       return;
     }
-    if (time === undefined && this.engine.transport.state === 'started') {
-      const sequenceDuration =
-        this.sequence.toSeconds(this.sequence.subdivision) *
-        this.sequence.length;
+    if (this.sequence.state === 'started') return;
+    try {
+      this.sequence.start(startAt);
+    } catch {
+      // A stale timeline slipped through; rebuild the sequence from scratch.
+      this.createSequence();
+    }
+  }
 
-      const progress = this.engine.transport.seconds % sequenceDuration;
-
-      const offsetIndex = Math.ceil(
-        (progress / sequenceDuration) * this.sequence.length,
-      );
-
-      const offsetTime =
-        offsetIndex * this.sequence.toSeconds(this.sequence.subdivision) -
-        progress;
-
-      this.sequence.start(
-        this.engine.transport.seconds + offsetTime,
-        offsetIndex,
-      );
-    } else {
-      this.sequence.start(time, 0);
+  // Tear down and recreate the piano-roll Part (clears its event-state
+  // timelines) then start it — the recovery path when a re-schedule throws.
+  private rebuildPart(startAt: number | TransportTime) {
+    this.part?.dispose();
+    this.part = null;
+    const part = this.ensurePart();
+    this.syncPart();
+    try {
+      part.start(startAt);
+    } catch {
+      // Give up rather than crash the renderer; playback resumes on next start.
     }
   }
 

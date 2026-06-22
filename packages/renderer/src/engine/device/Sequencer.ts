@@ -92,9 +92,18 @@ export class SequencerDevice extends Device<SequencerEvents> {
     this.set(serializedSequencer);
 
     this.engine.on('stop', this.rewindSequence);
+    // Arm the current pattern when the transport starts too. The pattern is
+    // armed at construction and re-armed on stop, but a mode switch while
+    // stopped disarms it — without this, the next play would be silent. start()
+    // is idempotent (a no-op if already playing), so this is safe.
+    this.engine.on('start', this.armCurrentPattern);
 
     this.rewindSequence();
   }
+
+  armCurrentPattern = () => {
+    this.getPattern()?.start();
+  };
 
   public onSequenceEvent = (time: number, step: Step) => {
     this.emit('sequenceEvent', time, step);
@@ -285,8 +294,9 @@ export class SequencerDevice extends Device<SequencerEvents> {
 
     this.patterns.forEach((pattern) => pattern.dispose());
 
-    // Mirror the single listener registered in the constructor.
+    // Mirror the listeners registered in the constructor.
     this.engine.off('stop', this.rewindSequence);
+    this.engine.off('start', this.armCurrentPattern);
     this.removeAllListeners();
 
     // Release the base device's input/output Gain nodes too (this was
