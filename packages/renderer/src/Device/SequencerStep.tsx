@@ -14,12 +14,11 @@ import { camelCaseToSpaced } from '../UI/format';
 import { useAppTheme } from '../UI/theme';
 import type { Step } from '../engine/device/Patttern';
 
-// gateSeconds is a transient, piano-roll-only field — not a per-step editable
-// lane, so it's excluded from the sequencer's mode list.
-export const sequencerModes: Exclude<keyof Step, 'gateSeconds'>[] = [
+export const sequencerModes: (keyof Step)[] = [
   'play',
   'playbackRate',
   'volume',
+  'gateSeconds',
   'pitch',
   'reverse',
 ];
@@ -38,6 +37,13 @@ const controlRangeProps = {
     step: 0.01,
     fineStep: 0.001,
     formatValue: (value: number) => `${Math.round(value * 1000) / 10}%`,
+  },
+  gateSeconds: {
+    min: 0,
+    max: 10,
+    step: 0.01,
+    fineStep: 0.001,
+    formatValue: (value: number) => `${value.toFixed(2)}s`,
   },
   pitch: {
     min: -2400,
@@ -211,7 +217,8 @@ export const SequencerStep = (allProps: SequencerStepProps) => {
           when={
             (props.mode === 'playbackRate' ||
               props.mode === 'pitch' ||
-              props.mode === 'volume') &&
+              props.mode === 'volume' ||
+              props.mode === 'gateSeconds') &&
             props.mode
           }
         >

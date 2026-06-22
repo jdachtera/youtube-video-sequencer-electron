@@ -40,12 +40,12 @@ describe('normalizeStepData', () => {
 });
 
 describe('normalizeNoteData', () => {
-  it('fills defaults (root note, full velocity)', () => {
+  it('fills defaults (root note, default MIDI velocity)', () => {
     expect(normalizeNoteData({})).toEqual({
       ticks: 0,
       durationTicks: 0,
       midi: 60,
-      velocity: 1,
+      velocity: 100,
     });
   });
 
@@ -78,7 +78,7 @@ describe('Pattern.normalizePatternData', () => {
     });
     expect(pattern.mode).toBe('pianoroll');
     expect(pattern.notes).toEqual([
-      { ticks: 0, durationTicks: 0, midi: 67, velocity: 1 },
+      { ticks: 0, durationTicks: 0, midi: 67, velocity: 100 },
     ]);
   });
 

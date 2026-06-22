@@ -2,11 +2,15 @@ import { css } from '@emotion/css';
 import { PianoRoll, createPianoRollstate, type Track } from 'solid-pianoroll';
 import { now } from 'tone';
 import type { Pattern } from '../engine/device/Patttern';
-import { PIANO_ROLL_ROOT_MIDI } from '../engine/device/Patttern';
+import {
+  PIANO_ROLL_ROOT_MIDI,
+  velocityToGain,
+} from '../engine/device/Patttern';
 
 // Melodic editor for a pattern: draw notes that pitch-shift the downstream
-// slice, and audition a pitch by clicking the on-screen keys. Bound to the
-// pattern's `notes`; edits are pushed back through `set({ notes })`.
+// slice, audition a pitch by clicking the on-screen keys, and shape per-note
+// expression (velocity/detune/rate/reverse) + time-based automation in the
+// lanes below the roll. Bound to the pattern's `notes` + `automation`.
 export const PianoRollView = (props: { pattern: Pattern }) => {
   // The clip length (the loop). A bar honours the pattern's time signature. The
   // timeline shows a little extra room past the loop so the brace's right edge
@@ -42,21 +46,26 @@ export const PianoRollView = (props: { pattern: Pattern }) => {
         name: props.pattern.name || 'Notes',
         color: props.pattern.color || '#ff9100',
         notes: props.pattern.notes,
+        automation: props.pattern.automation,
       },
     ],
     onTracksChange: (tracks: Track[]) => {
-      props.pattern.set({ notes: tracks[0]?.notes ?? [] });
+      // notes + automation share one store; persist both on any roll edit.
+      props.pattern.set({
+        notes: tracks[0]?.notes ?? [],
+        automation: tracks[0]?.automation ?? {},
+      });
     },
-    // Audition the pitched slice when an on-screen key is pressed — the same
-    // mapping the playback Part uses (midi - root → playbackRate), routed
-    // through the sequencer so it hits the bound voice.
+    // Audition the pitched slice when an on-screen key is pressed — same pitch
+    // (cents) + volume mapping the playback Part uses, routed through the
+    // sequencer so it hits the bound voice.
     onNoteDown: (_trackIndex: number, keyNumber: number) => {
-      const semitones = keyNumber - PIANO_ROLL_ROOT_MIDI;
+      const pitchCents = (keyNumber - PIANO_ROLL_ROOT_MIDI) * 100;
       props.pattern.sequencer.onSequenceEvent(now(), {
         play: true,
-        volume: 1,
-        playbackRate: Math.pow(2, semitones / 12),
-        pitch: 0,
+        volume: velocityToGain(undefined),
+        playbackRate: 1,
+        pitch: pitchCents,
         reverse: false,
         gateSeconds: 0.5,
       });
@@ -84,7 +93,7 @@ export const PianoRollView = (props: { pattern: Pattern }) => {
       class={css`
         width: 760px;
         max-width: 100%;
-        height: 300px;
+        height: 500px;
         background: #2b2b2b;
         border-radius: 4px;
         overflow: hidden;
@@ -93,7 +102,9 @@ export const PianoRollView = (props: { pattern: Pattern }) => {
       <PianoRoll
         {...state}
         showTrackList={false}
-        style={{ height: '300px', width: '100%' }}
+        showExpressionLane={true}
+        showAutomationLane={true}
+        style={{ height: '500px', width: '100%' }}
       />
     </div>
   );

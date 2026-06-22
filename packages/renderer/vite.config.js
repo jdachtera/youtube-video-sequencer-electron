@@ -42,6 +42,10 @@ const config = {
   mode: process.env.MODE,
   root: PACKAGE_ROOT,
   resolve: {
+    // Linked workspace deps (e.g. solid-pianoroll via `link:`) ship their own
+    // nested solid-js; force a single Solid instance so context/reactivity work
+    // across the app and the linked library.
+    dedupe: ['solid-js', 'solid-js/web', 'solid-js/store'],
     alias: {
       '/@/': join(PACKAGE_ROOT, 'src') + '/',
       stream: 'stream-browserify',
