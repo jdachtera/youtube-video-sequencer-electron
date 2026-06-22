@@ -78,8 +78,8 @@ importers:
         specifier: github:jdachtera/solid-pianoroll#claude/funny-cerf-wbzop2
         version: https://codeload.github.com/jdachtera/solid-pianoroll/tar.gz/17e254c08a981752f236ada950f269b37110af65(solid-js@1.6.3)
       solid-waveform:
-        specifier: ^1.0.11
-        version: 1.0.11(solid-js@1.6.3)
+        specifier: github:jdachtera/solid-waveform#claude/funny-cerf-wbzop2
+        version: https://codeload.github.com/jdachtera/solid-waveform/tar.gz/2e62c686e4877794d4c0af3eaaaa4c798d19e4ce(solid-js@1.6.3)
       stream-browserify:
         specifier: ^3.0.0
         version: 3.0.0
@@ -3893,8 +3893,9 @@ packages:
     peerDependencies:
       solid-js: ^1.3
 
-  solid-waveform@1.0.11:
-    resolution: {integrity: sha512-4zCSMInWQwiBm304cBRQ04FHCBddWQK4yjLXeWyMIWD0G9u+ZdHWZtdD8msmE4WQPjPKF6qo4VFSKjUitiX0kg==}
+  solid-waveform@https://codeload.github.com/jdachtera/solid-waveform/tar.gz/2e62c686e4877794d4c0af3eaaaa4c798d19e4ce:
+    resolution: {tarball: https://codeload.github.com/jdachtera/solid-waveform/tar.gz/2e62c686e4877794d4c0af3eaaaa4c798d19e4ce}
+    version: 1.0.12
     peerDependencies:
       solid-js: '>=1.0.0'
 
@@ -8962,7 +8963,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  solid-waveform@1.0.11(solid-js@1.6.3):
+  solid-waveform@https://codeload.github.com/jdachtera/solid-waveform/tar.gz/2e62c686e4877794d4c0af3eaaaa4c798d19e4ce(solid-js@1.6.3):
     dependencies:
       solid-js: 1.6.3
 
