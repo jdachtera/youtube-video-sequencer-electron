@@ -76,6 +76,9 @@ export function App() {
     const unsubscribe = window.yt.onDownloadProgress?.(updateDownload);
     if (unsubscribe) onCleanup(unsubscribe);
     void checkShellVersion();
+    // Activate MIDI keyboard input (play + record). No-op if Web MIDI is
+    // unavailable or access is denied.
+    void engine.midiInput.init();
   });
 
   return (

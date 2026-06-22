@@ -79,6 +79,10 @@ app.on('web-contents-created', (_, contents) => {
         // Untrusted origins can't reach the main frame (navigation is blocked
         // above and webviews are stripped), so this stays first-party.
         permission === 'fileSystem' ||
+        // Allow Web MIDI (the MIDI keyboard input). Non-sysex access; first
+        // party only (untrusted origins can't reach the main frame).
+        permission === 'midi' ||
+        permission === 'midiSysex' ||
         !!ALLOWED_ORIGINS_AND_PERMISSIONS.get(origin)?.has(permission);
       callback(permissionGranted);
 
@@ -96,7 +100,12 @@ app.on('web-contents-created', (_, contents) => {
    * folder access isn't blocked at the check stage.
    */
   contents.session.setPermissionCheckHandler((_webContents, permission) => {
-    return permission === 'fullscreen' || permission === 'fileSystem';
+    return (
+      permission === 'fullscreen' ||
+      permission === 'fileSystem' ||
+      permission === 'midi' ||
+      permission === 'midiSysex'
+    );
   });
 
   /**

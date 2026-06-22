@@ -18,6 +18,7 @@ import { SamplerDevice } from '../engine/device/Sampler';
 import type { DeepPartial } from '../engine/types';
 import { AccountMenu } from './AccountMenu';
 import { ChannelSwitcher } from './ChannelSwitcher';
+import { MidiControls } from './MidiControls';
 
 export const Toolbar = (props: { engine: Engine }) => {
   const engineState = createStoreFromEventEmitter(
@@ -258,6 +259,7 @@ export const Toolbar = (props: { engine: Engine }) => {
             label="Master Volume"
           />
           <MasterMeter engine={props.engine} />
+          <MidiControls engine={props.engine} />
           <ChannelSwitcher />
           <AccountMenu />
         </Row>

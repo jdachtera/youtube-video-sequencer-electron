@@ -13,6 +13,7 @@ import type { Transport } from 'tone/build/esm/core/clock/Transport';
 import type { Time, TransportTime } from 'tone/build/esm/core/type/Units';
 import type { SidePanelTab } from '../panels/SidePanel';
 import { EngineBase } from './EngineBase';
+import { MidiInput } from './MidiInput';
 import type { SerializedTrack } from './Track';
 import { Track } from './Track';
 import type { SerializedSampler } from './device/Sampler';
@@ -73,6 +74,10 @@ export class Engine extends EngineBase<EngineEvents> {
   public currentPatternIndex = 0;
 
   public currentSamplerIndex = 0;
+
+  // MIDI keyboard input (play + record). Created here but only activated on the
+  // live engine via `midiInput.init()` (App), never the offline render engine.
+  public midiInput: MidiInput = new MidiInput(this);
 
   zoom = 1;
 
@@ -316,6 +321,7 @@ export class Engine extends EngineBase<EngineEvents> {
   // render engine — never the live singleton, or playback would go silent.
   dispose() {
     this.clear();
+    this.midiInput.dispose();
     this.samplers.forEach((sampler) => {
       sampler.off('change', this.emitChange);
       sampler.dispose();
