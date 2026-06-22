@@ -24,11 +24,12 @@ import { Sequencer } from './Sequencer';
 import type { SequencerMode } from './SequencerStep';
 import { sequencerModes } from './SequencerStep';
 
-const sequencerModeLabels = {
+const sequencerModeLabels: Record<typeof sequencerModes[number], string> = {
   play: '▶',
   pitch: '♪',
   playbackRate: '↠',
   volume: '📢',
+  gateSeconds: '⏱',
   reverse: '↶',
 };
 

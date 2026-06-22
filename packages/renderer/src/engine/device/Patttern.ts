@@ -180,9 +180,37 @@ export class Pattern extends EngineBase<
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this.followupAction = entry[1]!;
           break;
-        case 'mode':
+        case 'mode': {
+          const previousMode = this.mode;
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this.mode = entry[1]!;
+          // Sync note data between views so the melody is preserved on switch.
+          if (this.mode === 'pianoroll' && previousMode !== 'pianoroll') {
+            const converted = this.stepsToNotes();
+            if (converted.length > 0) {
+              this.notes = converted;
+              // Size the clip to cover all steps at the current subdivision.
+              const bpm = this.engine.transport.bpm.value || 120;
+              const stepDurationSeconds = Time(
+                `${this.subdivision}${this.subdivisionType}`,
+              ).toSeconds();
+              const stepDurationTicks = Math.max(
+                1,
+                Math.round((stepDurationSeconds * bpm * this.ppq) / 60),
+              );
+              const totalTicks = this.steps.length * stepDurationTicks;
+              const tpb = (this.ppq || 192) * 4;
+              this.duration = Math.max(tpb, Math.ceil(totalTicks / tpb) * tpb);
+            }
+          } else if (this.mode === 'steps' && previousMode !== 'steps') {
+            if (this.notes.length > 0) {
+              const converted = this.notesToSteps();
+              this.steps = converted;
+              if (this.sequence) {
+                this.sequence.events = this.steps;
+              }
+            }
+          }
           // Swap schedulers: stop the step sequence and sync the note part
           // (syncPart tears the part down when leaving piano-roll mode).
           this.sequence?.stop();
@@ -194,6 +222,7 @@ export class Pattern extends EngineBase<
             this.start();
           }
           break;
+        }
         case 'notes':
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this.notes = entry[1]!;
@@ -316,6 +345,97 @@ export class Pattern extends EngineBase<
 
   // Push the current notes and loop length into the Part in place (no restart),
   // or tear the part down when the pattern leaves piano-roll mode.
+  // Convert the current steps array into piano-roll notes so the melody is
+  // preserved when switching from step mode to piano-roll mode. Each enabled
+  // step becomes a note; pitch/playbackRate are folded into a MIDI number;
+  // volume maps to velocity; gateSeconds (if set) maps to durationTicks.
+  protected stepsToNotes(): Note[] {
+    const bpm = this.engine.transport.bpm.value || 120;
+    const stepDurationSeconds = Time(
+      `${this.subdivision}${this.subdivisionType}`,
+    ).toSeconds();
+    const stepDurationTicks = Math.max(
+      1,
+      Math.round((stepDurationSeconds * bpm * this.ppq) / 60),
+    );
+
+    const notes: Note[] = [];
+    this.steps.forEach((step, index) => {
+      if (!step.play) return;
+
+      const rateSemitones =
+        step.playbackRate > 0 ? 12 * Math.log2(step.playbackRate) : 0;
+      const pitchSemitones = step.pitch / 100;
+      const totalSemitones = Math.round(rateSemitones + pitchSemitones);
+      const midi = Math.max(
+        0,
+        Math.min(127, PIANO_ROLL_ROOT_MIDI + totalSemitones),
+      );
+      // Match how ensurePart uses velocity directly as volume.
+      const velocity = step.volume;
+      const durationTicks =
+        step.gateSeconds && step.gateSeconds > 0
+          ? Math.max(1, Math.round((step.gateSeconds * bpm * this.ppq) / 60))
+          : stepDurationTicks;
+
+      notes.push({
+        ticks: index * stepDurationTicks,
+        durationTicks,
+        midi,
+        velocity,
+      });
+    });
+
+    return notes;
+  }
+
+  // Convert the current piano-roll notes into steps so the melody is preserved
+  // when switching from piano-roll mode to step mode. Notes are snapped to the
+  // nearest step grid position; pitch is encoded as playbackRate (matching the
+  // piano-roll playback path); velocity maps to volume; durationTicks → gateSeconds.
+  protected notesToSteps(): Step[] {
+    const bpm = this.engine.transport.bpm.value || 120;
+    const stepDurationSeconds = Time(
+      `${this.subdivision}${this.subdivisionType}`,
+    ).toSeconds();
+    const stepDurationTicks = Math.max(
+      1,
+      Math.round((stepDurationSeconds * bpm * this.ppq) / 60),
+    );
+
+    const maxTick = this.notes.reduce((max, n) => Math.max(max, n.ticks), 0);
+    const minStepsNeeded =
+      stepDurationTicks > 0 ? Math.ceil(maxTick / stepDurationTicks) + 1 : 0;
+    const targetLength = Math.max(this.steps.length, minStepsNeeded, 1);
+
+    const steps: Step[] = Array.from({ length: targetLength }).map(() =>
+      normalizeStepData({}),
+    );
+
+    this.notes.forEach((note) => {
+      const stepIndex =
+        stepDurationTicks > 0
+          ? Math.round(note.ticks / stepDurationTicks) % targetLength
+          : 0;
+      const semitones = note.midi - PIANO_ROLL_ROOT_MIDI;
+      const gateSeconds =
+        note.durationTicks > 0 && bpm > 0
+          ? (note.durationTicks / (this.ppq || 192)) * (60 / bpm)
+          : undefined;
+
+      steps[stepIndex] = {
+        play: true,
+        playbackRate: Math.pow(2, semitones / 12),
+        pitch: 0,
+        volume: note.velocity ?? 1,
+        reverse: false,
+        ...(gateSeconds !== undefined && { gateSeconds }),
+      };
+    });
+
+    return steps;
+  }
+
   protected syncPart() {
     if (this.mode !== 'pianoroll') {
       if (this.part) {
@@ -456,6 +576,7 @@ export const normalizeStepData = (
   ...(step.actions?.length && { play: true }),
   pitch: step.pitch ?? 1,
   reverse: step.reverse ?? false,
+  ...(step.gateSeconds !== undefined && { gateSeconds: step.gateSeconds }),
 });
 
 export const normalizeFollowupActionData = (
