@@ -1,4 +1,5 @@
 import type { Automation, Note } from 'solid-pianoroll';
+import { automationValueAtTicks } from 'solid-pianoroll';
 import { Part, Sequence, Time } from 'tone';
 import type { TransportTime } from 'tone/build/esm/core/type/Units';
 import type { Engine } from '../Engine';
@@ -346,6 +347,9 @@ export class Pattern extends EngineBase<
         case 'automation':
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this.automation = entry[1]!;
+          // Re-apply to the active scheduler so the curve takes effect now.
+          if (this.mode === 'pianoroll') this.syncPart();
+          else this.refreshSequence();
           break;
         case 'name':
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -383,7 +387,7 @@ export class Pattern extends EngineBase<
 
     this.sequence = new Sequence({
       callback: this.sequencer.onSequenceEvent,
-      events: this.deriveSteps(),
+      events: this.deriveStepsForPlayback(),
       subdivision,
     });
 
@@ -424,10 +428,37 @@ export class Pattern extends EngineBase<
     return steps;
   }
 
+  private hasAutomation() {
+    const a = this.automation;
+    return !!(a.volume?.length || a.detune?.length || a.playbackRate?.length);
+  }
+
+  // The grid as actually played: the derived steps with the automation curves
+  // folded in (volume scaled, pitch detuned, rate scaled) at each cell's time.
+  // Kept separate from `deriveSteps` so the editor grid still shows the raw
+  // note values, not the automation-modulated ones.
+  private deriveStepsForPlayback(): Step[] {
+    const steps = this.deriveSteps();
+    if (!this.hasAutomation()) return steps;
+    const stepLen = this.stepDurationTicks();
+    const a = this.automation;
+    return steps.map((step, index) => {
+      if (!step.play) return step;
+      const ticks = index * stepLen;
+      return {
+        ...step,
+        volume: step.volume * automationValueAtTicks(a.volume, ticks, 1),
+        pitch: step.pitch + automationValueAtTicks(a.detune, ticks, 0),
+        playbackRate:
+          step.playbackRate * automationValueAtTicks(a.playbackRate, ticks, 1),
+      };
+    });
+  }
+
   // Re-point the step sequence at the freshly derived grid, rebuilding only when
   // the cell count changed (Tone.Sequence length is fixed at construction).
   protected refreshSequence() {
-    const steps = this.deriveSteps();
+    const steps = this.deriveStepsForPlayback();
     if (!this.sequence) {
       this.createSequence();
       return;
@@ -575,11 +606,17 @@ export class Pattern extends EngineBase<
         note.durationTicks > 0
           ? (note.durationTicks / (this.ppq || 192)) * (60 / bpm)
           : 0;
+      // Fold in the automation curves, sampled at the note's start.
+      const a = this.automation;
       this.sequencer.onSequenceEvent(time, {
         play: true,
-        volume: velocityToGain(note.velocity),
-        playbackRate: note.playbackRate ?? 1,
-        pitch: pitchCents,
+        volume:
+          velocityToGain(note.velocity) *
+          automationValueAtTicks(a.volume, note.ticks, 1),
+        playbackRate:
+          (note.playbackRate ?? 1) *
+          automationValueAtTicks(a.playbackRate, note.ticks, 1),
+        pitch: pitchCents + automationValueAtTicks(a.detune, note.ticks, 0),
         reverse: note.reverse ?? false,
         gateSeconds,
       });
