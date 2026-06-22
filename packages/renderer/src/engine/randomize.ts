@@ -78,7 +78,7 @@ export const randomMusicalNotes = (options: {
         ticks: i * stepTicks,
         durationTicks: stepTicks,
         midi: root + degree + octave,
-        velocity: 0.8,
+        velocity: 100,
       });
     }
   }
@@ -89,7 +89,7 @@ export const randomMusicalNotes = (options: {
       ticks: 0,
       durationTicks: stepTicks,
       midi: root,
-      velocity: 0.8,
+      velocity: 100,
     });
   }
 

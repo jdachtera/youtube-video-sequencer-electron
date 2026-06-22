@@ -1,4 +1,4 @@
-import type { Note } from 'solid-pianoroll';
+import type { Automation, Note } from 'solid-pianoroll';
 import { Part, Sequence, Time } from 'tone';
 import type { TransportTime } from 'tone/build/esm/core/type/Units';
 import type { Engine } from '../Engine';
@@ -60,11 +60,25 @@ export type SerializedPattern = {
   notes: Note[];
   ppq: number;
   duration: number;
+  // Time-based automation curves (volume/detune/playbackRate breakpoints),
+  // edited in the piano roll's automation lane. Keyed by parameter.
+  automation: Automation;
 };
 
 // MIDI note the sample plays back at its natural pitch (C4). Notes above pitch
 // up, notes below pitch down.
 export const PIANO_ROLL_ROOT_MIDI = 60;
+
+// Piano-roll notes carry a MIDI-style velocity (0–127; the editor draws new
+// notes at 100). The slice voice's volume is a 0–1 gain, so normalize on the
+// way into playback instead of feeding raw velocity in as gain.
+export const MAX_MIDI_VELOCITY = 127;
+export const DEFAULT_NOTE_VELOCITY = 100;
+export const velocityToGain = (velocity: number | undefined) =>
+  Math.min(
+    1,
+    Math.max(0, (velocity ?? DEFAULT_NOTE_VELOCITY) / MAX_MIDI_VELOCITY),
+  );
 
 export type Step = {
   play: boolean;
@@ -118,6 +132,7 @@ export class Pattern extends EngineBase<
   notes: Note[] = [];
   ppq = 192;
   duration = 192 * 16;
+  automation: Automation = {};
 
   public constructor(
     public sequencer: SequencerDevice,
@@ -150,6 +165,7 @@ export class Pattern extends EngineBase<
             : [],
           ppq: pattern.ppq ?? 192,
           duration: pattern.duration ?? 192 * 16,
+          automation: (pattern.automation as Automation) ?? {},
         };
 
   set(patternPartial: Partial<SerializedPattern>) {
@@ -241,6 +257,10 @@ export class Pattern extends EngineBase<
           // Visual timeline only; the playback loop derives from the notes
           // (loopLengthTicks), so this doesn't drive loopEnd.
           break;
+        case 'automation':
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          this.automation = entry[1]!;
+          break;
         case 'name':
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this.name = entry[1]!;
@@ -321,6 +341,10 @@ export class Pattern extends EngineBase<
     const part = new Part<{ time: string; note: Note }>((time, value) => {
       const { note } = value;
       const semitones = note.midi - PIANO_ROLL_ROOT_MIDI;
+      // Transposition in cents: the note's pitch (midi vs root) plus any fine
+      // per-note detune. The slice transposes via `pitch`; `playbackRate` is an
+      // independent per-note speed.
+      const pitchCents = semitones * 100 + (note.detune ?? 0);
       // Note length in seconds at the current tempo, so the slice releases
       // when the note ends.
       const bpm = this.engine.transport.bpm.value;
@@ -330,10 +354,10 @@ export class Pattern extends EngineBase<
           : 0;
       this.sequencer.onSequenceEvent(time, {
         play: true,
-        volume: note.velocity ?? 1,
-        playbackRate: Math.pow(2, semitones / 12),
-        pitch: 0,
-        reverse: false,
+        volume: velocityToGain(note.velocity),
+        playbackRate: note.playbackRate ?? 1,
+        pitch: pitchCents,
+        reverse: note.reverse ?? false,
         gateSeconds,
       });
     }, []);
@@ -363,16 +387,16 @@ export class Pattern extends EngineBase<
     this.steps.forEach((step, index) => {
       if (!step.play) return;
 
-      const rateSemitones =
-        step.playbackRate > 0 ? 12 * Math.log2(step.playbackRate) : 0;
-      const pitchSemitones = step.pitch / 100;
-      const totalSemitones = Math.round(rateSemitones + pitchSemitones);
-      const midi = Math.max(
-        0,
-        Math.min(127, PIANO_ROLL_ROOT_MIDI + totalSemitones),
+      // The step's pitch is a cents offset from the root; split it into an
+      // integer midi (so the melody shows on the roll) and a fine detune
+      // remainder. playbackRate and reverse carry over unchanged.
+      const semitones = Math.round(step.pitch / 100);
+      const midi = Math.max(0, Math.min(127, PIANO_ROLL_ROOT_MIDI + semitones));
+      const detune = step.pitch - semitones * 100;
+      const velocity = Math.min(
+        MAX_MIDI_VELOCITY,
+        Math.max(0, Math.round(step.volume * MAX_MIDI_VELOCITY)),
       );
-      // Match how ensurePart uses velocity directly as volume.
-      const velocity = step.volume;
       const durationTicks =
         step.gateSeconds && step.gateSeconds > 0
           ? Math.max(1, Math.round((step.gateSeconds * bpm * this.ppq) / 60))
@@ -383,6 +407,9 @@ export class Pattern extends EngineBase<
         durationTicks,
         midi,
         velocity,
+        detune,
+        playbackRate: step.playbackRate,
+        reverse: step.reverse,
       });
     });
 
@@ -417,7 +444,10 @@ export class Pattern extends EngineBase<
         stepDurationTicks > 0
           ? Math.round(note.ticks / stepDurationTicks) % targetLength
           : 0;
-      const semitones = note.midi - PIANO_ROLL_ROOT_MIDI;
+      // Encode the note's pitch as a cents offset (matching the slice's pitch
+      // path); playbackRate/reverse/volume carry straight across.
+      const pitchCents =
+        (note.midi - PIANO_ROLL_ROOT_MIDI) * 100 + (note.detune ?? 0);
       const gateSeconds =
         note.durationTicks > 0 && bpm > 0
           ? (note.durationTicks / (this.ppq || 192)) * (60 / bpm)
@@ -425,10 +455,10 @@ export class Pattern extends EngineBase<
 
       steps[stepIndex] = {
         play: true,
-        playbackRate: Math.pow(2, semitones / 12),
-        pitch: 0,
-        volume: note.velocity ?? 1,
-        reverse: false,
+        playbackRate: note.playbackRate ?? 1,
+        pitch: pitchCents,
+        volume: velocityToGain(note.velocity),
+        reverse: note.reverse ?? false,
         ...(gateSeconds !== undefined && { gateSeconds }),
       };
     });
@@ -533,6 +563,12 @@ export class Pattern extends EngineBase<
       notes: this.notes.map((note) => ({ ...note })),
       ppq: this.ppq,
       duration: this.duration,
+      automation: Object.fromEntries(
+        Object.entries(this.automation).map(([param, points]) => [
+          param,
+          (points ?? []).map((point) => ({ ...point })),
+        ]),
+      ),
     };
   }
 
@@ -561,10 +597,14 @@ export const pianoRollLoopLengthTicks = (
 };
 
 export const normalizeNoteData = (note: DeepPartial<Note>): Note => ({
+  ...(note.id !== undefined && { id: note.id }),
   ticks: note.ticks ?? 0,
   durationTicks: note.durationTicks ?? 0,
   midi: note.midi ?? PIANO_ROLL_ROOT_MIDI,
-  velocity: note.velocity ?? 1,
+  velocity: note.velocity ?? DEFAULT_NOTE_VELOCITY,
+  ...(note.detune !== undefined && { detune: note.detune }),
+  ...(note.playbackRate !== undefined && { playbackRate: note.playbackRate }),
+  ...(note.reverse !== undefined && { reverse: note.reverse }),
 });
 
 export const normalizeStepData = (
