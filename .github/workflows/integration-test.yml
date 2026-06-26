@@ -1,27 +1,20 @@
 name: Integration test
 
-# Run the headless audio + MIDI + scheduling integration harness
-# (`pnpm integration-test`) on every push to a pull request. The harness builds
-# the app with the engine exposed (VITE_EXPOSE_ENGINE -> window.__engine),
-# launches it under Xvfb, injects a synthesized sine into the samplers and
-# asserts on what comes out of the master bus — sound, pitch (octave ratio),
-# automation curves, mocked Web MIDI, and the two scheduling crashes we fixed.
-# It is fully offline: no network calls and no audio hardware, so it needs none
-# of the sandbox network-policy domains.
+# The headless audio + MIDI + scheduling integration harness
+# (`pnpm integration-test`). It builds the app with the engine exposed
+# (VITE_EXPOSE_ENGINE -> window.__engine), launches it under Xvfb, injects a
+# synthesized sine into the samplers and asserts on what comes out of the master
+# bus — sound, pitch (octave ratio), automation curves, mocked Web MIDI, and the
+# two scheduling crashes we fixed. Fully offline: no network calls, no audio
+# hardware, no secrets.
 #
-# A PR is a deliberate request for review, so this runs on every push to the PR
-# regardless of which files changed — the same reasoning as the Pages workflow.
-# It does NOT run on every branch push, to keep Actions minutes down.
+# Manual-only (workflow_dispatch): this is deliberately NOT wired to push /
+# pull_request, to avoid spending Actions minutes on every commit. Run it the
+# usual way locally with `pnpm integration-test`; trigger this workflow from the
+# Actions tab (or `gh workflow run "Integration test"`) only when you want it on
+# a clean GitHub runner.
 on:
-  pull_request:
-    types: [opened, reopened, synchronize]
   workflow_dispatch:
-
-# Cancel an in-flight run when new commits land on the same PR — only the latest
-# commit needs verifying, which keeps Actions minutes down.
-concurrency:
-  group: integration-test-${{ github.ref }}
-  cancel-in-progress: true
 
 defaults:
   run:
