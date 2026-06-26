@@ -21,6 +21,7 @@
     "start": "node scripts/watch.js",
     "screenshot": "node scripts/screenshot.mjs",
     "audiotest": "node scripts/audiotest.mjs",
+    "integration-test": "node scripts/integration-test.mjs",
     "make:icon": "node scripts/make-icon.mjs",
     "lint": "eslint . --ext js,ts,tsx",
     "typecheck:main": "tsc --noEmit -p packages/main/tsconfig.json",
