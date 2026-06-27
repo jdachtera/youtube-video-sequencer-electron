@@ -191,7 +191,11 @@ export const Knob = (props: KnobProps) => {
                 rgba(191, 191, 191, 1) 100%
               );
               //background-image: conic-gradient(#eee, #ddd, #aaa, #eee, #ddd, #aaa, #eee);
-              z-index: 999;
+              /* Sits above the knob image (an earlier sibling). Keep it low: the
+                 knob's container isn't a stacking context, so a high z-index would
+                 leak out and cover menus/popovers (e.g. the z-index 20 "Add
+                 effect" popover over a device's knobs). */
+              z-index: 1;
               //width: 48px;
               //height: 48px;
               width: 55%;
