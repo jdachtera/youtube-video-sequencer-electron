@@ -548,6 +548,21 @@ console.log(
   JSON.stringify({ newErrors: stressErrors.length, schedulingErrors }),
 );
 
+// Slice audition: clicking the in-chain waveform calls slice.play() directly
+// (no transport). Verify that audition path produces audio on the master bus.
+const sliceAudition = await win.evaluate(async () => {
+  const w = window;
+  const e = w.__engine;
+  w.__solo(1);
+  e.stop();
+  await w.__sleep(150);
+  const slice = e.tracks[1].chain.devices.find((d) => d.name === 'Slice');
+  if (slice) slice.play();
+  const peak = await w.__measureIdlePeak(600);
+  return { hasSlice: !!slice, peak };
+});
+console.log('[itest] sliceAudition:', JSON.stringify(sliceAudition));
+
 // ---------------------------------------------------------------------------
 // 6. Track reorder: moveTrack() reorders the track list. Done before the
 //    metronome section clears the tracks.
@@ -737,6 +752,11 @@ check(
   'scheduling: no Tone/stack errors under stress',
   schedulingErrors.length === 0,
   schedulingErrors.join(' | ') || 'clean',
+);
+check(
+  'slice audition: play() produces audio on the master bus',
+  sliceAudition.hasSlice && sliceAudition.peak > 1e-3,
+  `peak=${sliceAudition.peak?.toExponential?.(2)} hasSlice=${sliceAudition.hasSlice}`,
 );
 check(
   'reorder: moveTrack swaps track order and restores',

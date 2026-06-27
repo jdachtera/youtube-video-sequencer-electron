@@ -39,7 +39,7 @@ export const WaveformSliceView = (
     <div
       classList={{
         [css`
-          min-width: 300px;
+          min-width: 120px;
           width: 100%;
           height: ${props.height ?? 50}px;
           position: relative;
@@ -49,7 +49,7 @@ export const WaveformSliceView = (
       <Waveform
         classList={{
           [css`
-            min-width: 300px;
+            min-width: 120px;
             width: 100%;
             height: ${props.height ?? 50}px;
           `]: true,

@@ -1,5 +1,6 @@
 import { css } from '@emotion/css';
 import { For, Show } from 'solid-js';
+import { start as startAudio } from 'tone';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { Column } from '../UI/Grid';
 import { LCDLabel } from '../UI/LCD';
@@ -70,7 +71,10 @@ export const SamplerSliceView = (props: { slice: Slice }) => {
     ['samplersUpdated'],
   );
 
-  const selectSlice = () => props.slice.sampler.selectSlice(props.slice);
+  // Click the waveform to audition the slice through its own effect chain. A
+  // click is a user gesture, so resume the audio context first (no-op if the
+  // context is already running).
+  const playSlice = () => void startAudio().then(() => props.slice.play());
 
   return (
     <Column>
@@ -89,7 +93,7 @@ export const SamplerSliceView = (props: { slice: Slice }) => {
               collapsed={!sliceState.collapsed}
               center={1}
               height={30}
-              onClickWaveform={selectSlice}
+              onClickWaveform={playSlice}
             />
           </LCD>
         </div>
@@ -150,7 +154,7 @@ export const SamplerSliceView = (props: { slice: Slice }) => {
             slice={props.slice}
             center={1}
             height={44}
-            onClickWaveform={selectSlice}
+            onClickWaveform={playSlice}
           />
         </div>
       </Show>
