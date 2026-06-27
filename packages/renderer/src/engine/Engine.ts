@@ -9,6 +9,7 @@ import {
   setContext,
   start,
 } from 'tone';
+import type { ToneAudioBuffer } from 'tone';
 import type { Transport } from 'tone/build/esm/core/clock/Transport';
 import type { Time, TransportTime } from 'tone/build/esm/core/type/Units';
 import type { SidePanelTab } from '../panels/SidePanel';
@@ -547,6 +548,50 @@ export class Engine extends EngineBase<EngineEvents> {
   }
 
   async renderToBuffer(timeToRender: number) {
+    return this.renderSerializedToBuffer(this.serialize(), timeToRender, (p) =>
+      this.emit('mixdownProgress', p),
+    );
+  }
+
+  // Render each track in isolation (every other track muted) to its own buffer,
+  // for exporting stems. Returns one entry per track, in track order.
+  async renderStems(
+    timeToRender: number,
+  ): Promise<{ name: string; buffer: ToneAudioBuffer }[]> {
+    const base = this.serialize();
+    const total = base.tracks.length;
+    const stems: { name: string; buffer: ToneAudioBuffer }[] = [];
+
+    for (let i = 0; i < total; i++) {
+      const isolated: SerializedEngine = {
+        ...base,
+        // Isolate track i: mute every other track, and clear solo everywhere so
+        // a leftover solo can't override the mutes.
+        tracks: base.tracks.map((track, index) => ({
+          ...track,
+          mute: index !== i,
+          solo: false,
+        })),
+      };
+      const buffer = await this.renderSerializedToBuffer(
+        isolated,
+        timeToRender,
+        // Map each stem's 0..1 progress onto its slice of the overall job.
+        (p) => this.emit('mixdownProgress', (i + p) / total),
+      );
+      stems.push({ name: base.tracks[i].name || `Track ${i + 1}`, buffer });
+    }
+
+    return stems;
+  }
+
+  // Render one serialized engine snapshot to a stereo buffer in an offline
+  // context. Shared by the full mixdown and per-track stem export.
+  private async renderSerializedToBuffer(
+    serialized: SerializedEngine,
+    timeToRender: number,
+    onProgress?: (progress: number) => void,
+  ): Promise<ToneAudioBuffer> {
     const originalContext = getContext();
     const channels = 2;
     const sampleRate = getContext().sampleRate;
@@ -560,23 +605,23 @@ export class Engine extends EngineBase<EngineEvents> {
     setContext(offlineContext);
 
     const offlineEngine = new Engine(offlineContext.transport);
-    offlineEngine.set(this.serialize());
+    offlineEngine.set(serialized);
 
-    offlineContext.transport.scheduleRepeat(
-      (time) => {
-        this.emit('mixdownProgress', time / timeToRender);
-      },
-      1,
-      0,
-      timeToRender,
-    );
+    if (onProgress) {
+      offlineContext.transport.scheduleRepeat(
+        (time) => onProgress(time / timeToRender),
+        1,
+        0,
+        timeToRender,
+      );
+    }
 
     await offlineEngine.hasLoaded();
 
     offlineContext.transport.start();
     const buffer = await offlineContext.render(true);
 
-    this.emit('mixdownProgress', 1);
+    onProgress?.(1);
 
     offlineEngine.dispose();
 
