@@ -15,6 +15,7 @@ import {
 } from '../engine/EngineBase';
 import { DeviceChain } from '../engine/device/DeviceChain';
 import { SamplerDevice } from '../engine/device/Sampler';
+import { bpmFromTaps, pushTap } from '../engine/tapTempo';
 import type { DeepPartial } from '../engine/types';
 import { AccountMenu } from './AccountMenu';
 import { ChannelSwitcher } from './ChannelSwitcher';
@@ -135,6 +136,16 @@ export const Toolbar = (props: { engine: Engine }) => {
     props.engine.set({ bpm });
   };
 
+  // Tap tempo: derive BPM from the spacing of recent taps on the TAP button.
+  let taps: number[] = [];
+  const tapTempo = () => {
+    taps = pushTap(taps, Date.now());
+    const bpm = bpmFromTaps(taps);
+    if (bpm !== null) {
+      handleTempoChange(Math.max(20, Math.min(280, Math.round(bpm))));
+    }
+  };
+
   const handleSwingChange = (swing: number) => {
     props.engine.set({ swing });
   };
@@ -253,6 +264,13 @@ export const Toolbar = (props: { engine: Engine }) => {
               size={4}
               value={engineState.bpm}
               onChange={handleTempoChange}
+            />
+            <ButtonWithLabel
+              type="button"
+              label="Tap"
+              labelOnButton={true}
+              title="Tap to set the tempo"
+              onClick={tapTempo}
             />
             <NumberInputWithArrowButtons
               label={'Swing'}
