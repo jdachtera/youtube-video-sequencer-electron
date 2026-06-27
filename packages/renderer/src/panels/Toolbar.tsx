@@ -49,6 +49,12 @@ export const Toolbar = (props: { engine: Engine }) => {
     ['draw'],
   );
 
+  const metronomeEnabled = createSignalFromEventEmitter(
+    () => props.engine,
+    (engine) => engine.metronome.enabled,
+    ['metronomeUpdated'],
+  );
+
   const togglePlay = async () => {
     if (engineState.playing) {
       props.engine.stop();
@@ -56,6 +62,20 @@ export const Toolbar = (props: { engine: Engine }) => {
       props.engine.start();
     }
   };
+
+  // The click track is a monitoring preference, not project data, so it's
+  // persisted on its own key rather than in the serialized project.
+  const toggleMetronome = () => {
+    const enabled = !metronomeEnabled();
+    props.engine.setMetronome(enabled);
+    localStorage.setItem('metronome', enabled ? '1' : '0');
+  };
+
+  onMount(() => {
+    if (localStorage.getItem('metronome') === '1') {
+      props.engine.setMetronome(true);
+    }
+  });
 
   // Undo/redo + Export shortcuts moved to the native menu (see AppMenu); the
   // toolbar keeps Play (Space) and closing the side panel (Escape).
@@ -156,6 +176,20 @@ export const Toolbar = (props: { engine: Engine }) => {
             activatedColor={'#46d323'}
             blinkInterval={engineState.playing ? 60 / engineState.bpm : 0}
             label={'▶'}
+          />
+
+          <ButtonWithLabel
+            type="button"
+            activated={metronomeEnabled()}
+            onClick={toggleMetronome}
+            labelOnButton={true}
+            activatedColor={'#46d323'}
+            blinkInterval={
+              metronomeEnabled() && engineState.playing
+                ? 60 / engineState.bpm
+                : 0
+            }
+            label={'Click'}
           />
 
           <Show when={lastSaved()}>

@@ -13,6 +13,7 @@ import type { Transport } from 'tone/build/esm/core/clock/Transport';
 import type { Time, TransportTime } from 'tone/build/esm/core/type/Units';
 import type { SidePanelTab } from '../panels/SidePanel';
 import { EngineBase } from './EngineBase';
+import { Metronome } from './Metronome';
 import { MidiInput } from './MidiInput';
 import type { SerializedTrack } from './Track';
 import { Track } from './Track';
@@ -53,6 +54,9 @@ type EngineEvents = {
   stop: (time?: Time) => void;
   mixdownProgress: (progress: number) => void;
   draw: (time: number, position: Time) => void;
+  // Live-only click-track toggle — deliberately not part of SerializedEngine, so
+  // it stays out of project files, undo/redo, and exports.
+  metronomeUpdated: (enabled: boolean) => void;
 } & PropertyUpdateEvents<SerializedEngine>;
 
 export class Engine extends EngineBase<EngineEvents> {
@@ -78,6 +82,10 @@ export class Engine extends EngineBase<EngineEvents> {
   // MIDI keyboard input (play + record). Created here but only activated on the
   // live engine via `midiInput.init()` (App), never the offline render engine.
   public midiInput: MidiInput = new MidiInput(this);
+
+  // Transport-synced click track. Off by default and never enabled on the
+  // offline render engine, so it never bleeds into a mixdown export.
+  public metronome: Metronome;
 
   zoom = 1;
 
@@ -138,13 +146,26 @@ export class Engine extends EngineBase<EngineEvents> {
     this.on('trackRemoved', () => this.emit('change', this));
     this.transport.on('start', (time: number) => {
       this.emit('start', time);
+      this.metronome.onStart();
     });
     this.transport.on('stop', () => {
       this.emit('stop');
+      this.metronome.onStop();
     });
     this.gain.connect(this.limiter);
     this.limiter.toDestination();
     this.limiter.connect(this.meter);
+
+    // Route the click into the master bus (pre-limiter) so it respects master
+    // volume and registers on the master meter.
+    this.metronome = new Metronome(this.transport, this.gain);
+  }
+
+  // Toggle the live click track. Not serialized, so it's a pure monitoring
+  // preference — never captured by undo/redo, autosave, or exports.
+  setMetronome(enabled: boolean) {
+    this.metronome.setEnabled(enabled);
+    this.emit('metronomeUpdated', enabled);
   }
 
   emitChange = () => this.emit('change', this);
@@ -322,6 +343,7 @@ export class Engine extends EngineBase<EngineEvents> {
   dispose() {
     this.clear();
     this.midiInput.dispose();
+    this.metronome.dispose();
     this.samplers.forEach((sampler) => {
       sampler.off('change', this.emitChange);
       sampler.dispose();

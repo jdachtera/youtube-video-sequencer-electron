@@ -548,6 +548,38 @@ console.log(
   JSON.stringify({ newErrors: stressErrors.length, schedulingErrors }),
 );
 
+// ---------------------------------------------------------------------------
+// 6. Metronome: with every track muted, enabling the click track produces audio
+//    on the master bus; disabling it returns to silence. (The click routes into
+//    the master gain, so the meter — tapped off the limiter — sees it.)
+// ---------------------------------------------------------------------------
+const metronome = await win.evaluate(async () => {
+  const w = window;
+  const e = w.__engine;
+  const sleep = w.__sleep;
+
+  // Remove every track (keeping the master bus + metronome) so the ONLY thing
+  // that can reach the master bus is the click — no track voices to isolate.
+  // The app closes right after this section, so tearing the tracks down is fine.
+  e.clear();
+  await sleep(300); // let any prior signal settle out of the smoothed meter
+
+  // Baseline FIRST, while the metronome has never been enabled: transport
+  // running, no tracks -> the master bus is silent.
+  const enabledAfterOff = e.metronome.enabled; // expected false
+  const silentPeak = await w.__measureTransportPeak(1200);
+
+  // Now enable the click -> the master bus carries the metronome and nothing
+  // else.
+  e.setMetronome(true);
+  const enabledAfterOn = e.metronome.enabled; // expected true
+  const clickPeak = await w.__measureTransportPeak(1600);
+
+  e.setMetronome(false);
+  return { clickPeak, silentPeak, enabledAfterOn, enabledAfterOff };
+});
+console.log('[itest] metronome:', JSON.stringify(metronome));
+
 await app.close();
 
 // ---------------------------------------------------------------------------
@@ -632,6 +664,21 @@ check(
   'scheduling: no Tone/stack errors under stress',
   schedulingErrors.length === 0,
   schedulingErrors.join(' | ') || 'clean',
+);
+check(
+  'metronome: click produces audio on master (no tracks)',
+  metronome.clickPeak > 1e-2,
+  `peak=${metronome.clickPeak?.toExponential?.(2)}`,
+);
+check(
+  'metronome: master is silent without the click',
+  metronome.silentPeak < 5e-2 && metronome.silentPeak < metronome.clickPeak * 0.5,
+  `off=${metronome.silentPeak?.toExponential?.(2)} on=${metronome.clickPeak?.toExponential?.(2)}`,
+);
+check(
+  'metronome: toggle updates enabled state',
+  metronome.enabledAfterOn === true && metronome.enabledAfterOff === false,
+  `on=${metronome.enabledAfterOn} off=${metronome.enabledAfterOff}`,
 );
 
 const failed = results.filter((r) => !r.pass);
