@@ -564,6 +564,21 @@ const reorder = await win.evaluate(async () => {
 });
 console.log('[itest] reorder:', JSON.stringify(reorder));
 
+// Device-chain reorder: moving a device onto an occupied slot must keep every
+// device (regression for addDevice dropping the device already at that index).
+const deviceReorder = await win.evaluate(async () => {
+  const w = window;
+  const e = w.__engine;
+  const chain = e.tracks[0].chain;
+  const before = chain.devices.map((d) => d.name);
+  const last = chain.devices[chain.devices.length - 1];
+  chain.moveDevice(last, 0); // insert at an occupied slot (index 0)
+  const after = chain.devices.map((d) => d.name);
+  chain.moveDevice(chain.devices[0], chain.devices.length - 1); // restore
+  return { before, after };
+});
+console.log('[itest] deviceReorder:', JSON.stringify(deviceReorder));
+
 // ---------------------------------------------------------------------------
 // 7. Metronome: with all tracks cleared, enabling the click track produces audio
 //    on the master bus; without it the bus is silent. (The click routes into the
@@ -731,6 +746,13 @@ check(
     reorder.restored[0] === reorder.before[0] &&
     reorder.restored[1] === reorder.before[1],
   `before=${reorder.before} after=${reorder.afterMove} restored=${reorder.restored}`,
+);
+check(
+  'device reorder: moving onto an occupied slot keeps all devices',
+  deviceReorder.after.length === deviceReorder.before.length &&
+    deviceReorder.before.length >= 2 &&
+    deviceReorder.after[0] === deviceReorder.before[deviceReorder.before.length - 1],
+  `before=${deviceReorder.before} after=${deviceReorder.after}`,
 );
 check(
   'metronome: click produces audio on master (no tracks)',
