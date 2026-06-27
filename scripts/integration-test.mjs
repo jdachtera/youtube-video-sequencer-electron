@@ -333,6 +333,20 @@ const setup = await win.evaluate(async () => {
 });
 console.log('[itest] setup:', JSON.stringify(setup));
 
+// Buffer sharing: both seeded voices play the same sample/region, so they must
+// reference the SAME underlying AudioBuffer (one shared slice, not a per-voice
+// copy). Different objects here would mean each voice copied the decoded PCM.
+const bufferShare = await win.evaluate(async () => {
+  const w = window;
+  const e = w.__engine;
+  await e.hasLoaded();
+  const sliceOf = (t) => e.tracks[t]?.chain.devices.find((d) => d.name === 'Slice');
+  const b0 = sliceOf(0)?.player?.buffer?.get?.();
+  const b1 = sliceOf(1)?.player?.buffer?.get?.();
+  return { hasBoth: !!b0 && !!b1, shared: !!b0 && b0 === b1 };
+});
+console.log('[itest] bufferShare:', JSON.stringify(bufferShare));
+
 // ---------------------------------------------------------------------------
 // 1. Sound: step grid and piano roll each produce audio on the master bus.
 // ---------------------------------------------------------------------------
@@ -706,6 +720,11 @@ check(
   )}`,
 );
 check('analyser tapped onto master bus', !!setup && setup.analyserConnected, '');
+check(
+  'buffer share: voices on the same region share one sliced buffer',
+  bufferShare.hasBoth && bufferShare.shared,
+  `hasBoth=${bufferShare.hasBoth} shared=${bufferShare.shared}`,
+);
 check(
   'sound: step grid produces audio',
   sound.stepPeak > 1e-3,

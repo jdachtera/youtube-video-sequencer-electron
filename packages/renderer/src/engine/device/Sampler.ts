@@ -77,6 +77,13 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
 
   private _hasLoaded = false;
 
+  // Sliced regions of the decoded buffer, cached and SHARED across every voice
+  // (slice) that plays the same region. Without this each voice copied its own
+  // region of the decoded PCM (N voices on one sample => N big copies, re-copied
+  // on every region edit); now they reference one sliced buffer. Cleared when
+  // the source buffer changes (load/unload). Keyed by "from:to" seconds.
+  private slicedBuffers = new Map<string, ToneAudioBuffer>();
+
   static normalizeData = (
     sampler: DeepPartial<SerializedSampler>,
   ): SerializedSampler => ({
@@ -122,6 +129,8 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
         const arrayBuffer = await loadFileAsBuffer(file);
         const audioBuffer = await getContext().decodeAudioData(arrayBuffer);
         this.buffer.set(audioBuffer);
+        // The source changed, so any cached region slices are stale.
+        this.clearSlicedBuffers();
       } else {
         // Remote sources are cached as compressed files on disk by the main
         // process; fetch the bytes (cache hit or fresh yt-dlp download) and
@@ -137,6 +146,8 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
 
         const audioBuffer = await getContext().decodeAudioData(arrayBuffer);
         this.buffer.set(audioBuffer);
+        // The source changed, so any cached region slices are stale.
+        this.clearSlicedBuffers();
       }
     } catch (error) {
       // Surface the failure instead of leaving the slice spinning forever.
@@ -301,8 +312,45 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
     this.slices.forEach((slice) => slice.stop());
   }
 
+  // A sliced region of the decoded buffer, shared across all voices that play
+  // the same region. Resolves an open-ended region (end <= start) to the whole
+  // sample. Returns an empty buffer when nothing is loaded / the region is empty.
+  getSlicedBuffer(start: number, end: number): ToneAudioBuffer {
+    if (!this.buffer.loaded) return new ToneAudioBuffer();
+
+    const from = Math.max(start, 0);
+    const to =
+      end > start ? Math.min(end, this.buffer.duration) : this.buffer.duration;
+    if (!(from < to)) return new ToneAudioBuffer();
+
+    const key = `${from}:${to}`;
+    const cached = this.slicedBuffers.get(key);
+    if (cached) return cached;
+
+    // In practice every voice shares the current region, so only a couple of
+    // entries are ever live (e.g. while a region drag settles). Evict the oldest
+    // beyond a small cap so edits don't grow the cache unbounded.
+    if (this.slicedBuffers.size >= 4) {
+      const oldest = this.slicedBuffers.keys().next().value;
+      if (oldest !== undefined) {
+        this.slicedBuffers.get(oldest)?.dispose();
+        this.slicedBuffers.delete(oldest);
+      }
+    }
+
+    const sliced = this.buffer.slice(from, to);
+    this.slicedBuffers.set(key, sliced);
+    return sliced;
+  }
+
+  private clearSlicedBuffers() {
+    this.slicedBuffers.forEach((buffer) => buffer.dispose());
+    this.slicedBuffers.clear();
+  }
+
   unload() {
     this.stopAudition();
+    this.clearSlicedBuffers();
     this.buffer.dispose();
     this.buffer = new ToneAudioBuffer();
     this._hasLoaded = false;

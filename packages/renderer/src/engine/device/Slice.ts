@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { batch, createUniqueId } from 'solid-js';
-import { GrainPlayer, Player, ToneAudioBuffer } from 'tone';
+import { GrainPlayer, Player } from 'tone';
 import { debounce } from 'ts-debounce';
 import type { Engine } from '../Engine';
 import type { PropertyUpdateEvents } from '../helpers';
@@ -331,20 +331,10 @@ export class Slice extends Device<SliceEvents> {
 
   async loadBufferFromSampler() {
     await this.sampler.hasLoaded();
-
-    const { buffer } = this.sampler;
-
-    const start = Math.max(this.start, 0);
-    // A slot can leave its region open-ended (end <= start) to mean "the whole
-    // sample"; resolve that against the loaded buffer here.
-    const end =
-      this.end > this.start
-        ? Math.min(this.end, buffer.duration)
-        : buffer.duration;
-
-    const slicedBuffer =
-      start < end ? buffer.slice(start, end) : new ToneAudioBuffer();
-    return slicedBuffer;
+    // The slot owns the region (open-ended end <= start means "the whole
+    // sample"). getSlicedBuffer resolves + caches it, so every voice playing the
+    // same region shares one sliced buffer instead of copying its own.
+    return this.sampler.getSlicedBuffer(this.start, this.end);
   }
 
   // The device chain's hasLoaded awaits this. Decode the source and set the
