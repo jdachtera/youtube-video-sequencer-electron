@@ -1,6 +1,6 @@
 import { css } from '@emotion/css';
 import type { Track } from 'engine/Track';
-import { Show } from 'solid-js';
+import { createSignal, Show } from 'solid-js';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { DeviceWrapper } from '../UI/DeviceWrapper';
 import { Row } from '../UI/Grid';
@@ -52,8 +52,42 @@ export const TrackView = (props: { track: Track }) => {
     ['trackAdded', 'trackRemoved'],
   );
 
+  // Drag-and-drop reordering. Only the grip handle starts a drag; the whole
+  // track row is the drop target (highlighted while a track is dragged over it).
+  const DRAG_MIME = 'application/x-megarack-track-index';
+  const [dragOver, setDragOver] = createSignal(false);
+
+  const onGripDragStart = (event: DragEvent) => {
+    if (!event.dataTransfer) return;
+    event.dataTransfer.setData(DRAG_MIME, String(trackIndex()));
+    event.dataTransfer.effectAllowed = 'move';
+  };
+  const onRowDragOver = (event: DragEvent) => {
+    if (!event.dataTransfer?.types.includes(DRAG_MIME)) return;
+    event.preventDefault(); // allow the drop
+    event.dataTransfer.dropEffect = 'move';
+    setDragOver(true);
+  };
+  const onRowDrop = (event: DragEvent) => {
+    const raw = event.dataTransfer?.getData(DRAG_MIME);
+    setDragOver(false);
+    if (!raw) return;
+    event.preventDefault();
+    const from = Number(raw);
+    if (Number.isInteger(from))
+      props.track.engine.moveTrack(from, trackIndex());
+  };
+
   return (
-    <Row classList={{ Track: true }}>
+    <Row
+      classList={{ Track: true }}
+      style={{
+        'border-top': `2px solid ${dragOver() ? '#46d323' : 'transparent'}`,
+      }}
+      onDragOver={onRowDragOver}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={onRowDrop}
+    >
       <DeviceWrapper
         hidden={!viewMode.channel}
         onClickLeftRackEar={() =>
@@ -74,6 +108,24 @@ export const TrackView = (props: { track: Track }) => {
               `]: true,
             }}
           >
+            <div
+              draggable={true}
+              onDragStart={onGripDragStart}
+              title="Drag to reorder track"
+              class={css`
+                cursor: grab;
+                user-select: none;
+                padding: 0 4px;
+                font-size: 16px;
+                line-height: 1;
+                color: rgba(0, 0, 0, 0.45);
+                &:active {
+                  cursor: grabbing;
+                }
+              `}
+            >
+              ⠿
+            </div>
             <InputLCD
               classList={{
                 [css`
