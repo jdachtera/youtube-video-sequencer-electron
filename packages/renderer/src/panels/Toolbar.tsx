@@ -55,6 +55,12 @@ export const Toolbar = (props: { engine: Engine }) => {
     ['metronomeUpdated'],
   );
 
+  const countInBars = createSignalFromEventEmitter(
+    () => props.engine,
+    (engine) => engine.metronome.countInBars,
+    ['countInUpdated'],
+  );
+
   const togglePlay = async () => {
     if (engineState.playing) {
       props.engine.stop();
@@ -71,9 +77,21 @@ export const Toolbar = (props: { engine: Engine }) => {
     localStorage.setItem('metronome', enabled ? '1' : '0');
   };
 
+  const handleCountInChange = (bars: number) => {
+    props.engine.setCountIn(bars);
+    localStorage.setItem(
+      'metronome.countIn',
+      String(props.engine.metronome.countInBars),
+    );
+  };
+
   onMount(() => {
     if (localStorage.getItem('metronome') === '1') {
       props.engine.setMetronome(true);
+    }
+    const storedCountIn = Number(localStorage.getItem('metronome.countIn'));
+    if (Number.isFinite(storedCountIn) && storedCountIn > 0) {
+      props.engine.setCountIn(storedCountIn);
     }
   });
 
@@ -244,6 +262,15 @@ export const Toolbar = (props: { engine: Engine }) => {
               size={4}
               value={engineState.swing}
               onChange={handleSwingChange}
+            />
+            <NumberInputWithArrowButtons
+              label={'Count-in'}
+              min={0}
+              max={4}
+              step={1}
+              size={3}
+              value={countInBars()}
+              onChange={handleCountInChange}
             />
             <NumberInputWithArrowButtons
               label={'Zoom'}

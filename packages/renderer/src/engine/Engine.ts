@@ -54,9 +54,10 @@ type EngineEvents = {
   stop: (time?: Time) => void;
   mixdownProgress: (progress: number) => void;
   draw: (time: number, position: Time) => void;
-  // Live-only click-track toggle — deliberately not part of SerializedEngine, so
-  // it stays out of project files, undo/redo, and exports.
+  // Live-only click-track controls — deliberately not part of SerializedEngine,
+  // so they stay out of project files, undo/redo, and exports.
   metronomeUpdated: (enabled: boolean) => void;
+  countInUpdated: (bars: number) => void;
 } & PropertyUpdateEvents<SerializedEngine>;
 
 export class Engine extends EngineBase<EngineEvents> {
@@ -86,6 +87,10 @@ export class Engine extends EngineBase<EngineEvents> {
   // Transport-synced click track. Off by default and never enabled on the
   // offline render engine, so it never bleeds into a mixdown export.
   public metronome: Metronome;
+
+  // True between pressing play with a count-in and the transport actually
+  // starting (the lead-in clicks are sounding). Guards against a second start.
+  private pendingCountIn = false;
 
   zoom = 1;
 
@@ -145,6 +150,8 @@ export class Engine extends EngineBase<EngineEvents> {
     this.on('trackAdded', () => this.emit('change', this));
     this.on('trackRemoved', () => this.emit('change', this));
     this.transport.on('start', (time: number) => {
+      // The lead-in is over once the transport actually starts.
+      this.pendingCountIn = false;
       this.emit('start', time);
       this.metronome.onStart();
     });
@@ -166,6 +173,13 @@ export class Engine extends EngineBase<EngineEvents> {
   setMetronome(enabled: boolean) {
     this.metronome.setEnabled(enabled);
     this.emit('metronomeUpdated', enabled);
+  }
+
+  // Set the count-in length (bars of lead-in clicks before playback starts).
+  // Like the metronome toggle, a live-only preference (not serialized).
+  setCountIn(bars: number) {
+    this.metronome.setCountInBars(bars);
+    this.emit('countInUpdated', this.metronome.countInBars);
   }
 
   emitChange = () => this.emit('change', this);
@@ -463,6 +477,9 @@ export class Engine extends EngineBase<EngineEvents> {
   }
 
   start(time?: Time, offset?: TransportTime) {
+    // Ignore a second press while a count-in is already counting in.
+    if (this.pendingCountIn) return;
+
     this.transport.clear(this.drawInterval);
 
     this.drawInterval = this.transport.scheduleRepeat((time) => {
@@ -473,10 +490,25 @@ export class Engine extends EngineBase<EngineEvents> {
 
     start();
 
-    this.transport.start(time, offset);
+    // A count-in only applies to a plain "play from here" (no explicit start
+    // time): play N bars of lead-in clicks on the audio clock, then start the
+    // transport on the next downbeat. Programmatic starts pass a time and skip it.
+    if (time === undefined && this.metronome.countInBars > 0) {
+      const startAt = this.transport.context.now() + 0.1;
+      const playbackAt = startAt + this.metronome.playCountIn(startAt);
+      this.pendingCountIn = true;
+      this.transport.start(playbackAt, offset);
+    } else {
+      this.transport.start(time, offset);
+    }
   }
 
   stop() {
+    // Stopping during a count-in cancels the pending start and its lead-in clicks.
+    if (this.pendingCountIn) {
+      this.pendingCountIn = false;
+      this.metronome.cancelCountIn();
+    }
     this.transport.stop();
   }
 

@@ -549,9 +549,9 @@ console.log(
 );
 
 // ---------------------------------------------------------------------------
-// 6. Metronome: with every track muted, enabling the click track produces audio
-//    on the master bus; disabling it returns to silence. (The click routes into
-//    the master gain, so the meter — tapped off the limiter — sees it.)
+// 6. Metronome: with all tracks cleared, enabling the click track produces audio
+//    on the master bus; without it the bus is silent. (The click routes into the
+//    master gain, so the meter — tapped off the limiter — sees it.)
 // ---------------------------------------------------------------------------
 const metronome = await win.evaluate(async () => {
   const w = window;
@@ -579,6 +579,48 @@ const metronome = await win.evaluate(async () => {
   return { clickPeak, silentPeak, enabledAfterOn, enabledAfterOff };
 });
 console.log('[itest] metronome:', JSON.stringify(metronome));
+
+// ---------------------------------------------------------------------------
+// 7. Count-in: with a 1-bar count-in, pressing play sounds lead-in clicks while
+//    the transport stays stopped (the lead-in is scheduled on the audio clock,
+//    and the transport only starts on the downbeat after it).
+// ---------------------------------------------------------------------------
+const countIn = await win.evaluate(async () => {
+  const w = window;
+  const e = w.__engine;
+  const sleep = w.__sleep;
+
+  e.clear(); // master bus + metronome only — no track voices
+  e.transport.bpm.value = 120; // 1 bar of 4/4 = 2s
+  e.metronome.setCountInBars(1);
+  e.setMetronome(false); // the lead-in clicks regardless of the ongoing toggle
+  await sleep(200);
+
+  e.start();
+  await sleep(60);
+  // The transport hasn't started yet — the count-in is sounding.
+  const stateDuringCountIn = e.transport.state;
+
+  // Over a window shorter than the 2s lead-in, the click is audible but the
+  // transport never transitions to started.
+  let peak = 0;
+  let startedDuringLeadIn = false;
+  const t0 = Date.now();
+  while (Date.now() - t0 < 1200) {
+    const v = e.meter.getValue();
+    const lv = Array.isArray(v) ? Math.max(...v) : v;
+    if (Number.isFinite(lv) && lv > peak) peak = lv;
+    if (e.transport.state === 'started') startedDuringLeadIn = true;
+    await sleep(30);
+  }
+
+  e.stop();
+  e.metronome.setCountInBars(0);
+  await sleep(150);
+
+  return { stateDuringCountIn, countInPeak: peak, startedDuringLeadIn };
+});
+console.log('[itest] countIn:', JSON.stringify(countIn));
 
 await app.close();
 
@@ -679,6 +721,16 @@ check(
   'metronome: toggle updates enabled state',
   metronome.enabledAfterOn === true && metronome.enabledAfterOff === false,
   `on=${metronome.enabledAfterOn} off=${metronome.enabledAfterOff}`,
+);
+check(
+  'count-in: lead-in clicks sound on the master bus',
+  countIn.countInPeak > 1e-2,
+  `peak=${countIn.countInPeak?.toExponential?.(2)}`,
+);
+check(
+  'count-in: transport stays stopped through the lead-in',
+  countIn.stateDuringCountIn !== 'started' && !countIn.startedDuringLeadIn,
+  `state=${countIn.stateDuringCountIn} startedDuringLeadIn=${countIn.startedDuringLeadIn}`,
 );
 
 const failed = results.filter((r) => !r.pass);
