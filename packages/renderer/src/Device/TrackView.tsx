@@ -6,7 +6,10 @@ import { DeviceWrapper } from '../UI/DeviceWrapper';
 import { Row } from '../UI/Grid';
 import { ScreenPrintBackground } from '../UI/ScreenPrintBackground';
 import { InputLCD } from '../UI/lcdStyles';
-import { createStoreFromEventEmitter } from '../engine/EngineBase';
+import {
+  createSignalFromEventEmitter,
+  createStoreFromEventEmitter,
+} from '../engine/EngineBase';
 import { DeviceChainView } from './DeviceChainView';
 
 export const TrackView = (props: { track: Track }) => {
@@ -34,6 +37,19 @@ export const TrackView = (props: { track: Track }) => {
     () => props.track.engine,
     (engine) => engine.viewMode,
     'viewModeUpdated',
+  );
+
+  // Position of this track in the list, kept live so the move buttons disable at
+  // the ends and act on the current order.
+  const trackIndex = createSignalFromEventEmitter(
+    () => props.track.engine,
+    (engine) => engine.tracks.indexOf(props.track),
+    ['trackAdded', 'trackRemoved', 'tracksReordered'],
+  );
+  const trackCount = createSignalFromEventEmitter(
+    () => props.track.engine,
+    (engine) => engine.tracks.length,
+    ['trackAdded', 'trackRemoved'],
   );
 
   return (
@@ -86,6 +102,24 @@ export const TrackView = (props: { track: Track }) => {
               onClick={() => {
                 props.track.set({ mute: !trackState.mute });
               }}
+            />
+            <ButtonWithLabel
+              label="▲"
+              labelOnButton={true}
+              title="Move track up"
+              disabled={trackIndex() <= 0}
+              onClick={() =>
+                props.track.engine.moveTrack(trackIndex(), trackIndex() - 1)
+              }
+            />
+            <ButtonWithLabel
+              label="▼"
+              labelOnButton={true}
+              title="Move track down"
+              disabled={trackIndex() >= trackCount() - 1}
+              onClick={() =>
+                props.track.engine.moveTrack(trackIndex(), trackIndex() + 1)
+              }
             />
           </Row>
 

@@ -549,7 +549,23 @@ console.log(
 );
 
 // ---------------------------------------------------------------------------
-// 6. Metronome: with all tracks cleared, enabling the click track produces audio
+// 6. Track reorder: moveTrack() reorders the track list. Done before the
+//    metronome section clears the tracks.
+// ---------------------------------------------------------------------------
+const reorder = await win.evaluate(async () => {
+  const w = window;
+  const e = w.__engine;
+  const before = e.tracks.map((t) => t.name);
+  e.moveTrack(0, 1);
+  const afterMove = e.tracks.map((t) => t.name);
+  e.moveTrack(1, 0); // restore the original order for the sections below
+  const restored = e.tracks.map((t) => t.name);
+  return { before, afterMove, restored };
+});
+console.log('[itest] reorder:', JSON.stringify(reorder));
+
+// ---------------------------------------------------------------------------
+// 7. Metronome: with all tracks cleared, enabling the click track produces audio
 //    on the master bus; without it the bus is silent. (The click routes into the
 //    master gain, so the meter — tapped off the limiter — sees it.)
 // ---------------------------------------------------------------------------
@@ -581,7 +597,7 @@ const metronome = await win.evaluate(async () => {
 console.log('[itest] metronome:', JSON.stringify(metronome));
 
 // ---------------------------------------------------------------------------
-// 7. Count-in: with a 1-bar count-in, pressing play sounds lead-in clicks while
+// 8. Count-in: with a 1-bar count-in, pressing play sounds lead-in clicks while
 //    the transport stays stopped (the lead-in is scheduled on the audio clock,
 //    and the transport only starts on the downbeat after it).
 // ---------------------------------------------------------------------------
@@ -706,6 +722,15 @@ check(
   'scheduling: no Tone/stack errors under stress',
   schedulingErrors.length === 0,
   schedulingErrors.join(' | ') || 'clean',
+);
+check(
+  'reorder: moveTrack swaps track order and restores',
+  reorder.before.length === 2 &&
+    reorder.afterMove[0] === reorder.before[1] &&
+    reorder.afterMove[1] === reorder.before[0] &&
+    reorder.restored[0] === reorder.before[0] &&
+    reorder.restored[1] === reorder.before[1],
+  `before=${reorder.before} after=${reorder.afterMove} restored=${reorder.restored}`,
 );
 check(
   'metronome: click produces audio on master (no tracks)',

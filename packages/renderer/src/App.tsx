@@ -63,7 +63,7 @@ export function App() {
   const tracks = createSignalFromEventEmitter(
     engine,
     (engine) => engine.tracks,
-    ['trackAdded', 'trackRemoved'],
+    ['trackAdded', 'trackRemoved', 'tracksReordered'],
   );
 
   const zoom = createSignalFromEventEmitter(

@@ -49,6 +49,7 @@ type EngineEvents = {
   currentSamplerChanged: (sampler?: SamplerDevice) => void;
   trackAdded: (track: Track) => void;
   trackRemoved: (track: Track) => void;
+  tracksReordered: () => void;
   change: (engine: Engine) => void;
   start: (time?: Time, offset?: TransportTime) => void;
   stop: (time?: Time) => void;
@@ -331,6 +332,23 @@ export class Engine extends EngineBase<EngineEvents> {
 
   findTrack(predicate: (track: Track) => boolean): Track | undefined {
     return this.tracks.find(predicate);
+  }
+
+  // Reorder a track within the list (drag-/button-driven reorder in the UI).
+  // Track order is part of the serialized project, so this is a real edit —
+  // autosaved and captured by undo/redo.
+  moveTrack(fromIndex: number, toIndex: number) {
+    const count = this.tracks.length;
+    const to = Math.max(0, Math.min(count - 1, toIndex));
+    if (fromIndex < 0 || fromIndex >= count || fromIndex === to) return;
+
+    const next = [...this.tracks];
+    const [moved] = next.splice(fromIndex, 1);
+    next.splice(to, 0, moved);
+    this.tracks = next;
+
+    this.emit('tracksReordered');
+    this.emit('change', this);
   }
 
   removeTrack(track: Track) {
