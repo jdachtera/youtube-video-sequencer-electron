@@ -2,6 +2,7 @@ import { css } from '@emotion/css';
 import { ApolloProvider } from '@merged/solid-apollo';
 import { For, onCleanup, onMount, Show } from 'solid-js';
 import { Transport } from 'tone';
+import { DeviceChainView } from './Device/DeviceChainView';
 import { SamplerPanel } from './Device/SamplerPanel';
 import { TrackView } from './Device/TrackView';
 import { Downloads } from './UI/Downloads';
@@ -126,6 +127,39 @@ export function App() {
                       {(track) => <TrackView track={track} />}
                     </For>
                   </Column>
+                </Show>
+                {/* Master FX strip: effects on the whole mix, pinned below the
+                    tracks. Reuses the per-track device chain UI. */}
+                <Show when={tracks().length > 0}>
+                  <Row
+                    classList={{
+                      [css`
+                        flex: 0 0 auto;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 4px 8px;
+                        background: #2b2b2b;
+                        border-top: 1px solid rgba(0, 0, 0, 0.5);
+                      `]: true,
+                    }}
+                  >
+                    <span
+                      class={css`
+                        font-family: 'oswald';
+                        font-size: 11px;
+                        letter-spacing: 1px;
+                        text-transform: uppercase;
+                        color: #cfcfcf;
+                        white-space: nowrap;
+                      `}
+                    >
+                      Master FX
+                    </span>
+                    <DeviceChainView
+                      deviceChain={engine.masterChain}
+                      renderDummy={false}
+                    />
+                  </Row>
                 </Show>
               </Column>
             </Column>

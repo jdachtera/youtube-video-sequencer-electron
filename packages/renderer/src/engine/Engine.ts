@@ -18,6 +18,8 @@ import { Metronome } from './Metronome';
 import { MidiInput } from './MidiInput';
 import type { SerializedTrack } from './Track';
 import { Track } from './Track';
+import { DeviceChain } from './device/DeviceChain';
+import type { SerializedDeviceChain } from './device/DeviceChain';
 import type { SerializedSampler } from './device/Sampler';
 import { SamplerDevice } from './device/Sampler';
 import { SequencerDevice } from './device/Sequencer';
@@ -32,6 +34,8 @@ export type SerializedEngine = {
   swing: number;
   tracks: SerializedTrack[];
   samplers: SerializedSampler[];
+  // Effects on the master bus (between the summed tracks and the limiter).
+  master: SerializedDeviceChain;
   volume: number;
   viewMode: {
     channel: boolean;
@@ -90,6 +94,9 @@ export class Engine extends EngineBase<EngineEvents> {
   // offline render engine, so it never bleeds into a mixdown export.
   public metronome: Metronome;
 
+  // Effects on the master bus, between the summed tracks (gain) and the limiter.
+  public masterChain: DeviceChain;
+
   // True between pressing play with a count-in and the transport actually
   // starting (the lead-in clicks are sounding). Guards against a second start.
   private pendingCountIn = false;
@@ -120,6 +127,7 @@ export class Engine extends EngineBase<EngineEvents> {
       swing: parsedData.swing ?? 0,
       zoom: parsedData.zoom ?? 1,
       volume: parsedData.volume ?? 1,
+      master: DeviceChain.normalizeData(parsedData.master ?? {}),
       samplers: (parsedData.samplers ?? []).map((serializedSampler) =>
         SamplerDevice.normalizeData(serializedSampler),
       ),
@@ -161,12 +169,20 @@ export class Engine extends EngineBase<EngineEvents> {
       this.emit('stop');
       this.metronome.onStop();
     });
-    this.gain.connect(this.limiter);
+    // Master FX chain sits between the summed tracks (gain) and the brickwall
+    // limiter, so master effects process the whole mix before the limiter/meter.
+    this.masterChain = new DeviceChain(
+      this,
+      DeviceChain.normalizeData({ devices: [] }),
+    );
+    this.gain.connect(this.masterChain.input);
+    this.masterChain.output.connect(this.limiter);
     this.limiter.toDestination();
     this.limiter.connect(this.meter);
+    this.masterChain.on('change', this.emitChange);
 
-    // Route the click into the master bus (pre-limiter) so it respects master
-    // volume and registers on the master meter.
+    // Route the click into the master bus (pre-FX) so it respects master volume
+    // and registers on the master meter.
     this.metronome = new Metronome(this.transport, this.gain);
   }
 
@@ -377,6 +393,8 @@ export class Engine extends EngineBase<EngineEvents> {
     this.clear();
     this.midiInput.dispose();
     this.metronome.dispose();
+    this.masterChain.off('change', this.emitChange);
+    this.masterChain.dispose();
     this.samplers.forEach((sampler) => {
       sampler.off('change', this.emitChange);
       sampler.dispose();
@@ -461,6 +479,10 @@ export class Engine extends EngineBase<EngineEvents> {
         case 'volume':
           this.gain.gain.value = entry[1] ?? 1;
           break;
+        case 'master':
+          // Rebuild the master FX chain from the snapshot (load + undo/redo).
+          this.masterChain.set(DeviceChain.normalizeData(entry[1] ?? {}));
+          break;
         case 'viewMode':
           this.viewMode = {
             ...this.viewMode,
@@ -488,6 +510,7 @@ export class Engine extends EngineBase<EngineEvents> {
       // set(serialize()) directly without normalizeData.
       samplers: this.samplers.map((sampler) => sampler.serialize()),
       tracks: this.tracks.map((track) => track.serialize()),
+      master: this.masterChain.serialize(),
       bpm: this.transport.bpm.value,
       swing: this.transport.swing,
       zoom: this.zoom,

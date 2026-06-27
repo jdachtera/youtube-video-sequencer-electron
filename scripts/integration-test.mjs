@@ -563,6 +563,23 @@ const sliceAudition = await win.evaluate(async () => {
 });
 console.log('[itest] sliceAudition:', JSON.stringify(sliceAudition));
 
+// Master FX: a highpass on the master bus (cutoff well above the 440 Hz sine)
+// attenuates the mix — proving master effects sit in the signal path. Clearing
+// them restores the level.
+const masterFx = await win.evaluate(async () => {
+  const w = window;
+  const e = w.__engine;
+  w.__solo(1); // roll track plays the injected 440 Hz sine
+  const basePeak = await w.__measureTransportPeak(1400);
+  e.set({ master: { devices: [{ name: 'Filter', type: 'highpass' }] } });
+  const masterDeviceCount = e.masterChain.devices.length;
+  const filteredPeak = await w.__measureTransportPeak(1400);
+  e.set({ master: { devices: [] } }); // clear master FX
+  const restoredPeak = await w.__measureTransportPeak(1400);
+  return { basePeak, filteredPeak, restoredPeak, masterDeviceCount };
+});
+console.log('[itest] masterFx:', JSON.stringify(masterFx));
+
 // ---------------------------------------------------------------------------
 // 6. Track reorder: moveTrack() reorders the track list. Done before the
 //    metronome section clears the tracks.
@@ -757,6 +774,17 @@ check(
   'slice audition: play() produces audio on the master bus',
   sliceAudition.hasSlice && sliceAudition.peak > 1e-3,
   `peak=${sliceAudition.peak?.toExponential?.(2)} hasSlice=${sliceAudition.hasSlice}`,
+);
+check(
+  'master FX: chain is in the signal path (highpass attenuates the sine)',
+  masterFx.masterDeviceCount === 1 &&
+    masterFx.filteredPeak < masterFx.basePeak * 0.5,
+  `base=${masterFx.basePeak?.toExponential?.(2)} filtered=${masterFx.filteredPeak?.toExponential?.(2)} devices=${masterFx.masterDeviceCount}`,
+);
+check(
+  'master FX: clearing restores the level',
+  masterFx.restoredPeak > masterFx.filteredPeak * 1.5,
+  `restored=${masterFx.restoredPeak?.toExponential?.(2)} filtered=${masterFx.filteredPeak?.toExponential?.(2)}`,
 );
 check(
   'reorder: moveTrack swaps track order and restores',
