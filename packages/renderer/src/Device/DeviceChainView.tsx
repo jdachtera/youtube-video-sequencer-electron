@@ -1,6 +1,15 @@
 import { css } from '@emotion/css';
-import { createSignal, For, mergeProps, Show, splitProps } from 'solid-js';
+import {
+  createEffect,
+  createSignal,
+  For,
+  mergeProps,
+  onCleanup,
+  Show,
+  splitProps,
+} from 'solid-js';
 import type { JSX } from 'solid-js';
+import { Portal } from 'solid-js/web';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { DeviceWrapper, DummyDevice } from '../UI/DeviceWrapper';
 import { Column, Row } from '../UI/Grid';
@@ -41,14 +50,12 @@ const addEffectPanel = css`
   padding: 2px;
 `;
 
-// Popover menu of effects, opened by the compact "＋ FX" button. Floats over the
-// chain so it doesn't add a permanent column of buttons to every track.
+// Popover menu of effects, opened by the compact "＋ FX" button. Rendered in a
+// Portal (document.body) and fixed-positioned at the button, so it escapes any
+// ancestor overflow:hidden / position:relative clipping and lands correctly.
 const addEffectMenu = css`
-  position: absolute;
-  top: 100%;
-  left: 0;
+  position: fixed;
   z-index: 20;
-  margin-top: 2px;
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -99,7 +106,57 @@ export const DeviceChainView = (
   );
 
   // Compact "＋ FX" popover (replaces a permanent column of effect buttons).
+  // Portaled to the body and anchored to the button, so it can't be clipped by
+  // an ancestor's overflow:hidden (e.g. the scrolling track area / master strip).
   const [showAddMenu, setShowAddMenu] = createSignal(false);
+  const [menuPos, setMenuPos] = createSignal({ top: 0, left: 0 });
+  let anchorEl: HTMLDivElement | undefined;
+  let menuEl: HTMLDivElement | undefined;
+
+  // Roughly the menu's footprint (label + the effect buttons) — used to flip it
+  // above the button when there isn't room below, and to keep it on-screen.
+  const MENU_HEIGHT = 230;
+  const MENU_WIDTH = 130;
+
+  const toggleAddMenu = () => {
+    if (showAddMenu()) {
+      setShowAddMenu(false);
+      return;
+    }
+    const rect = anchorEl?.getBoundingClientRect();
+    if (rect) {
+      const openUp = rect.bottom + MENU_HEIGHT > window.innerHeight;
+      const top = openUp
+        ? Math.max(4, rect.top - MENU_HEIGHT)
+        : rect.bottom + 2;
+      const left = Math.max(
+        4,
+        Math.min(rect.left, window.innerWidth - MENU_WIDTH - 4),
+      );
+      setMenuPos({ top, left });
+    }
+    setShowAddMenu(true);
+  };
+
+  // Close on a click outside the menu/button while it's open. Deferred a tick so
+  // the click that opened it doesn't immediately close it.
+  createEffect(() => {
+    if (!showAddMenu()) return;
+    const onDocClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!menuEl?.contains(target) && !anchorEl?.contains(target)) {
+        setShowAddMenu(false);
+      }
+    };
+    const timer = setTimeout(
+      () => document.addEventListener('click', onDocClick),
+      0,
+    );
+    onCleanup(() => {
+      clearTimeout(timer);
+      document.removeEventListener('click', onDocClick);
+    });
+  });
 
   // Drag-and-drop reordering of effects.
   const [draggedIndex, setDraggedIndex] = createSignal<number | null>(null);
@@ -288,36 +345,45 @@ export const DeviceChainView = (
           </SameHeightContainer>
 
           <DeviceWrapper background="#969696" classList={{ device: true }}>
-            <div class={addEffectPanel}>
+            <div class={addEffectPanel} ref={anchorEl}>
               <ButtonWithLabel
                 label={showAddMenu() ? '✕ FX' : '＋ FX'}
                 labelOnButton
                 title="Add an effect to this track"
                 activated={showAddMenu()}
-                onClick={() => setShowAddMenu((open) => !open)}
+                onClick={toggleAddMenu}
               />
               <Show when={showAddMenu()}>
-                <div class={addEffectMenu}>
-                  <span class={addEffectMenuLabel}>Add effect</span>
-                  <For each={deviceNames}>
-                    {(name) => (
-                      <ButtonWithLabel
-                        label={`＋ ${effectLabels[name] ?? name}`}
-                        labelOnButton
-                        onClick={() => {
-                          props.deviceChain.addDevice(
-                            createDevice(
-                              props.deviceChain.engine,
-                              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                              normalizeDeviceData({ name })!,
-                            ),
-                          );
-                          setShowAddMenu(false);
-                        }}
-                      />
-                    )}
-                  </For>
-                </div>
+                <Portal>
+                  <div
+                    ref={menuEl}
+                    class={addEffectMenu}
+                    style={{
+                      top: `${menuPos().top}px`,
+                      left: `${menuPos().left}px`,
+                    }}
+                  >
+                    <span class={addEffectMenuLabel}>Add effect</span>
+                    <For each={deviceNames}>
+                      {(name) => (
+                        <ButtonWithLabel
+                          label={`＋ ${effectLabels[name] ?? name}`}
+                          labelOnButton
+                          onClick={() => {
+                            props.deviceChain.addDevice(
+                              createDevice(
+                                props.deviceChain.engine,
+                                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                                normalizeDeviceData({ name })!,
+                              ),
+                            );
+                            setShowAddMenu(false);
+                          }}
+                        />
+                      )}
+                    </For>
+                  </div>
+                </Portal>
               </Show>
             </div>
           </DeviceWrapper>
