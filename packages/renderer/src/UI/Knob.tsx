@@ -5,6 +5,7 @@ import {
   createMemo,
   createSignal,
   mergeProps,
+  onCleanup,
   splitProps,
   untrack,
 } from 'solid-js';
@@ -100,13 +101,15 @@ export const Knob = (props: KnobProps) => {
   };
 
   createEffect(() => {
-    if (isDragging()) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-    } else {
+    if (!isDragging()) return;
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    // Drop the window listeners when the drag ends (effect re-runs) or the knob
+    // unmounts mid-drag — onCleanup covers both, so they can't leak.
+    onCleanup(() => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
-    }
+    });
   });
 
   return (

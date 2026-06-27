@@ -103,7 +103,6 @@ export const FindSlicesPanel = (props: { engine: Engine }) => {
   );
 
   const fetchPage = (page: number) => {
-    console.log(page);
     return createQuery(SlicesDocument, () => ({
       variables: {
         page,
