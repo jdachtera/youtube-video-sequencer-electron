@@ -35,7 +35,6 @@ export type SerializedSlice = SerializedDeviceBase & {
 
 export type SliceEvents = {
   playingUpdated: (playing: boolean) => void;
-  currentPositionUpdated: (currentPosition: number) => void;
   load: () => void;
 } & PropertyUpdateEvents<SerializedSlice>;
 
@@ -60,10 +59,6 @@ export class Slice extends Device<SliceEvents> {
   pitch = 1;
   volume = 1;
   grainSize = 0.1;
-
-  firstFrameTime = 0;
-  lastFrameTime = 0;
-  currentPosition = 0;
 
   warpmode: SerializedSlice['warpmode'] = 'resample';
 
@@ -101,8 +96,6 @@ export class Slice extends Device<SliceEvents> {
 
     this.on('startUpdated', this.updateBuffer);
     this.on('endUpdated', this.updateBuffer);
-
-    this.engine.on('draw', this.handleDraw);
 
     // A Tone.Player, once started, plays its buffer to the end independently of
     // the transport — so without this a long sample triggered near the end of a
@@ -197,21 +190,6 @@ export class Slice extends Device<SliceEvents> {
     'grainSize',
     'volume',
   ];
-
-  handleDraw = (now: number) => {
-    // Only voices that are actually sounding need a moving playhead. Emitting a
-    // position update for every slice on every 40Hz frame is the bulk of the
-    // playback-time UI churn, and it scales with track count — so skip the ones
-    // that aren't playing.
-    if (this.player.state !== 'started') return;
-
-    this.currentPosition = now - this.firstFrameTime;
-
-    this.emit(
-      'currentPositionUpdated',
-      this.currentPosition / this.player.playbackRate,
-    );
-  };
 
   handleTransportStop = () => {
     this.stop();
@@ -409,7 +387,6 @@ export class Slice extends Device<SliceEvents> {
   dispose() {
     this.sampler.off('change', this.samplerChangeHandler);
     this.sampler.removeSlice(this);
-    this.engine.off('draw', this.handleDraw);
     this.engine.off('stop', this.handleTransportStop);
 
     this.player.stop();
@@ -441,7 +418,6 @@ export class Slice extends Device<SliceEvents> {
 
       this.player.stop(time);
       this.player.start(time);
-      this.firstFrameTime = time ?? this.player.immediate();
     } catch {
       // Tone throws if start/stop land on an identical transport time; the
       // retrigger is dropped, which is fine — no need to surface it.
