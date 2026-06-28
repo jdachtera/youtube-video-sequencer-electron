@@ -36,6 +36,7 @@ export class PingPongDelayDevice extends Device<PingPongDelayEvents> {
     delayTime: pingPongDelay.delayTime ?? 1,
     feedback: pingPongDelay.feedback ?? 0.2,
     wet: pingPongDelay.wet ?? 0.2,
+    bypass: pingPongDelay.bypass ?? false,
     color: 'violet',
   });
 
@@ -44,8 +45,7 @@ export class PingPongDelayDevice extends Device<PingPongDelayEvents> {
     serializedPingPongDelay: Partial<SerializedPingPongDelayDevice>,
   ) {
     super(engine);
-    this.input.connect(this.pingPongDelayNode);
-    this.pingPongDelayNode.connect(this.output);
+    this.connectEffect(this.pingPongDelayNode);
     this.set(serializedPingPongDelay);
 
     this.engine.on('start', this.handleTransportStart);
@@ -115,6 +115,7 @@ export class PingPongDelayDevice extends Device<PingPongDelayEvents> {
       delayTime: this.pingPongDelayNode.delayTime.value,
       feedback: this.pingPongDelayNode.feedback.value,
       wet: this.pingPongDelayNode.wet.value,
+      bypass: this.bypassed,
     };
   }
 }

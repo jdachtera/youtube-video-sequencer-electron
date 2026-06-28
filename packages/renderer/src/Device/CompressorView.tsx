@@ -20,6 +20,7 @@ export const CompressorView = (props: { compressor: CompressorDevice }) => {
           step={0.01}
           value={+compressorState.attack}
           label={'Attack'}
+          unit={'s'}
         />
         <MoogKnobWithLabel
           onChange={(release) => props.compressor.set({ release })}
@@ -28,6 +29,7 @@ export const CompressorView = (props: { compressor: CompressorDevice }) => {
           step={0.01}
           value={+compressorState.release}
           label={'Decay'}
+          unit={'s'}
         />
         <MoogKnobWithLabel
           onChange={(knee) => props.compressor.set({ knee })}
@@ -54,6 +56,7 @@ export const CompressorView = (props: { compressor: CompressorDevice }) => {
           step={0.1}
           value={+compressorState.threshold}
           label={'Threshold'}
+          unit={'dB'}
         />
       </Row>
     </Column>

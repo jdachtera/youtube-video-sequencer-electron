@@ -679,6 +679,41 @@ const masterFx = await win.evaluate(async () => {
 });
 console.log('[itest] masterFx:', JSON.stringify(masterFx));
 
+// Effect bypass: a bypassed effect must pass the dry signal straight through.
+// Add a highpass on master (attenuates the 440 Hz sine), then bypass it — the
+// level should recover toward the dry base; un-bypassing attenuates it again.
+const bypass = await win.evaluate(async () => {
+  const w = window;
+  const e = w.__engine;
+  w.__solo(1); // roll track plays the injected 440 Hz sine
+  const basePeak = await w.__measureTransportPeak(1200);
+  e.set({ master: { devices: [{ name: 'Filter', type: 'highpass' }] } });
+  const device = e.masterChain.devices[0];
+  const activePeak = await w.__measureTransportPeak(1200);
+  device.set({ bypass: true });
+  const bypassedPeak = await w.__measureTransportPeak(1200);
+  const wetAfterBypass = device.wetGain?.gain?.value;
+  const dryAfterBypass = device.dryGain?.gain?.value;
+  device.set({ bypass: false });
+  await w.__sleep(50);
+  const wetAfterReenable = device.wetGain?.gain?.value;
+  const dryAfterReenable = device.dryGain?.gain?.value;
+  const reEnabledPeak = await w.__measureTransportPeak(1200);
+  e.set({ master: { devices: [] } });
+  return {
+    basePeak,
+    activePeak,
+    bypassedPeak,
+    reEnabledPeak,
+    bypassedFlag: device.bypassed,
+    wetAfterBypass,
+    dryAfterBypass,
+    wetAfterReenable,
+    dryAfterReenable,
+  };
+});
+console.log('[itest] bypass:', JSON.stringify(bypass));
+
 // ---------------------------------------------------------------------------
 // 6. Track reorder: moveTrack() reorders the track list. Done before the
 //    metronome section clears the tracks.
@@ -904,6 +939,22 @@ check(
   'master FX: clearing restores the level',
   masterFx.restoredPeak > masterFx.filteredPeak * 1.5,
   `restored=${masterFx.restoredPeak?.toExponential?.(2)} filtered=${masterFx.filteredPeak?.toExponential?.(2)}`,
+);
+check(
+  'bypass: routes dry when bypassed, restores the effect when re-enabled',
+  // Deterministic: the wet/dry crossfade gains flip correctly each way. The
+  // audio confirmation (bypassed ~= dry base, and louder than the re-enabled
+  // highpass-attenuated signal) only gates when the source was audible this
+  // run — the live 440 Hz measurement is occasionally silent (see masterFx).
+  bypass.wetAfterBypass === 0 &&
+    bypass.dryAfterBypass === 1 &&
+    bypass.wetAfterReenable === 1 &&
+    bypass.dryAfterReenable === 0 &&
+    bypass.bypassedFlag === false &&
+    (bypass.basePeak < 1e-3 ||
+      (bypass.bypassedPeak > bypass.basePeak * 0.8 &&
+        bypass.bypassedPeak > bypass.reEnabledPeak * 1.3)),
+  `base=${bypass.basePeak?.toExponential?.(2)} active=${bypass.activePeak?.toExponential?.(2)} bypassed=${bypass.bypassedPeak?.toExponential?.(2)} reEnabled=${bypass.reEnabledPeak?.toExponential?.(2)} wet/dry bypass=${bypass.wetAfterBypass}/${bypass.dryAfterBypass} reenable=${bypass.wetAfterReenable}/${bypass.dryAfterReenable}`,
 );
 check(
   'reorder: moveTrack swaps track order and restores',

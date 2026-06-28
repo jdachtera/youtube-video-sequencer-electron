@@ -50,6 +50,7 @@ export const FilterView = (props: { filter: FilterDevice }) => {
           max={20000}
           value={filterState.frequency}
           label={'Cutoff'}
+          unit={'Hz'}
         />
         <MoogKnobWithLabel
           onChange={(resonance) => props.filter.set({ resonance })}
@@ -66,6 +67,7 @@ export const FilterView = (props: { filter: FilterDevice }) => {
           max={6000}
           value={filterState.envAmount}
           label={'Env'}
+          unit={'Hz'}
         />
         <MoogKnobWithLabel
           onChange={(attack) => props.filter.set({ attack })}
@@ -73,6 +75,7 @@ export const FilterView = (props: { filter: FilterDevice }) => {
           max={3}
           value={filterState.attack}
           label={'Attack'}
+          unit={'s'}
         />
         <MoogKnobWithLabel
           onChange={(decay) => props.filter.set({ decay })}
@@ -80,6 +83,7 @@ export const FilterView = (props: { filter: FilterDevice }) => {
           max={8}
           value={filterState.decay}
           label={'Decay'}
+          unit={'s'}
         />
         <MoogKnobWithLabel
           onChange={(sustain) => props.filter.set({ sustain })}

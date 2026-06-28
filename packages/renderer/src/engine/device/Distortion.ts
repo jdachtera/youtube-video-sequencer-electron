@@ -26,6 +26,7 @@ export class DistortionDevice extends Device<DistortionDeviceEvents> {
     inputGain: distortion.inputGain ?? 1,
     volume: distortion.volume ?? 1,
     distortion: distortion.distortion ?? 0.1,
+    bypass: distortion.bypass ?? false,
     color: 'yellow',
   });
 
@@ -34,8 +35,7 @@ export class DistortionDevice extends Device<DistortionDeviceEvents> {
     serializedDistortion: Partial<SerializedDistortionDevice>,
   ) {
     super(engine);
-    this.input.connect(this.distortionNode);
-    this.distortionNode.connect(this.output);
+    this.connectEffect(this.distortionNode);
     this.set(serializedDistortion);
   }
 
@@ -72,6 +72,7 @@ export class DistortionDevice extends Device<DistortionDeviceEvents> {
       volume: this.output.gain.value,
       inputGain: this.input.gain.value,
       distortion: this.distortionNode.distortion,
+      bypass: this.bypassed,
     };
   }
 }

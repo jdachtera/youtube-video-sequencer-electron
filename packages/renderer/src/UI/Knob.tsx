@@ -252,16 +252,40 @@ const MoogKnob = (
   );
 };
 
+// Default numeric formatting for the value readout: fewer decimals as the
+// magnitude grows, so a 12000 Hz cutoff and a 0.25 ratio both read cleanly.
+const formatKnobValue = (value: number): string => {
+  if (!Number.isFinite(value)) return '—';
+  const magnitude = Math.abs(value);
+  if (magnitude >= 100) return value.toFixed(0);
+  if (magnitude >= 10) return value.toFixed(1);
+  return value.toFixed(2);
+};
+
 export const MoogKnobWithLabel = (
   props: Omit<KnobProps, 'image' | 'size'> & {
     label?: JSXElement;
     size?: number;
+    // Optional unit shown after the value (e.g. 'Hz', 's', 'dB').
+    unit?: string;
+    // Optional custom formatter for the value readout.
+    format?: (value: number) => string;
   },
 ) => {
   const theme = useAppTheme();
-  const [ownProps, knobProps] = splitProps(props, ['size', 'label']);
+  const [ownProps, knobProps] = splitProps(props, [
+    'size',
+    'label',
+    'unit',
+    'format',
+  ]);
 
   const size = createMemo(() => ownProps.size ?? theme.sizes.knobSize);
+
+  const formatted = () =>
+    (ownProps.format ?? formatKnobValue)(props.value ?? 0);
+  const display = () =>
+    ownProps.unit ? `${formatted()} ${ownProps.unit}` : formatted();
 
   return (
     <div
@@ -289,29 +313,42 @@ export const MoogKnobWithLabel = (
       >
         <MoogKnob {...knobProps} image={MoogKnobSvg} size={size()} />
       </div>
-      {/*
-      <input
-        type="number"
-        value={props.value}
-        min={props.min ?? 0}
-        max={props.max ?? 10}
-        step={props.step}
-        onInput={(event) => {
-          knobProps.onChange(+event.currentTarget.value);
-        }}
+      {/* Current value readout. */}
+      <div
+        title={`${props.label ?? ''}: ${display()} (${formatKnobValue(
+          props.min ?? 0,
+        )} – ${formatKnobValue(props.max ?? 10)})`}
         class={css`
-          display: block;
           background: ${theme.colors.lcdBackground};
           color: ${theme.colors.lcdText};
-          border: ${size() / 50}px ${theme.colors.lcdBorder} solid;
-          border-radius: ${theme.sizes.labelBorderRadius};
+          font-family: ${theme.fonts.lcdFont};
+          font-size: ${Math.max(9, size() / 5)}px;
+          line-height: 1.2;
           text-align: center;
+          border-radius: ${theme.sizes.labelBorderRadius};
+          padding: 0 4px;
+          min-width: ${size()}px;
+          box-sizing: border-box;
+          white-space: nowrap;
+        `}
+      >
+        {display()}
+      </div>
+      {/* Min/max scale hints. */}
+      <div
+        class={css`
+          display: flex;
+          justify-content: space-between;
           width: ${size()}px;
-          font-size: ${size() / 5}px;
+          font-size: ${Math.max(7, size() / 7)}px;
+          opacity: 0.6;
+          color: ${theme.colors.lcdText};
           font-family: ${theme.fonts.lcdFont};
         `}
-      />
-      */}
+      >
+        <span>{formatKnobValue(props.min ?? 0)}</span>
+        <span>{formatKnobValue(props.max ?? 10)}</span>
+      </div>
     </div>
   );
 };
