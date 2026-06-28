@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { batch, createUniqueId } from 'solid-js';
+import { batch } from 'solid-js';
 import { GrainPlayer, Player } from 'tone';
 import { debounce } from 'ts-debounce';
 import type { Engine } from '../Engine';
 import type { PropertyUpdateEvents } from '../helpers';
-import { entries, randomColor } from '../helpers';
+import { entries, randomColor, uniqueId } from '../helpers';
 import type { DeepPartial } from '../types';
 import type { SerializedDeviceBase } from './Device';
 import { Device } from './Device';
@@ -70,7 +70,7 @@ export class Slice extends Device<SliceEvents> {
     name: 'Slice',
     title: slice.title ?? '',
     inputGain: slice.inputGain ?? 1,
-    id: slice.id && slice.id !== '' ? slice.id : createUniqueId(),
+    id: slice.id && slice.id !== '' ? slice.id : uniqueId(),
     samplerId: slice.samplerId ?? '',
     url: slice.url ?? '',
     collapsed: slice.collapsed ?? false,

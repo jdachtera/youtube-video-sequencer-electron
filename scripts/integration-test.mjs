@@ -577,6 +577,43 @@ const sliceAudition = await win.evaluate(async () => {
 });
 console.log('[itest] sliceAudition:', JSON.stringify(sliceAudition));
 
+// Sampler ids must be globally unique so a freshly added sample never collides
+// with one restored from a saved project — a collision made findSampler resolve
+// to the wrong device (wrong sound / "edit" opening the wrong sampler). A new
+// slice must bind to its own sampler. Use a distinguishable buffer length.
+const sampleIds = await win.evaluate(async () => {
+  const w = window;
+  const e = w.__engine;
+  const ctx = e.gain.context.rawContext;
+  const sr = ctx.sampleRate;
+  const a = e.createSample({ title: 'A', url: 'a' });
+  const b = e.createSample({ title: 'B', url: 'b' });
+  const ab = ctx.createBuffer(1, Math.floor(sr * 1), sr); // 1s, vs s0's 2s
+  b.buffer.set(ab);
+  b._hasLoaded = true;
+  await e.hasLoaded();
+  e.createSliceTrack({ name: 'Slice', samplerId: b.id });
+  const newTrack = e.tracks[e.tracks.length - 1];
+  const slice = newTrack.chain.devices.find((d) => d.name === 'Slice');
+  await w.__sleep(120);
+  if (slice?.hasLoaded) await slice.hasLoaded();
+  const result = {
+    idA: a.id,
+    idB: b.id,
+    distinct: a.id !== b.id,
+    notCounter: !/^cl-\d+$/.test(a.id) && !/^cl-\d+$/.test(b.id),
+    boundIsB: slice?.sampler === b,
+    bufferDuration: slice?.player?.buffer?.duration,
+    bDur: b.buffer.duration,
+  };
+  e.stop();
+  e.removeTrack(newTrack);
+  e.removeSample(a);
+  e.removeSample(b);
+  return result;
+});
+console.log('[itest] sampleIds:', JSON.stringify(sampleIds));
+
 // Master FX: a highpass on the master bus (cutoff well above the 440 Hz sine)
 // attenuates the mix — proving master effects sit in the signal path. Clearing
 // them restores the level.
@@ -793,6 +830,16 @@ check(
   'slice audition: play() produces audio on the master bus',
   sliceAudition.hasSlice && sliceAudition.peak > 1e-3,
   `peak=${sliceAudition.peak?.toExponential?.(2)} hasSlice=${sliceAudition.hasSlice}`,
+);
+check(
+  'sampler ids are globally unique (uuid, not the session counter)',
+  sampleIds.distinct && sampleIds.notCounter,
+  `a=${sampleIds.idA} b=${sampleIds.idB}`,
+);
+check(
+  'new slice binds to its own sampler (not a colliding one)',
+  sampleIds.boundIsB && sampleIds.bufferDuration === sampleIds.bDur,
+  `boundIsB=${sampleIds.boundIsB} dur=${sampleIds.bufferDuration}/${sampleIds.bDur}`,
 );
 check(
   'master FX: chain is in the signal path (highpass attenuates the sine)',

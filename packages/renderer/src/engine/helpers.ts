@@ -43,6 +43,18 @@ export const exportBuffer = async (
   fileSaver.saveAs(encodedWave, fileName);
 };
 
+// A globally-unique id. Solid's createUniqueId() uses a module-global counter
+// that resets to 0 on every page load, so ids generated in a new session
+// (e.g. for a freshly added sample) collide with ids restored from a saved
+// project — and findSampler()/findSlice() then resolve to the wrong device.
+// crypto.randomUUID() never collides across sessions.
+export const uniqueId = (): string =>
+  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `id-${Date.now().toString(36)}-${Math.random()
+        .toString(36)
+        .slice(2, 10)}`;
+
 export function randomColor() {
   const randR = Math.floor(Math.random() * (255 - 0 + 1) + 0);
   const randG = Math.floor(Math.random() * (255 - 0 + 1) + 0);

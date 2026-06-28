@@ -1,10 +1,10 @@
-import { batch, createUniqueId } from 'solid-js';
+import { batch } from 'solid-js';
 import { getContext, Player, ToneAudioBuffer } from 'tone';
 import { notify } from '../../notifications';
 import type { Engine } from '../Engine';
 import { EngineBase } from '../EngineBase';
 import type { PropertyUpdateEvents } from '../helpers';
-import { entries, fetchSliceUrlInfo, randomColor } from '../helpers';
+import { entries, fetchSliceUrlInfo, randomColor, uniqueId } from '../helpers';
 import { loadFileAsBuffer, resolveFileUrl } from '../localFile';
 import type { DeepPartial } from '../types';
 import type { Device } from './Device';
@@ -89,7 +89,7 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
   ): SerializedSampler => ({
     name: 'Sampler',
 
-    id: sampler.id && sampler.id !== '' ? sampler.id : createUniqueId(),
+    id: sampler.id && sampler.id !== '' ? sampler.id : uniqueId(),
     title: sampler.title ?? '',
     url: sampler.url ?? '',
     cover: sampler.cover ?? '',
