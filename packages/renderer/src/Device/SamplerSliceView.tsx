@@ -74,7 +74,7 @@ export const SamplerSliceView = (props: { slice: Slice }) => {
   // Click the waveform to audition the slice through its own effect chain. A
   // click is a user gesture, so resume the audio context first (no-op if the
   // context is already running).
-  const playSlice = () => void startAudio().then(() => props.slice.play());
+  const playSlice = () => void startAudio().then(() => props.slice.audition());
 
   return (
     <Column>

@@ -41,8 +41,15 @@ export const MasterMeter = (props: { engine: Engine }) => {
 
   let frame = 0;
   let clipUntil = 0;
+  let lastTick = 0;
 
-  const tick = () => {
+  const tick = (now: number) => {
+    frame = requestAnimationFrame(tick);
+    // ~30 fps is plenty for a level meter and halves the per-frame repaint /
+    // compositing cost vs. running on every animation frame.
+    if (now - lastTick < 33) return;
+    lastTick = now;
+
     const value = props.engine.meter.getValue();
     const normalized = Array.isArray(value) ? Math.max(...value) : value;
     const next = Math.max(0, Math.min(1, normalized || 0));
@@ -51,12 +58,9 @@ export const MasterMeter = (props: { engine: Engine }) => {
     // — never via css`` — so we don't serialize a new emotion class every frame.
     if (Math.abs(next - level()) > 0.001) setLevel(next);
 
-    const now = performance.now();
     if (props.engine.limiter.reduction < -0.3) clipUntil = now + 600;
     const isClipping = now < clipUntil;
     if (isClipping !== clipping()) setClipping(isClipping);
-
-    frame = requestAnimationFrame(tick);
   };
 
   onMount(() => {

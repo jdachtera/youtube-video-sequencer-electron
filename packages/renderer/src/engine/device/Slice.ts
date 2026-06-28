@@ -418,6 +418,11 @@ export class Slice extends Device<SliceEvents> {
     this.removeAllListeners();
   }
 
+  // Trigger the slice's audio. Called once per sequencer step, so it must stay
+  // cheap and side-effect-free in the UI: it deliberately does NOT emit
+  // 'playingUpdated'. Driving the per-slice waveform playhead/ring from here
+  // re-animated and repainted every visible clip on every step — a major source
+  // of idle/playback CPU. Manual auditions go through audition() instead.
   play(time?: number) {
     if (!this.player.buffer.loaded) return;
 
@@ -441,7 +446,13 @@ export class Slice extends Device<SliceEvents> {
       // Tone throws if start/stop land on an identical transport time; the
       // retrigger is dropped, which is fine — no need to surface it.
     }
+  }
 
+  // A deliberate, one-shot audition (clicking a clip's waveform). Unlike the
+  // per-step play(), this drives the waveform's playhead + progress ring + stop
+  // button — fine because it happens at most a few times, not 16×/bar/track.
+  audition(time?: number) {
+    this.play(time);
     requestAnimationFrame(() => this.emit('playingUpdated', true));
   }
 }
