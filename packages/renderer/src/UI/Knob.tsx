@@ -5,6 +5,8 @@ import {
   createMemo,
   createSignal,
   mergeProps,
+  onCleanup,
+  Show,
   splitProps,
   untrack,
 } from 'solid-js';
@@ -100,13 +102,15 @@ export const Knob = (props: KnobProps) => {
   };
 
   createEffect(() => {
-    if (isDragging()) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-    } else {
+    if (!isDragging()) return;
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    // Drop the window listeners when the drag ends (effect re-runs) or the knob
+    // unmounts mid-drag — onCleanup covers both, so they can't leak.
+    onCleanup(() => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
-    }
+    });
   });
 
   return (
@@ -188,7 +192,11 @@ export const Knob = (props: KnobProps) => {
                 rgba(191, 191, 191, 1) 100%
               );
               //background-image: conic-gradient(#eee, #ddd, #aaa, #eee, #ddd, #aaa, #eee);
-              z-index: 999;
+              /* Sits above the knob image (an earlier sibling). Keep it low: the
+                 knob's container isn't a stacking context, so a high z-index would
+                 leak out and cover menus/popovers (e.g. the z-index 20 "Add
+                 effect" popover over a device's knobs). */
+              z-index: 1;
               //width: 48px;
               //height: 48px;
               width: 55%;
@@ -245,16 +253,51 @@ const MoogKnob = (
   );
 };
 
+// Default numeric formatting for the value readout: fewer decimals as the
+// magnitude grows, so a 12000 Hz cutoff and a 0.25 ratio both read cleanly.
+const formatKnobValue = (value: number): string => {
+  if (!Number.isFinite(value)) return '—';
+  const magnitude = Math.abs(value);
+  if (magnitude >= 100) return value.toFixed(0);
+  if (magnitude >= 10) return value.toFixed(1);
+  return value.toFixed(2);
+};
+
 export const MoogKnobWithLabel = (
   props: Omit<KnobProps, 'image' | 'size'> & {
     label?: JSXElement;
     size?: number;
+    // Optional unit shown after the value (e.g. 'Hz', 's', 'dB').
+    unit?: string;
+    // Optional custom formatter for the value readout.
+    format?: (value: number) => string;
   },
 ) => {
   const theme = useAppTheme();
-  const [ownProps, knobProps] = splitProps(props, ['size', 'label']);
+  const [ownProps, knobProps] = splitProps(props, [
+    'size',
+    'label',
+    'unit',
+    'format',
+  ]);
 
   const size = createMemo(() => ownProps.size ?? theme.sizes.knobSize);
+
+  const formatted = () =>
+    (ownProps.format ?? formatKnobValue)(props.value ?? 0);
+
+  // Click the readout to type an exact value. While editing we show the raw
+  // draft; otherwise the formatted current value (which tracks knob drags).
+  const [editing, setEditing] = createSignal(false);
+  const [draft, setDraft] = createSignal('');
+
+  const commit = () => {
+    setEditing(false);
+    const parsed = Number.parseFloat(draft());
+    if (!Number.isFinite(parsed)) return;
+    const clamped = Math.max(props.min ?? 0, Math.min(props.max ?? 10, parsed));
+    props.onChange(clamped);
+  };
 
   return (
     <div
@@ -282,29 +325,85 @@ export const MoogKnobWithLabel = (
       >
         <MoogKnob {...knobProps} image={MoogKnobSvg} size={size()} />
       </div>
-      {/*
-      <input
-        type="number"
-        value={props.value}
-        min={props.min ?? 0}
-        max={props.max ?? 10}
-        step={props.step}
-        onInput={(event) => {
-          knobProps.onChange(+event.currentTarget.value);
-        }}
+      {/* Current value readout — click to type an exact value. */}
+      <div
+        title={`${props.label ?? ''} — click to type a value (${formatKnobValue(
+          props.min ?? 0,
+        )} – ${formatKnobValue(props.max ?? 10)})`}
         class={css`
-          display: block;
+          display: flex;
+          align-items: baseline;
+          justify-content: center;
+          gap: 2px;
           background: ${theme.colors.lcdBackground};
           color: ${theme.colors.lcdText};
-          border: ${size() / 50}px ${theme.colors.lcdBorder} solid;
+          font-family: ${theme.fonts.lcdFont};
+          font-size: ${Math.max(9, size() / 5)}px;
+          line-height: 1.2;
           border-radius: ${theme.sizes.labelBorderRadius};
-          text-align: center;
+          padding: 0 4px;
+          min-width: ${size()}px;
+          box-sizing: border-box;
+          white-space: nowrap;
+        `}
+      >
+        <input
+          type="text"
+          inputmode="decimal"
+          value={editing() ? draft() : formatted()}
+          onFocus={(event) => {
+            setDraft(String(props.value ?? 0));
+            setEditing(true);
+            event.currentTarget.select();
+          }}
+          onInput={(event) => setDraft(event.currentTarget.value)}
+          onBlur={commit}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.currentTarget.blur();
+            } else if (event.key === 'Escape') {
+              setEditing(false);
+              event.currentTarget.blur();
+            }
+          }}
+          class={css`
+            width: 100%;
+            min-width: 0;
+            background: transparent;
+            border: none;
+            outline: none;
+            text-align: center;
+            color: inherit;
+            font: inherit;
+            padding: 0;
+            cursor: text;
+          `}
+        />
+        <Show when={ownProps.unit}>
+          <span
+            class={css`
+              opacity: 0.7;
+            `}
+          >
+            {ownProps.unit}
+          </span>
+        </Show>
+      </div>
+      {/* Min/max scale hints. */}
+      <div
+        class={css`
+          display: flex;
+          justify-content: space-between;
           width: ${size()}px;
-          font-size: ${size() / 5}px;
+          font-size: ${Math.max(7, size() / 7)}px;
+          opacity: 0.6;
+          color: ${theme.colors.lcdText};
           font-family: ${theme.fonts.lcdFont};
         `}
-      />
-      */}
+      >
+        <span>{formatKnobValue(props.min ?? 0)}</span>
+        <span>{formatKnobValue(props.max ?? 10)}</span>
+      </div>
     </div>
   );
 };

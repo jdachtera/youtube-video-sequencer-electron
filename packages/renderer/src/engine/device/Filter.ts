@@ -58,6 +58,7 @@ export class FilterDevice extends Device<FilterDeviceEvents> {
     decay: filter.decay ?? 0.3,
     release: filter.release ?? 0.1,
     sustain: filter.sustain ?? 0,
+    bypass: filter.bypass ?? false,
     color: 'cyan',
   });
 
@@ -66,8 +67,7 @@ export class FilterDevice extends Device<FilterDeviceEvents> {
     serializedFilter: Partial<SerializedFilterDevice>,
   ) {
     super(engine);
-    this.input.connect(this.filterNode);
-    this.filterNode.connect(this.output);
+    this.connectEffect(this.filterNode);
     this.frequencyAccumulator.connect(this.filterNode.frequency);
     this.envelopeScale.connect(this.frequencyAccumulator);
 
@@ -144,6 +144,7 @@ export class FilterDevice extends Device<FilterDeviceEvents> {
       decay: Time(this.envelope.decay).toSeconds(),
       sustain: this.envelope.sustain,
       release: Time(this.envelope.release).toSeconds(),
+      bypass: this.bypassed,
     };
   }
 }

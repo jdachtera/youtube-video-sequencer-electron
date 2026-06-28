@@ -81,6 +81,40 @@ export const AppMenu = (props: { engine: Engine }) => {
     }
   };
 
+  const exportStems = async () => {
+    const total = props.engine.tracks.length;
+    if (!total) {
+      notify('No tracks to export.', 'error');
+      return;
+    }
+    try {
+      notify(`Rendering ${total} stem${total === 1 ? '' : 's'}…`);
+      const length = props.engine.getMaxSequenceLength();
+      const stems = await props.engine.renderStems(length);
+      // Per-track WAVs, de-duplicating identical/empty track names.
+      const used = new Set<string>();
+      stems.forEach(({ name, buffer }, index) => {
+        const base = (name || `track-${index + 1}`).replace(
+          /[^a-z0-9._-]+/gi,
+          '_',
+        );
+        let fileName = `${base}.wav`;
+        let suffix = 2;
+        while (used.has(fileName)) fileName = `${base}-${suffix++}.wav`;
+        used.add(fileName);
+        void exportBuffer(buffer, fileName, () => undefined);
+      });
+      notify(`Exported ${stems.length} stem${stems.length === 1 ? '' : 's'}.`);
+    } catch (error) {
+      notify(
+        `Stem export failed: ${
+          error instanceof Error ? error.message : 'unknown error'
+        }`,
+        'error',
+      );
+    }
+  };
+
   const clearAll = () => {
     if (
       window.confirm(
@@ -107,6 +141,7 @@ export const AppMenu = (props: { engine: Engine }) => {
     import: importJSON,
     export: exportJSON,
     mixdown: () => void mixdown(),
+    stems: () => void exportStems(),
     clear: clearAll,
     undo: history.undo,
     redo: history.redo,
@@ -170,6 +205,7 @@ export const AppMenu = (props: { engine: Engine }) => {
           registerAccelerator: false,
         },
         { id: 'mixdown', label: 'Mixdown to WAV…' },
+        { id: 'stems', label: 'Export Stems (WAV)…' },
         { type: 'separator' },
         { id: 'clear', label: 'Clear All' },
         ...(isMac ? [] : [{ type: 'separator' as const }, { role: 'quit' }]),

@@ -19,6 +19,7 @@ export const PingPongDelayView = (props: {
         max={5}
         value={+pingPongDelayState.delayTime}
         label={'Delay Time'}
+        unit={'s'}
       />
       <MoogKnobWithLabel
         onChange={(feedback) => props.pingPongDelay.set({ feedback })}

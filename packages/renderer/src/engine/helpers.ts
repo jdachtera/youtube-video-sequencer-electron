@@ -43,6 +43,18 @@ export const exportBuffer = async (
   fileSaver.saveAs(encodedWave, fileName);
 };
 
+// A globally-unique id. Solid's createUniqueId() uses a module-global counter
+// that resets to 0 on every page load, so ids generated in a new session
+// (e.g. for a freshly added sample) collide with ids restored from a saved
+// project — and findSampler()/findSlice() then resolve to the wrong device.
+// crypto.randomUUID() never collides across sessions.
+export const uniqueId = (): string =>
+  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `id-${Date.now().toString(36)}-${Math.random()
+        .toString(36)
+        .slice(2, 10)}`;
+
 export function randomColor() {
   const randR = Math.floor(Math.random() * (255 - 0 + 1) + 0);
   const randG = Math.floor(Math.random() * (255 - 0 + 1) + 0);
@@ -53,19 +65,25 @@ export function randomColor() {
 
 export async function fetchSliceUrlInfo(url: string) {
   if (url.includes('youtube.com')) {
-    // The title is best-effort metadata. youtubei.js can fail (YouTube keeps
+    // Kick off the audio download IMMEDIATELY (before awaiting metadata) so the
+    // "Downloading audio…" indicator appears right away. The title/cover are
+    // best-effort metadata: youtubei.js can be slow or fail (YouTube keeps
     // changing its InnerTube endpoints — e.g. a 400 from /youtubei/v1/config),
-    // so never let it block the actual audio download, which goes through the
-    // separate yt-dlp path.
+    // and awaiting it first made the download look like it took a while to
+    // "kick in". The audio itself comes from the separate yt-dlp path.
+    const bufferPromise = window.yt.fetchVideo(url);
+
     let title = '';
+    let cover = '';
     try {
       const result = await window.yt.getInfo(url);
       title = result?.basic_info?.title ?? '';
+      cover = result?.basic_info?.thumbnail ?? '';
     } catch {
       // Ignore: fall back to a title derived from the URL below.
     }
 
-    const buffer = await window.yt.fetchVideo(url);
+    const buffer = await bufferPromise;
 
     if (!buffer) throw new Error('Download failed');
 
@@ -79,6 +97,7 @@ export async function fetchSliceUrlInfo(url: string) {
 
     return {
       title,
+      cover,
       buffer,
     };
   }
@@ -86,8 +105,8 @@ export async function fetchSliceUrlInfo(url: string) {
   if (url.startsWith('http://file.local')) {
     const title = url.split('/').pop()!.split('.').slice(0, -1).join('.');
 
-    return { sourceUrl: url, title };
+    return { sourceUrl: url, title, cover: '' };
   }
 
-  return { sourceUrl: url, title: '' };
+  return { sourceUrl: url, title: '', cover: '' };
 }

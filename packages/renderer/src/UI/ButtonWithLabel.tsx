@@ -34,7 +34,7 @@ export const ButtonWithLabel = (
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 5px;
+          padding: 2px;
         `]: true,
         ...buttonProps.classList,
       }}
@@ -57,13 +57,13 @@ export const ButtonWithLabel = (
               [css`
                 cursor: pointer;
                 border: 1px solid rgba(0, 0, 0, 0.3);
-                padding: 4px 9px;
+                padding: 3px 8px;
                 border-radius: 3px;
                 background: linear-gradient(180deg, #fbfbfb, #dcdcdc);
                 box-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
                 font-family: 'oswald';
                 font-weight: bold;
-                font-size: 14px;
+                font-size: 13px;
                 font-variant: small-caps;
                 transition: box-shadow 0.1s ease, background 0.1s ease;
                 &:hover {

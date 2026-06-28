@@ -57,7 +57,11 @@ export const DeviceWrapper = (
       >
         {props.children}
       </div>
-      <RackEar onClick={(event) => props.onClickRightRackEar?.(event)} />
+      <RackEar
+        variant="delete"
+        title="Remove device"
+        onClick={(event) => props.onClickRightRackEar?.(event)}
+      />
     </div>
   );
 };

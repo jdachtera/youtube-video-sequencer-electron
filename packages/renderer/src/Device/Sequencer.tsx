@@ -13,7 +13,6 @@ import {
   For,
 } from 'solid-js';
 import type { DeepReadonly } from 'solid-js/store';
-import { Time } from 'tone';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { Row } from '../UI/Grid';
 import { NumberInputWithArrowButtons } from '../UI/NumberInputWithArrowButtons';
@@ -36,13 +35,13 @@ export const Sequencer = (
     steps: DeepReadonly<Step[]>;
     sequencer: SequencerDevice;
     mode: SequencerMode;
-    onChange: (steps: Step[]) => void;
+    onStepChange: (index: number, step: Step) => void;
   },
 ) => {
   const [ownProps, ulProps] = splitProps(propsWithoutDefaults, [
     'steps',
     'sequencer',
-    'onChange',
+    'onStepChange',
     'mode',
   ]);
   const props = mergeProps(
@@ -85,14 +84,11 @@ export const Sequencer = (
 
   const handleStepChanged = (step: Step, newStep: Step) => {
     const stepIndex = props.steps.indexOf(step);
-
-    const newSteps = [
-      ...props.steps.slice(0, stepIndex),
-      newStep,
-      ...props.steps.slice(stepIndex + 1),
-    ];
+    if (stepIndex < 0) return;
     setSelectedStep(newStep);
-    props.onChange(newSteps);
+    // The grid is a quantized view of the pattern's notes; report the edited
+    // cell so the pattern can mutate the underlying note (add/remove/update).
+    props.onStepChange(stepIndex, newStep);
   };
 
   return (
@@ -122,9 +118,13 @@ export const Sequencer = (
           ...ulProps.classList,
           [css`
             border-radius: 4px;
-            padding: 10px;
-            width: ${44 * 16}px;
+            padding: 4px 8px;
+            width: ${31 * 16}px;
             background: none;
+            /* Collapse inline-block line-box whitespace so a single row of
+               steps is only as tall as the steps themselves. */
+            font-size: 0;
+            line-height: 0;
           `]: true,
         }}
       >
@@ -247,14 +247,11 @@ const PatternSelector = (props: { sequencer: SequencerDevice }) => {
                     labelOnButton={true}
                     onClick={(event) => {
                       event.preventDefault();
+                      // Cue at the next launch-grid boundary (global transport
+                      // quantization); undefined when stopped -> starts from top.
                       props.sequencer.cuePattern(
                         index(),
-
-                        Time(
-                          Time(pattern.engine.transport.position).quantize(
-                            '1n',
-                          ),
-                        ).toBarsBeatsSixteenths(),
+                        pattern.engine.launchTime(),
                       );
 
                       if (pattern.engine.transport.state !== 'started') {

@@ -35,6 +35,7 @@ export class ReverbDevice extends Device<ReverbDeviceEvents> {
     decay: reverb.decay ?? 2,
     preDelay: reverb.preDelay ?? 0.2,
     wet: reverb.wet ?? 0.2,
+    bypass: reverb.bypass ?? false,
     color: 'blue',
   });
 
@@ -43,8 +44,7 @@ export class ReverbDevice extends Device<ReverbDeviceEvents> {
     serializedReverb: Partial<SerializedReverbDevice>,
   ) {
     super(engine);
-    this.input.connect(this.reverbNode);
-    this.reverbNode.connect(this.output);
+    this.connectEffect(this.reverbNode);
     this.set(serializedReverb);
 
     this.engine.on('start', this.handleTransportStart);
@@ -111,6 +111,7 @@ export class ReverbDevice extends Device<ReverbDeviceEvents> {
       decay: Time(this.reverbNode.decay).toSeconds(),
       preDelay: Time(this.reverbNode.preDelay).toSeconds(),
       wet: this.reverbNode.wet.value,
+      bypass: this.bypassed,
     };
   }
 }

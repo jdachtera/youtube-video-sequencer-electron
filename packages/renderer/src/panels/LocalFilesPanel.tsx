@@ -269,7 +269,10 @@ export const LocalFilesPanel = (props: { engine: Engine }) => {
                       setSelectedResult(item);
                     }}
                     onAdd={() => {
-                      const sampler = props.engine.getOrCreateSampler(item.url);
+                      const sampler = props.engine.createSample({
+                        url: item.url,
+                        title: item.name,
+                      });
                       props.engine.setCurrentSampler(sampler);
                     }}
                   />

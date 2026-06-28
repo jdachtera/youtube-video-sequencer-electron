@@ -42,10 +42,28 @@ pnpm typecheck      # tsc --noEmit across all packages
 pnpm lint           # eslint (gates on errors; warnings are tolerated)
 pnpm test           # unit tests (vitest, passWithNoTests) + e2e build
 pnpm compile        # production build + electron-builder --dir (local debug build)
+pnpm integration-test  # headless audio + MIDI + scheduling harness (see Testing)
 ```
 
 The Release CI (`.github/workflows/release.yml`) runs `pnpm install --frozen-lockfile`
 then `pnpm build`, so keep `pnpm-lock.yaml` in sync and the build green.
+
+## Testing
+
+- **`pnpm integration-test`** (`scripts/integration-test.mjs`) is the end-to-end
+  audio harness: it builds with `VITE_EXPOSE_ENGINE` (exposes `window.__engine`),
+  launches the app under Xvfb, injects a synth sine into the samplers, and
+  asserts on what comes out of the master bus (sound, pitch, automation, mocked
+  Web MIDI, scheduling, track/device reorder, metronome + count-in, slice
+  audition, master FX). Fully offline. Audio analysis uses a **live**
+  `AnalyserNode` + the master `Meter`, **not** `engine.renderToBuffer` — the
+  offline render rebuilds from `serialize()` and can't see the injected buffers,
+  so anything that needs to _hear_ injected audio must use the live context.
+  It's wired into CI as **`.github/workflows/integration-test.yml`** but
+  **manual-only** (`workflow_dispatch`) to save Actions minutes — run it locally
+  or dispatch it from the Actions tab.
+- `pnpm test:renderer` runs the vitest unit tests (pure logic — pattern ops,
+  randomize, tap tempo). `pnpm test:e2e` builds + runs the Playwright UI specs.
 
 ## Toolchain notes / gotchas
 
@@ -60,6 +78,18 @@ then `pnpm build`, so keep `pnpm-lock.yaml` in sync and the build green.
   builds a `.app`/`.dmg`/`.zip` for arm64 + x64; first launch needs right-click →
   Open to clear Gatekeeper. Distribution needs an Apple Developer ID + notarization.
   electron-builder must run on macOS to produce Mac artifacts.
+
+- **The `solid-pianoroll` / `solid-waveform` git deps build differently on
+  install.** `solid-pianoroll` builds on install via its own `prepare: tsup`
+  (works). `solid-waveform` ships a **committed prebuilt `dist` with no
+  `prepare`** — do NOT re-add a build-on-install script: `rollup-preset-solid`'s
+  per-file `source` target intermittently drops a module in CI (e.g.
+  `createCachedWaveformPeaks`), producing an incomplete `dist/source` that breaks
+  the renderer build (`Could not resolve ./createCachedWaveformPeaks`). When you
+  change `solid-waveform`'s source, rebuild it (`rollup -c`) and commit its
+  `dist`. Both are consumed from the `claude/funny-cerf-wbzop2` branch; after
+  pushing a lib change, run `pnpm update <pkg>` in the app to bump the pinned
+  commit, and verify `pnpm build:renderer`.
 
 - **Build toolchain is Vite 6 / Rollup 4 / esbuild 0.25 / Vitest 3.** This
   matters for `youtubei.js`: v17 imports its `package.json` with the newer

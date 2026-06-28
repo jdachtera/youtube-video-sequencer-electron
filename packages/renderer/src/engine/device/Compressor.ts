@@ -34,6 +34,7 @@ export class CompressorDevice extends Device<CompressorDeviceEvents> {
     knee: compressor.knee ?? 0.3,
     ratio: compressor.ratio ?? 1,
     threshold: compressor.threshold ?? -10,
+    bypass: compressor.bypass ?? false,
     color: 'green',
   });
 
@@ -42,8 +43,7 @@ export class CompressorDevice extends Device<CompressorDeviceEvents> {
     serializedCompressor: Partial<SerializedCompressorDevice>,
   ) {
     super(engine);
-    this.input.connect(this.compressorNode);
-    this.compressorNode.connect(this.output);
+    this.connectEffect(this.compressorNode);
     this.set(serializedCompressor);
   }
 
@@ -94,6 +94,7 @@ export class CompressorDevice extends Device<CompressorDeviceEvents> {
       knee: this.compressorNode.knee.value,
       ratio: this.compressorNode.ratio.value,
       threshold: this.compressorNode.threshold.value,
+      bypass: this.bypassed,
     };
   }
 }

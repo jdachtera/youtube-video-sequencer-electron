@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { batch, createUniqueId } from 'solid-js';
-import { GrainPlayer, Player, ToneAudioBuffer } from 'tone';
+import { batch } from 'solid-js';
+import { GrainPlayer, Player } from 'tone';
 import { debounce } from 'ts-debounce';
 import type { Engine } from '../Engine';
 import type { PropertyUpdateEvents } from '../helpers';
-import { entries, randomColor } from '../helpers';
+import { entries, randomColor, uniqueId } from '../helpers';
 import type { DeepPartial } from '../types';
 import type { SerializedDeviceBase } from './Device';
 import { Device } from './Device';
@@ -15,6 +15,11 @@ export type SerializedSlice = SerializedDeviceBase & {
   name: 'Slice';
   title: string;
   id: string;
+  // Id of the prepared sample slot (SamplerDevice) this voice plays. The slot
+  // owns the source url + selected region + root note; the voice owns its own
+  // tuning (volume, speed, warp, …). Empty on pre-slot projects — migrated on
+  // load by binding to / creating a matching slot (see Slice.bindSampler).
+  samplerId: string;
   url: string;
   warpmode: 'resample' | 'stretch';
   start: number;
@@ -30,18 +35,21 @@ export type SerializedSlice = SerializedDeviceBase & {
 
 export type SliceEvents = {
   playingUpdated: (playing: boolean) => void;
-  currentPositionUpdated: (currentPosition: number) => void;
   load: () => void;
+  // Mirrors the bound sample slot's download/decode state so the voice's
+  // waveform can show a spinner.
+  loadingUpdated: (loading: boolean) => void;
 } & PropertyUpdateEvents<SerializedSlice>;
 
 export class Slice extends Device<SliceEvents> {
-  sampler: SamplerDevice;
+  sampler: SamplerDevice = null!;
 
   player: Player | GrainPlayer = null!;
   name = 'Slice';
   title = '';
 
   id = '';
+  samplerId = '';
   url = '';
   start = 0;
   end = 1;
@@ -55,10 +63,6 @@ export class Slice extends Device<SliceEvents> {
   volume = 1;
   grainSize = 0.1;
 
-  firstFrameTime = 0;
-  lastFrameTime = 0;
-  currentPosition = 0;
-
   warpmode: SerializedSlice['warpmode'] = 'resample';
 
   iteration = 0;
@@ -69,7 +73,8 @@ export class Slice extends Device<SliceEvents> {
     name: 'Slice',
     title: slice.title ?? '',
     inputGain: slice.inputGain ?? 1,
-    id: slice.id && slice.id !== '' ? slice.id : createUniqueId(),
+    id: slice.id && slice.id !== '' ? slice.id : uniqueId(),
+    samplerId: slice.samplerId ?? '',
     url: slice.url ?? '',
     collapsed: slice.collapsed ?? false,
     warpmode: slice.warpmode ?? 'resample',
@@ -95,8 +100,6 @@ export class Slice extends Device<SliceEvents> {
     this.on('startUpdated', this.updateBuffer);
     this.on('endUpdated', this.updateBuffer);
 
-    this.engine.on('draw', this.handleDraw);
-
     // A Tone.Player, once started, plays its buffer to the end independently of
     // the transport — so without this a long sample triggered near the end of a
     // loop keeps ringing after the user presses stop. Silence the slice when
@@ -104,18 +107,107 @@ export class Slice extends Device<SliceEvents> {
     this.engine.on('stop', this.handleTransportStop);
 
     this.set(serializedSlice);
-    this.sampler = this.engine.getOrCreateSampler(this.url);
-    this.sampler.addSlice(this);
+    this.bindSampler();
   }
 
-  handleDraw = (now: number) => {
-    this.currentPosition = now - this.firstFrameTime;
+  // Re-derive the voice from its slot whenever the slot's source/region/root
+  // note changes (edited in the sampler), so edits propagate to every voice
+  // that plays the slot.
+  private samplerChangeHandler = () => this.syncFromSampler();
 
-    this.emit(
-      'currentPositionUpdated',
-      this.currentPosition / this.player.playbackRate,
-    );
-  };
+  // Re-emit the slot's loading state on the voice so the waveform view (which
+  // holds the Slice, not the slot) can show a spinner.
+  private samplerLoadingHandler = (loading: boolean) =>
+    this.emit('loadingUpdated', loading);
+
+  // Whether the bound sample slot is currently downloading/decoding its source.
+  get loading() {
+    return this.sampler?.loading ?? false;
+  }
+
+  /**
+   * Resolve and bind the sample slot this voice plays. By id when set;
+   * otherwise migrate this voice's url + region into a matching slot (projects
+   * that predate sample slots have no samplerId).
+   */
+  bindSampler() {
+    const resolved =
+      (this.samplerId && this.engine.findSampler(this.samplerId)) ||
+      this.engine.findOrCreateSampleSlot({
+        url: this.url,
+        start: this.start,
+        end: this.end,
+        title: this.title,
+        color: this.color,
+        playbackRate: this.playbackRate,
+        warpmode: this.warpmode,
+        reverse: this.reverse,
+        grainSize: this.grainSize,
+        volume: this.volume,
+      });
+
+    if (this.sampler && this.sampler !== resolved) {
+      this.sampler.off('change', this.samplerChangeHandler);
+      this.sampler.off('loadingUpdated', this.samplerLoadingHandler);
+      this.sampler.removeSlice(this);
+    }
+
+    const isRebind = this.sampler !== resolved;
+    this.sampler = resolved;
+    this.samplerId = resolved.id;
+
+    if (isRebind) {
+      this.sampler.addSlice(this);
+      this.sampler.on('change', this.samplerChangeHandler);
+      this.sampler.on('loadingUpdated', this.samplerLoadingHandler);
+      // Reflect the slot's current loading state immediately (the download may
+      // already be in flight when this voice binds to it).
+      this.emit('loadingUpdated', this.sampler.loading);
+    }
+
+    this.syncFromSampler();
+  }
+
+  /** Point this voice at a different prepared slot (the sequencer's dropdown). */
+  selectSampler(samplerId: string) {
+    if (samplerId === this.samplerId) return;
+    this.samplerId = samplerId;
+    this.bindSampler();
+    this.emit('change', this);
+  }
+
+  // Mirror the slot's source + region + sound params onto the voice so the
+  // existing player/buffer code keeps working, then rebuild the sliced buffer.
+  // The slot owns the sound; the voice is just a trigger.
+  private syncFromSampler() {
+    this.url = this.sampler.url;
+    this.start = this.sampler.start;
+    this.end = this.sampler.end;
+    this.playbackRate = this.sampler.playbackRate;
+    this.reverse = this.sampler.reverse;
+    this.grainSize = this.sampler.grainSize;
+    this.volume = this.sampler.volume;
+
+    if (this.warpmode !== this.sampler.warpmode) {
+      // resample vs stretch uses a different Tone player, so rebuild it (which
+      // also reloads the sliced buffer).
+      this.warpmode = this.sampler.warpmode;
+      this.createPlayer();
+    } else {
+      this.updateBuffer();
+    }
+  }
+
+  // Source + region + sound params live on the slot; route edits there.
+  private static readonly slotOwnedKeys: (keyof SerializedSlice)[] = [
+    'start',
+    'end',
+    'playbackRate',
+    'warpmode',
+    'reverse',
+    'grainSize',
+    'volume',
+  ];
 
   handleTransportStop = () => {
     this.stop();
@@ -137,13 +229,20 @@ export class Slice extends Device<SliceEvents> {
         this.player.stop(time + step.gateSeconds);
       }
     }
-    const playbackRate = this.playbackRate * step.playbackRate;
+    // The slot's root note plus the step's pitch offset transpose the sample.
+    // Grain (stretch) playback shifts pitch via detune, preserving tempo;
+    // resample playback shifts it by changing the playback rate.
+    const pitchCents = this.sampler.rootNote * 100 + step.pitch;
+    const isGrain = this.player instanceof GrainPlayer;
+    const pitchFactor = isGrain ? 1 : Math.pow(2, pitchCents / 1200);
+
+    const playbackRate = this.playbackRate * step.playbackRate * pitchFactor;
     if (playbackRate !== this.player.playbackRate) {
       this.player.playbackRate = playbackRate;
     }
 
     if (this.player instanceof GrainPlayer) {
-      this.player.detune = this.pitch + step.pitch;
+      this.player.detune = this.pitch + pitchCents;
       this.player.grainSize = this.grainSize;
     }
 
@@ -151,6 +250,27 @@ export class Slice extends Device<SliceEvents> {
   };
 
   set(slicePartial: Partial<SerializedSlice>) {
+    // When bound to a sample slot, the source/region/sound params are owned by
+    // the slot, so route those edits there; the slot's change syncs them back
+    // onto every voice that plays it. (During construction this.sampler isn't
+    // set yet, so the initial values are applied to the voice and then used to
+    // seed the slot in bindSampler.)
+    if (this.sampler && this.samplerId) {
+      const slotEdits: Record<string, unknown> = {};
+      let hasSlotEdit = false;
+      for (const key of Slice.slotOwnedKeys) {
+        if (slicePartial[key] !== undefined) {
+          slotEdits[key] = slicePartial[key];
+          hasSlotEdit = true;
+        }
+      }
+      if (hasSlotEdit) {
+        this.sampler.set(slotEdits as Parameters<SamplerDevice['set']>[0]);
+        slicePartial = { ...slicePartial };
+        for (const key of Slice.slotOwnedKeys) delete slicePartial[key];
+      }
+    }
+
     batch(() => {
       entries(slicePartial).forEach((entry) => {
         if (!entry) return;
@@ -178,6 +298,7 @@ export class Slice extends Device<SliceEvents> {
             this.reverse = entry[1] ?? false;
             break;
           case 'id':
+          case 'samplerId':
           case 'url':
           case 'color':
           case 'title':
@@ -206,15 +327,18 @@ export class Slice extends Device<SliceEvents> {
 
   async loadBufferFromSampler() {
     await this.sampler.hasLoaded();
+    // The slot owns the region (open-ended end <= start means "the whole
+    // sample"). getSlicedBuffer resolves + caches it, so every voice playing the
+    // same region shares one sliced buffer instead of copying its own.
+    return this.sampler.getSlicedBuffer(this.start, this.end);
+  }
 
-    const { buffer } = this.sampler;
-
-    const start = Math.max(this.start, 0);
-    const end = Math.min(this.end, buffer.duration);
-
-    const slicedBuffer =
-      start < end ? buffer.slice(start, end) : new ToneAudioBuffer();
-    return slicedBuffer;
+  // The device chain's hasLoaded awaits this. Decode the source and set the
+  // sliced player buffer synchronously here, so an offline render / WAV export
+  // (engine.renderToBuffer) captures audio instead of starting before any voice
+  // is ready and rendering silence.
+  async hasLoaded() {
+    this.player.buffer = await this.loadBufferFromSampler();
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -256,6 +380,7 @@ export class Slice extends Device<SliceEvents> {
       name: 'Slice',
       title: this.title,
       id: this.id,
+      samplerId: this.samplerId,
       url: this.url,
       inputGain: this.input.gain.value,
       warpmode: this.warpmode,
@@ -278,8 +403,9 @@ export class Slice extends Device<SliceEvents> {
   }
 
   dispose() {
+    this.sampler.off('change', this.samplerChangeHandler);
+    this.sampler.off('loadingUpdated', this.samplerLoadingHandler);
     this.sampler.removeSlice(this);
-    this.engine.off('draw', this.handleDraw);
     this.engine.off('stop', this.handleTransportStop);
 
     this.player.stop();
@@ -292,27 +418,41 @@ export class Slice extends Device<SliceEvents> {
     this.removeAllListeners();
   }
 
+  // Trigger the slice's audio. Called once per sequencer step, so it must stay
+  // cheap and side-effect-free in the UI: it deliberately does NOT emit
+  // 'playingUpdated'. Driving the per-slice waveform playhead/ring from here
+  // re-animated and repainted every visible clip on every step — a major source
+  // of idle/playback CPU. Manual auditions go through audition() instead.
   play(time?: number) {
     if (!this.player.buffer.loaded) return;
 
     try {
-      if (this.playbackRate !== this.player.playbackRate) {
-        this.player.playbackRate = this.playbackRate;
-      }
-
+      // Honour the slot's root note when auditioning/playing directly (no step).
+      const pitchCents = this.sampler.rootNote * 100;
       if (this.player instanceof GrainPlayer) {
-        this.player.detune = this.pitch;
+        if (this.playbackRate !== this.player.playbackRate) {
+          this.player.playbackRate = this.playbackRate;
+        }
+        this.player.detune = this.pitch + pitchCents;
         this.player.grainSize = this.grainSize;
+      } else {
+        const rate = this.playbackRate * Math.pow(2, pitchCents / 1200);
+        if (rate !== this.player.playbackRate) this.player.playbackRate = rate;
       }
 
       this.player.stop(time);
       this.player.start(time);
-      this.firstFrameTime = time ?? this.player.immediate();
     } catch {
       // Tone throws if start/stop land on an identical transport time; the
       // retrigger is dropped, which is fine — no need to surface it.
     }
+  }
 
+  // A deliberate, one-shot audition (clicking a clip's waveform). Unlike the
+  // per-step play(), this drives the waveform's playhead + progress ring + stop
+  // button — fine because it happens at most a few times, not 16×/bar/track.
+  audition(time?: number) {
+    this.play(time);
     requestAnimationFrame(() => this.emit('playingUpdated', true));
   }
 }

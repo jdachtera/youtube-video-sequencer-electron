@@ -1,10 +1,10 @@
 import { batch } from 'solid-js';
-import { getContext, ToneAudioBuffer } from 'tone';
+import { getContext, Player, ToneAudioBuffer } from 'tone';
 import { notify } from '../../notifications';
 import type { Engine } from '../Engine';
 import { EngineBase } from '../EngineBase';
 import type { PropertyUpdateEvents } from '../helpers';
-import { entries, fetchSliceUrlInfo } from '../helpers';
+import { entries, fetchSliceUrlInfo, randomColor, uniqueId } from '../helpers';
 import { loadFileAsBuffer, resolveFileUrl } from '../localFile';
 import type { DeepPartial } from '../types';
 import type { Device } from './Device';
@@ -12,10 +12,32 @@ import type { Slice } from './Slice';
 
 export type SerializedSampler = {
   name: 'Sampler';
+  // Stable per-slot id. A sampler is a "sample slot": one source video and one
+  // selected region the user prepared. Multiple slots can share a url (chops),
+  // so slots are keyed by id, not url.
+  id: string;
   title: string;
   url: string;
+  // Thumbnail/cover image URL (proxied through the main process when shown).
+  cover: string;
   zoom: number;
   position: number;
+  // The selected region (seconds). end <= start means "to the end of the
+  // buffer" — see selectionEnd().
+  start: number;
+  end: number;
+  // Base pitch ("root note", semitones) applied when the sample is played;
+  // sequencer steps pitch up/down from here.
+  rootNote: number;
+  color: string;
+  // Sound-shaping params. The slot is the complete definition of a sound; a
+  // voice just triggers it (clone a slot to make a variation). Per-step
+  // pitch/velocity still come from the sequencer pattern.
+  volume: number;
+  playbackRate: number;
+  warpmode: 'resample' | 'stretch';
+  reverse: boolean;
+  grainSize: number;
 };
 
 type SamplerDeviceEvents = {
@@ -24,6 +46,9 @@ type SamplerDeviceEvents = {
   sliceUpdated: (slice: Slice) => void;
   sliceSelected: (slice?: Slice) => void;
   load: () => void;
+  // Fired when the source download/decode starts (true) and finishes (false),
+  // so the UI can show a spinner while a freshly added sample is fetched.
+  loadingUpdated: (loading: boolean) => void;
   change: (sampler: SamplerDevice) => void;
 } & PropertyUpdateEvents<SerializedSampler>;
 
@@ -31,25 +56,66 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
   name = 'Sampler';
   buffer = new ToneAudioBuffer();
   slices: Slice[] = [];
+  id = '';
   url = '';
+  cover = '';
   zoom = 1;
   position = 0;
+  start = 0;
+  end = 0;
+  rootNote = 0;
+  color = '';
   title = '';
+  volume = 1;
+  playbackRate = 1;
+  warpmode: SerializedSampler['warpmode'] = 'resample';
+  reverse = false;
+  grainSize = 0.1;
   selectedSlice?: Slice;
+
+  // Transient preview player for the Audition button.
+  private auditionPlayer?: Player;
 
   private isLoading = false;
 
   private _hasLoaded = false;
+
+  // Set when the sampler is removed/unloaded while a download is still running,
+  // so the load() failure (yt-dlp killed) doesn't pop a spurious error toast.
+  private cancelled = false;
+
+  // Whether the source is currently being downloaded/decoded.
+  get loading() {
+    return this.isLoading;
+  }
+
+  // Sliced regions of the decoded buffer, cached and SHARED across every voice
+  // (slice) that plays the same region. Without this each voice copied its own
+  // region of the decoded PCM (N voices on one sample => N big copies, re-copied
+  // on every region edit); now they reference one sliced buffer. Cleared when
+  // the source buffer changes (load/unload). Keyed by "from:to" seconds.
+  private slicedBuffers = new Map<string, ToneAudioBuffer>();
 
   static normalizeData = (
     sampler: DeepPartial<SerializedSampler>,
   ): SerializedSampler => ({
     name: 'Sampler',
 
+    id: sampler.id && sampler.id !== '' ? sampler.id : uniqueId(),
     title: sampler.title ?? '',
     url: sampler.url ?? '',
+    cover: sampler.cover ?? '',
     position: sampler.position ?? 0,
     zoom: sampler.zoom ?? 1,
+    start: sampler.start ?? 0,
+    end: sampler.end ?? 0,
+    rootNote: sampler.rootNote ?? 0,
+    color: sampler.color ?? randomColor(),
+    volume: sampler.volume ?? 1,
+    playbackRate: sampler.playbackRate ?? 1,
+    warpmode: sampler.warpmode ?? 'resample',
+    reverse: sampler.reverse ?? false,
+    grainSize: sampler.grainSize ?? 0.1,
   });
 
   constructor(public engine: Engine, serializedSampler: SerializedSampler) {
@@ -66,6 +132,8 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
   private async load() {
     this.isLoading = true;
     this._hasLoaded = false;
+    this.cancelled = false;
+    this.emit('loadingUpdated', true);
 
     try {
       if (this.url.startsWith('http://file.local')) {
@@ -75,6 +143,8 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
         const arrayBuffer = await loadFileAsBuffer(file);
         const audioBuffer = await getContext().decodeAudioData(arrayBuffer);
         this.buffer.set(audioBuffer);
+        // The source changed, so any cached region slices are stale.
+        this.clearSlicedBuffers();
       } else {
         // Remote sources are cached as compressed files on disk by the main
         // process; fetch the bytes (cache hit or fresh yt-dlp download) and
@@ -90,18 +160,34 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
 
         const audioBuffer = await getContext().decodeAudioData(arrayBuffer);
         this.buffer.set(audioBuffer);
+        // The source changed, so any cached region slices are stale.
+        this.clearSlicedBuffers();
       }
     } catch (error) {
-      // Surface the failure instead of leaving the slice spinning forever.
-      const reason = error instanceof Error ? error.message : 'unknown error';
-      notify(`Couldn't load "${this.title || this.url}": ${reason}`, 'error');
+      // Surface the failure instead of leaving the slice spinning forever —
+      // unless we deliberately cancelled the download (sample removed), in which
+      // case the error is expected and shouldn't bother the user.
+      if (!this.cancelled) {
+        const reason = error instanceof Error ? error.message : 'unknown error';
+        notify(`Couldn't load "${this.title || this.url}": ${reason}`, 'error');
+      }
     } finally {
       // Always resolve waiters (hasLoaded) even on failure so the UI doesn't
       // hang; the buffer simply stays empty and the slice won't play.
       this.emit('load');
+      this.emit('loadingUpdated', false);
       this.isLoading = false;
       this._hasLoaded = true;
     }
+  }
+
+  // Abort an in-flight source download (e.g. the sample was removed before it
+  // finished). Only meaningful for remote sources fetched through yt-dlp.
+  private cancelDownload() {
+    if (!this.isLoading) return;
+    if (this.url.startsWith('http://file.local') || !this.url) return;
+    this.cancelled = true;
+    void window.yt?.cancelDownload?.(this.url);
   }
 
   hasLoaded = async () => {
@@ -117,8 +203,13 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
   };
 
   private async loadArrayBuffer() {
-    const { buffer, title } = await fetchSliceUrlInfo(this.url);
-    this.set({ title });
+    const { buffer, title, cover } = await fetchSliceUrlInfo(this.url);
+    // Only fill in metadata we don't already have, so a cover/title provided up
+    // front (e.g. from a search result) isn't clobbered by a later fetch.
+    this.set({
+      ...(this.title ? {} : { title }),
+      ...(this.cover || !cover ? {} : { cover }),
+    });
     return buffer;
   }
 
@@ -127,8 +218,14 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
       entries(samplerPartial).forEach((entry) => {
         if (!entry) return;
         switch (entry[0]) {
+          case 'id':
+            this.id = entry[1] ?? '';
+            break;
           case 'url':
             this.url = entry[1] ?? '';
+            break;
+          case 'cover':
+            this.cover = entry[1] ?? '';
             break;
           case 'zoom':
             this.zoom = entry[1] ?? 1;
@@ -136,8 +233,35 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
           case 'position':
             this.position = entry[1] ?? 0;
             break;
+          case 'start':
+            this.start = entry[1] ?? 0;
+            break;
+          case 'end':
+            this.end = entry[1] ?? 0;
+            break;
+          case 'rootNote':
+            this.rootNote = entry[1] ?? 0;
+            break;
+          case 'color':
+            this.color = entry[1] ?? '';
+            break;
           case 'title':
             this.title = entry[1] ?? '';
+            break;
+          case 'volume':
+            this.volume = entry[1] ?? 1;
+            break;
+          case 'playbackRate':
+            this.playbackRate = entry[1] ?? 1;
+            break;
+          case 'warpmode':
+            this.warpmode = entry[1] ?? 'resample';
+            break;
+          case 'reverse':
+            this.reverse = entry[1] ?? false;
+            break;
+          case 'grainSize':
+            this.grainSize = entry[1] ?? 0.1;
             break;
         }
 
@@ -145,6 +269,45 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
         this.emit(`${entry[0]}Updated` as any, entry[1]);
       });
     });
+    this.emit('change', this);
+  }
+
+  // End of the selected region, resolving the "0 = to the end" convention
+  // against the loaded buffer.
+  selectionEnd() {
+    return this.end > this.start ? this.end : this.buffer.duration;
+  }
+
+  // Preview the currently selected region (the Audition button). Uses a
+  // throwaway Player routed through the engine master so it respects the
+  // limiter; stops any previous preview first.
+  audition() {
+    this.stopAudition();
+    if (!this.buffer.loaded) {
+      // Kick a load and audition once it's ready.
+      void this.hasLoaded().then(() =>
+        this.buffer.loaded ? this.audition() : undefined,
+      );
+      return;
+    }
+    const start = Math.max(this.start, 0);
+    const end = Math.min(this.selectionEnd(), this.buffer.duration);
+    if (!(end > start)) return;
+
+    const player = new Player(this.buffer.slice(start, end));
+    player.connect(this.engine.gain);
+    player.onstop = () => {
+      player.dispose();
+      if (this.auditionPlayer === player) this.auditionPlayer = undefined;
+    };
+    this.auditionPlayer = player;
+    player.start();
+  }
+
+  stopAudition() {
+    this.auditionPlayer?.stop();
+    this.auditionPlayer?.dispose();
+    this.auditionPlayer = undefined;
   }
 
   emitSliceUpdated = (slice: Slice) => {
@@ -177,7 +340,46 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
     this.slices.forEach((slice) => slice.stop());
   }
 
+  // A sliced region of the decoded buffer, shared across all voices that play
+  // the same region. Resolves an open-ended region (end <= start) to the whole
+  // sample. Returns an empty buffer when nothing is loaded / the region is empty.
+  getSlicedBuffer(start: number, end: number): ToneAudioBuffer {
+    if (!this.buffer.loaded) return new ToneAudioBuffer();
+
+    const from = Math.max(start, 0);
+    const to =
+      end > start ? Math.min(end, this.buffer.duration) : this.buffer.duration;
+    if (!(from < to)) return new ToneAudioBuffer();
+
+    const key = `${from}:${to}`;
+    const cached = this.slicedBuffers.get(key);
+    if (cached) return cached;
+
+    // In practice every voice shares the current region, so only a couple of
+    // entries are ever live (e.g. while a region drag settles). Evict the oldest
+    // beyond a small cap so edits don't grow the cache unbounded.
+    if (this.slicedBuffers.size >= 4) {
+      const oldest = this.slicedBuffers.keys().next().value;
+      if (oldest !== undefined) {
+        this.slicedBuffers.get(oldest)?.dispose();
+        this.slicedBuffers.delete(oldest);
+      }
+    }
+
+    const sliced = this.buffer.slice(from, to);
+    this.slicedBuffers.set(key, sliced);
+    return sliced;
+  }
+
+  private clearSlicedBuffers() {
+    this.slicedBuffers.forEach((buffer) => buffer.dispose());
+    this.slicedBuffers.clear();
+  }
+
   unload() {
+    this.cancelDownload();
+    this.stopAudition();
+    this.clearSlicedBuffers();
     this.buffer.dispose();
     this.buffer = new ToneAudioBuffer();
     this._hasLoaded = false;
@@ -185,16 +387,29 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
   }
 
   dispose() {
+    this.cancelDownload();
+    this.stopAudition();
     this.buffer.dispose();
   }
 
   serialize(): SerializedSampler {
     return {
       name: 'Sampler',
+      id: this.id,
       title: this.title,
       url: this.url,
+      cover: this.cover,
       zoom: this.zoom,
       position: this.position,
+      start: this.start,
+      end: this.end,
+      rootNote: this.rootNote,
+      color: this.color,
+      volume: this.volume,
+      playbackRate: this.playbackRate,
+      warpmode: this.warpmode,
+      reverse: this.reverse,
+      grainSize: this.grainSize,
     };
   }
 }

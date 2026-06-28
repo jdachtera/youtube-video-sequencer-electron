@@ -16,7 +16,6 @@ import {
   followupActionTypes,
   normalizeFollowupActionData,
 } from '../engine/device/Patttern';
-import { clearedSteps, rotateSteps } from '../engine/patternOps';
 import { randomMusicalNotes, randomMusicalSteps } from '../engine/randomize';
 import { subdivisions, subdivisionTypes } from '../engine/types';
 import { PianoRollView } from './PianoRollView';
@@ -24,13 +23,45 @@ import { Sequencer } from './Sequencer';
 import type { SequencerMode } from './SequencerStep';
 import { sequencerModes } from './SequencerStep';
 
-const sequencerModeLabels = {
+const sequencerModeLabels: Record<typeof sequencerModes[number], string> = {
   play: '▶',
   pitch: '♪',
   playbackRate: '↠',
   volume: '📢',
+  gateSeconds: '⏱',
   reverse: '↶',
 };
+
+// Less-used pattern actions (clone/delete/duplicate/random/clear/follow-action)
+// live in a "⋯" overflow popover so a track row stays short.
+const overflowContainer = css`
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+`;
+
+const overflowMenu = css`
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 30;
+  margin-top: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 6px;
+  background: #2b2b2b;
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+`;
+
+const overflowRow = css`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  align-items: flex-end;
+`;
 
 export const PatternEditor = (
   allProps: {
@@ -72,11 +103,29 @@ export const PatternEditor = (
       followupAction: pattern?.followupAction,
       steps: pattern?.steps,
       mode: pattern?.mode ?? 'steps',
+      duration: pattern?.duration ?? 0,
+      ppq: pattern?.ppq ?? 192,
+      loopStart: pattern?.loopStart ?? 0,
+      timeSignatureNumerator: pattern?.timeSignatureNumerator ?? 4,
+      timeSignatureDenominator: pattern?.timeSignatureDenominator ?? 4,
     }),
     ['change'],
   );
 
+  // Ticks in one bar at the pattern's time signature.
+  const ticksPerBar = () =>
+    (selectedPatternState().timeSignatureNumerator *
+      (selectedPatternState().ppq || 192) *
+      4) /
+      (selectedPatternState().timeSignatureDenominator || 4) || 192 * 4;
+
+  // Clip length in bars for piano-roll mode (the loop length), derived from the
+  // pattern's tick duration.
+  const lengthInBars = () =>
+    Math.max(1, Math.round(selectedPatternState().duration / ticksPerBar()));
+
   const [selectedMode, setSelectedMode] = createSignal<SequencerMode>('play');
+  const [showOverflow, setShowOverflow] = createSignal(false);
 
   return (
     <Flex
@@ -94,43 +143,12 @@ export const PatternEditor = (
         >
           <Row
             class={css`
-              margin: 4px 10px;
+              margin: 3px 8px;
               flex-wrap: wrap;
               align-items: flex-end;
+              gap: 2px;
             `}
           >
-            <ButtonWithLabel
-              label={'Clone'}
-              labelOnButton={true}
-              onClick={() => {
-                props.sequencer.createPattern(
-                  selectedPattern().serialize(),
-                  sequencerState.selectedPatternIndex + 1,
-                );
-              }}
-            />
-            <ButtonWithLabel
-              label={'Delete'}
-              labelOnButton={true}
-              onClick={() => {
-                selectedPattern().remove();
-              }}
-            />
-            <ButtonWithLabel
-              label={'Duplicate'}
-              labelOnButton={true}
-              onClick={() => {
-                props.sequencer.getPattern()?.set({
-                  steps: [
-                    ...selectedPatternState().steps,
-                    ...selectedPatternState().steps.map((step) => ({
-                      ...step,
-                    })),
-                  ],
-                });
-              }}
-            />
-
             <Show when={selectedPatternState().mode !== 'pianoroll'}>
               <NumberInputWithArrowButtons
                 label={'Steps'}
@@ -173,21 +191,69 @@ export const PatternEditor = (
               <ButtonWithLabel
                 label="‹"
                 labelOnButton={true}
-                onClick={() => {
-                  const pattern = selectedPattern();
-                  if (pattern)
-                    pattern.set({ steps: rotateSteps(pattern.steps, -1) });
-                }}
+                onClick={() => selectedPattern()?.rotate(-1)}
               />
               <ButtonWithLabel
                 label="›"
                 labelOnButton={true}
-                onClick={() => {
-                  const pattern = selectedPattern();
-                  if (pattern)
-                    pattern.set({ steps: rotateSteps(pattern.steps, 1) });
+                onClick={() => selectedPattern()?.rotate(1)}
+              />
+            </Show>
+            <Show when={selectedPatternState().mode === 'pianoroll'}>
+              <NumberInputWithArrowButtons
+                label={'Bars'}
+                size={3}
+                step={1}
+                min={1}
+                max={64}
+                value={lengthInBars()}
+                onChange={(bars) => {
+                  selectedPattern()?.set({
+                    duration: Math.max(1, Math.round(bars)) * ticksPerBar(),
+                  });
                 }}
               />
+              <span
+                class={css`
+                  display: flex;
+                  align-items: flex-end;
+                  gap: 2px;
+                `}
+              >
+                <NumberInputWithArrowButtons
+                  label={'Sig'}
+                  size={2}
+                  step={1}
+                  min={1}
+                  max={32}
+                  value={selectedPatternState().timeSignatureNumerator}
+                  onChange={(timeSignatureNumerator) => {
+                    selectedPattern()?.set({
+                      timeSignatureNumerator: Math.max(
+                        1,
+                        Math.round(timeSignatureNumerator),
+                      ),
+                    });
+                  }}
+                />
+                <span
+                  class={css`
+                    padding-bottom: 3px;
+                  `}
+                >
+                  /
+                </span>
+                <SelectWithArrowButtons
+                  size={2}
+                  options={[1, 2, 4, 8, 16]}
+                  selectedOption={
+                    selectedPatternState().timeSignatureDenominator
+                  }
+                  onChange={(timeSignatureDenominator) => {
+                    selectedPattern()?.set({ timeSignatureDenominator });
+                  }}
+                />
+              </span>
             </Show>
             <ButtonWithLabel
               label={
@@ -206,48 +272,90 @@ export const PatternEditor = (
                 });
               }}
             />
-            <ButtonWithLabel
-              label="🎲 Random"
-              labelOnButton={true}
-              onClick={() => {
-                const pattern = selectedPattern();
-                if (!pattern) return;
-                if (pattern.mode === 'pianoroll') {
-                  pattern.set({
-                    notes: randomMusicalNotes({ ppq: pattern.ppq, bars: 2 }),
-                  });
-                } else {
-                  pattern.set({
-                    steps: randomMusicalSteps(pattern.steps.length || 16),
-                  });
-                }
-              }}
-            />
-            <ButtonWithLabel
-              label="Clear"
-              labelOnButton={true}
-              onClick={() => {
-                const pattern = selectedPattern();
-                if (!pattern) return;
-                if (pattern.mode === 'pianoroll') {
-                  pattern.set({ notes: [] });
-                } else {
-                  pattern.set({ steps: clearedSteps(pattern.steps) });
-                }
-              }}
-            />
-            <FollowupActionControls
-              numberOfPatterns={sequencerState.numberOfPatterns}
-              followupAction={selectedPatternState().followupAction}
-              onChange={(followupAction) => {
-                selectedPattern()?.set({
-                  followupAction: normalizeFollowupActionData({
-                    ...selectedPatternState().followupAction,
-                    ...followupAction,
-                  }),
-                });
-              }}
-            />
+            <div class={overflowContainer}>
+              <ButtonWithLabel
+                label="⋯"
+                labelOnButton={true}
+                title="More pattern actions"
+                activated={showOverflow()}
+                onClick={() => setShowOverflow((open) => !open)}
+              />
+              <Show when={showOverflow()}>
+                <div class={overflowMenu}>
+                  <div class={overflowRow}>
+                    <ButtonWithLabel
+                      label={'Clone'}
+                      labelOnButton={true}
+                      onClick={() => {
+                        props.sequencer.createPattern(
+                          selectedPattern().serialize(),
+                          sequencerState.selectedPatternIndex + 1,
+                        );
+                      }}
+                    />
+                    <ButtonWithLabel
+                      label={'Delete'}
+                      labelOnButton={true}
+                      onClick={() => {
+                        selectedPattern().remove();
+                      }}
+                    />
+                    <ButtonWithLabel
+                      label={'Duplicate'}
+                      labelOnButton={true}
+                      onClick={() => selectedPattern()?.duplicate()}
+                    />
+                    <ButtonWithLabel
+                      label="🎲 Random"
+                      labelOnButton={true}
+                      onClick={() => {
+                        const pattern = selectedPattern();
+                        if (!pattern) return;
+                        if (pattern.mode === 'pianoroll') {
+                          pattern.set({
+                            notes: randomMusicalNotes({
+                              ppq: pattern.ppq,
+                              bars: 2,
+                            }),
+                          });
+                        } else {
+                          // Generate a grid pattern, then project it onto notes
+                          // (the single source of truth).
+                          pattern.set({
+                            notes: pattern.stepsToNotes(
+                              randomMusicalSteps(pattern.slotCount() || 16),
+                            ),
+                          });
+                        }
+                      }}
+                    />
+                    <ButtonWithLabel
+                      label="Clear"
+                      labelOnButton={true}
+                      onClick={() => {
+                        // Notes are the single source of truth; clearing them
+                        // empties both the grid and the roll.
+                        selectedPattern()?.set({ notes: [] });
+                      }}
+                    />
+                  </div>
+                  <div class={overflowRow}>
+                    <FollowupActionControls
+                      numberOfPatterns={sequencerState.numberOfPatterns}
+                      followupAction={selectedPatternState().followupAction}
+                      onChange={(followupAction) => {
+                        selectedPattern()?.set({
+                          followupAction: normalizeFollowupActionData({
+                            ...selectedPatternState().followupAction,
+                            ...followupAction,
+                          }),
+                        });
+                      }}
+                    />
+                  </div>
+                </div>
+              </Show>
+            </div>
           </Row>
         </ScreenPrintBackground>
       </Column>
@@ -259,15 +367,26 @@ export const PatternEditor = (
               <Sequencer
                 mode={selectedMode()}
                 steps={selectedPatternState().steps}
-                onChange={(steps) => {
-                  selectedPattern()?.set({ steps });
+                onStepChange={(index, newStep) => {
+                  selectedPattern()?.setStep(index, newStep);
                 }}
                 sequencer={props.sequencer}
               />
             }
           >
             <Show keyed when={selectedPattern()}>
-              {(pattern) => <PianoRollView pattern={pattern} />}
+              {(pattern) => (
+                // Re-mount when the clip length or time signature changes so the
+                // roll's visible duration + bar grid follow the controls.
+                <Show
+                  keyed
+                  when={`${selectedPatternState().duration}:${
+                    selectedPatternState().timeSignatureNumerator
+                  }/${selectedPatternState().timeSignatureDenominator}`}
+                >
+                  {() => <PianoRollView pattern={pattern} />}
+                </Show>
+              )}
             </Show>
           </Show>
         </ScreenPrintBackground>

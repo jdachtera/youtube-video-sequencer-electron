@@ -109,10 +109,13 @@ export class DeviceChain extends Device<DeviceChainEvents> {
   addDevice(device: Device, index: number = this.devices.length) {
     device.on('change', this.emitChange);
 
+    // Insert before the device currently at `index` (slice(index), NOT
+    // slice(index + 1) — the latter drops that device, so moving an effect onto
+    // an occupied slot used to delete whatever was there).
     this.setDevices([
       ...this.devices.slice(0, index),
       device,
-      ...this.devices.slice(index + 1),
+      ...this.devices.slice(index),
     ]);
 
     this.emit('deviceAdded', device);

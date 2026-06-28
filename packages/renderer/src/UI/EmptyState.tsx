@@ -10,13 +10,13 @@ const steps = [
   },
   {
     n: '2',
-    title: 'Slice it',
-    body: 'Drag across the waveform to carve out the bits you want. Each slice becomes its own playable track.',
+    title: 'Build a library',
+    body: 'Drag across the waveform to set the region, or Chop a sample into many slots. They line up in the sampler as your own slice library.',
   },
   {
     n: '3',
     title: 'Sequence & play',
-    body: 'Program the step grid, layer tracks, add effects, then hit play. Export a mixdown when it sings.',
+    body: 'Double-click a sample to drop it on a track, program the step grid or piano roll, add effects, then hit play.',
   },
 ];
 

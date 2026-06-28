@@ -64,7 +64,18 @@ export class SequencerDevice extends Device<SequencerEvents> {
         )
         .map(Pattern.normalizePatternData);
 
-      return patterns?.[0]?.steps?.length ? patterns : [createEmptyPattern(16)];
+      // Keep the deserialized patterns when the first one carries content. A
+      // piano-roll pattern has notes but an empty `steps` array, so the old
+      // `steps.length` check discarded it on load — the pattern came back as a
+      // fresh, silent step pattern (piano roll worked until you reloaded). Also
+      // preserve an empty piano-roll pattern so its mode survives a reload.
+      const first = patterns?.[0];
+      const hasContent =
+        !!first &&
+        (first.steps.length > 0 ||
+          first.notes.length > 0 ||
+          first.mode === 'pianoroll');
+      return hasContent ? patterns : [createEmptyPattern(16)];
     })(),
   });
 
@@ -81,9 +92,18 @@ export class SequencerDevice extends Device<SequencerEvents> {
     this.set(serializedSequencer);
 
     this.engine.on('stop', this.rewindSequence);
+    // Arm the current pattern when the transport starts too. The pattern is
+    // armed at construction and re-armed on stop, but a mode switch while
+    // stopped disarms it — without this, the next play would be silent. start()
+    // is idempotent (a no-op if already playing), so this is safe.
+    this.engine.on('start', this.armCurrentPattern);
 
     this.rewindSequence();
   }
+
+  armCurrentPattern = () => {
+    this.getPattern()?.start();
+  };
 
   public onSequenceEvent = (time: number, step: Step) => {
     this.emit('sequenceEvent', time, step);
@@ -93,7 +113,11 @@ export class SequencerDevice extends Device<SequencerEvents> {
 
   rewindSequence = () => {
     this.stopSequence();
-    this.getPattern()?.start();
+    // launchTime() is undefined when stopped (start from the top) and the next
+    // launch-grid boundary when the transport is already running — so a track
+    // added during playback launches on the boundary instead of failing to
+    // start at a now-past time.
+    this.getPattern()?.start(this.engine.launchTime());
     this.engine.transport.scheduleOnce(() => {
       this.scheduleFollowUpAction();
     }, 0);
@@ -213,7 +237,7 @@ export class SequencerDevice extends Device<SequencerEvents> {
     }
   }
 
-  async cuePattern(nextPatternIndex: number, time: TransportTime) {
+  async cuePattern(nextPatternIndex: number, time?: TransportTime) {
     if (this.scheduledFollowUpAction) {
       this.engine.transport.clear(this.scheduledFollowUpAction);
     }
@@ -231,7 +255,9 @@ export class SequencerDevice extends Device<SequencerEvents> {
       await new Promise((resolve) => {
         this.scheduledFollowUpAction = this.engine.transport.scheduleOnce(
           resolve,
-          time,
+          // Defined whenever the transport is running (launchTime returns a
+          // boundary); fall back to now only to satisfy the type.
+          time ?? this.engine.transport.seconds,
         );
       });
     }
@@ -274,8 +300,9 @@ export class SequencerDevice extends Device<SequencerEvents> {
 
     this.patterns.forEach((pattern) => pattern.dispose());
 
-    // Mirror the single listener registered in the constructor.
+    // Mirror the listeners registered in the constructor.
     this.engine.off('stop', this.rewindSequence);
+    this.engine.off('start', this.armCurrentPattern);
     this.removeAllListeners();
 
     // Release the base device's input/output Gain nodes too (this was

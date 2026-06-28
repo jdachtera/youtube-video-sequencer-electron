@@ -1,5 +1,5 @@
 import { css } from '@emotion/css';
-import { Match, Switch } from 'solid-js';
+import { Match, Show, Switch } from 'solid-js';
 import { DeviceWrapper } from '../UI/DeviceWrapper';
 import { createSignalFromEventEmitter } from '../engine/EngineBase';
 import { CompressorDevice } from '../engine/device/Compressor';
@@ -20,6 +20,14 @@ import { PingPongDelayView } from './PingPongDelayView';
 import { ReverbView } from './ReverbView';
 import { SamplerSliceView } from './SamplerSliceView';
 
+// Effects support bypass (a dry pass-through). Sequencer/Slice don't.
+const isEffectDevice = (device: Device) =>
+  device instanceof FilterDevice ||
+  device instanceof PingPongDelayDevice ||
+  device instanceof DistortionDevice ||
+  device instanceof CompressorDevice ||
+  device instanceof ReverbDevice;
+
 export const DeviceView = (props: {
   device: Device;
   onRequestRemoveDevice: (device: Device) => void;
@@ -31,6 +39,11 @@ export const DeviceView = (props: {
           () => props.device,
           (device) => device.collapsed,
           'collapsedUpdated',
+        );
+        const bypassed = createSignalFromEventEmitter(
+          () => props.device,
+          (device) => device.bypassed,
+          ['bypassUpdated'],
         );
         return (
           <DeviceWrapper
@@ -68,64 +81,112 @@ export const DeviceView = (props: {
                 `]: collapsed(),
               }}
             >
-              <Switch>
-                <Match
-                  keyed
-                  when={props.device instanceof FilterDevice && props.device}
+              <Show when={isEffectDevice(props.device)}>
+                <div
+                  class={css`
+                    display: flex;
+                    justify-content: flex-end;
+                    margin-bottom: 2px;
+                  `}
                 >
-                  {(device) => <FilterView filter={device} />}
-                </Match>
-                <Match
-                  keyed
-                  when={
-                    props.device instanceof PingPongDelayDevice && props.device
-                  }
-                >
-                  {(device) => <PingPongDelayView pingPongDelay={device} />}
-                </Match>
-                <Match
-                  keyed
-                  when={
-                    props.device instanceof DistortionDevice && props.device
-                  }
-                >
-                  {(device) => <DistortionView distortion={device} />}
-                </Match>
-                <Match
-                  keyed
-                  when={
-                    props.device instanceof DistortionDevice && props.device
-                  }
-                >
-                  {(device) => <DistortionView distortion={device} />}
-                </Match>
-                <Match
-                  keyed
-                  when={
-                    props.device instanceof CompressorDevice && props.device
-                  }
-                >
-                  {(device) => <CompressorView compressor={device} />}
-                </Match>
-                <Match
-                  keyed
-                  when={props.device instanceof ReverbDevice && props.device}
-                >
-                  {(device) => <ReverbView reverb={device} />}
-                </Match>
-                <Match
-                  keyed
-                  when={props.device instanceof SequencerDevice && props.device}
-                >
-                  {(device) => <PatternEditor sequencer={device} />}
-                </Match>
-                <Match
-                  keyed
-                  when={props.device instanceof Slice && props.device}
-                >
-                  {(device) => <SamplerSliceView slice={device} />}
-                </Match>
-              </Switch>
+                  <button
+                    type="button"
+                    title={
+                      bypassed()
+                        ? 'Effect bypassed — click to enable'
+                        : 'Bypass effect'
+                    }
+                    onClick={() =>
+                      props.device.set({ bypass: !props.device.bypassed })
+                    }
+                    class={css`
+                      font-size: 10px;
+                      font-family: 'Oswald';
+                      letter-spacing: 0.05em;
+                      text-transform: uppercase;
+                      padding: 1px 8px;
+                      border-radius: 3px;
+                      cursor: pointer;
+                      border: 1px solid rgba(0, 0, 0, 0.4);
+                      color: ${bypassed() ? '#222' : '#0c2'};
+                      background: ${bypassed() ? '#e0a23a' : '#1c1c1c'};
+                      box-shadow: ${bypassed()
+                        ? 'none'
+                        : 'inset 0 0 4px rgba(0, 255, 80, 0.4)'};
+                    `}
+                  >
+                    {bypassed() ? 'Bypassed' : 'Active'}
+                  </button>
+                </div>
+              </Show>
+              <div
+                class={css`
+                  opacity: ${bypassed() ? 0.45 : 1};
+                  transition: opacity 0.15s;
+                `}
+              >
+                <Switch>
+                  <Match
+                    keyed
+                    when={props.device instanceof FilterDevice && props.device}
+                  >
+                    {(device) => <FilterView filter={device} />}
+                  </Match>
+                  <Match
+                    keyed
+                    when={
+                      props.device instanceof PingPongDelayDevice &&
+                      props.device
+                    }
+                  >
+                    {(device) => <PingPongDelayView pingPongDelay={device} />}
+                  </Match>
+                  <Match
+                    keyed
+                    when={
+                      props.device instanceof DistortionDevice && props.device
+                    }
+                  >
+                    {(device) => <DistortionView distortion={device} />}
+                  </Match>
+                  <Match
+                    keyed
+                    when={
+                      props.device instanceof DistortionDevice && props.device
+                    }
+                  >
+                    {(device) => <DistortionView distortion={device} />}
+                  </Match>
+                  <Match
+                    keyed
+                    when={
+                      props.device instanceof CompressorDevice && props.device
+                    }
+                  >
+                    {(device) => <CompressorView compressor={device} />}
+                  </Match>
+                  <Match
+                    keyed
+                    when={props.device instanceof ReverbDevice && props.device}
+                  >
+                    {(device) => <ReverbView reverb={device} />}
+                  </Match>
+                  <Match
+                    keyed
+                    when={
+                      props.device instanceof SequencerDevice && props.device
+                    }
+                  >
+                    {(device) => <PatternEditor sequencer={device} />}
+                  </Match>
+                  <Match
+                    keyed
+                    when={props.device instanceof Slice && props.device}
+                  >
+                    {(device) => <SamplerSliceView slice={device} />}
+                  </Match>
+                </Switch>
+              </div>
             </div>
           </DeviceWrapper>
         );

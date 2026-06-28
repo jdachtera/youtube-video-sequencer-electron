@@ -1,5 +1,5 @@
 import { css } from '@emotion/css';
-import { createSignal, onCleanup, onMount, Show } from 'solid-js';
+import { createSignal, For, onCleanup, onMount, Show } from 'solid-js';
 import { Time } from 'tone';
 import { debounce } from 'ts-debounce';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
@@ -8,16 +8,37 @@ import { MasterMeter } from '../UI/MasterMeter';
 import { NumberInputWithArrowButtons } from '../UI/NumberInputWithArrowButtons';
 import { RangeInput } from '../UI/RangeInput';
 import { InputLCD } from '../UI/lcdStyles';
-import { Engine } from '../engine/Engine';
+import { Engine, LAUNCH_QUANTIZATIONS } from '../engine/Engine';
+import type { LaunchQuantization } from '../engine/Engine';
 import {
   createSignalFromEventEmitter,
   createStoreFromEventEmitter,
 } from '../engine/EngineBase';
 import { DeviceChain } from '../engine/device/DeviceChain';
 import { SamplerDevice } from '../engine/device/Sampler';
+import { bpmFromTaps, pushTap } from '../engine/tapTempo';
 import type { DeepPartial } from '../engine/types';
 import { AccountMenu } from './AccountMenu';
 import { ChannelSwitcher } from './ChannelSwitcher';
+import { MidiControls } from './MidiControls';
+
+// Ableton-style launch-quantization labels for the global transport cue grid.
+const LAUNCH_QUANTIZATION_LABELS: Record<LaunchQuantization, string> = {
+  none: 'None',
+  '8m': '8 Bars',
+  '4m': '4 Bars',
+  '2m': '2 Bars',
+  '1m': '1 Bar',
+  '2n': '1/2',
+  '2t': '1/2T',
+  '4n': '1/4',
+  '4t': '1/4T',
+  '8n': '1/8',
+  '8t': '1/8T',
+  '16n': '1/16',
+  '16t': '1/16T',
+  '32n': '1/32',
+};
 
 export const Toolbar = (props: { engine: Engine }) => {
   const engineState = createStoreFromEventEmitter(
@@ -30,12 +51,14 @@ export const Toolbar = (props: { engine: Engine }) => {
       zoom: engine.zoom,
       playing: engine.transport.state === 'started',
       volume: engine.gain.gain.value,
+      launchQuantization: engine.launchQuantization,
     }),
     [
       'bpmUpdated',
       'swingUpdated',
       'viewModeUpdated',
       'zoomUpdated',
+      'launchQuantizationUpdated',
       'start',
       'stop',
     ],
@@ -48,6 +71,18 @@ export const Toolbar = (props: { engine: Engine }) => {
     ['draw'],
   );
 
+  const metronomeEnabled = createSignalFromEventEmitter(
+    () => props.engine,
+    (engine) => engine.metronome.enabled,
+    ['metronomeUpdated'],
+  );
+
+  const countInBars = createSignalFromEventEmitter(
+    () => props.engine,
+    (engine) => engine.metronome.countInBars,
+    ['countInUpdated'],
+  );
+
   const togglePlay = async () => {
     if (engineState.playing) {
       props.engine.stop();
@@ -55,6 +90,32 @@ export const Toolbar = (props: { engine: Engine }) => {
       props.engine.start();
     }
   };
+
+  // The click track is a monitoring preference, not project data, so it's
+  // persisted on its own key rather than in the serialized project.
+  const toggleMetronome = () => {
+    const enabled = !metronomeEnabled();
+    props.engine.setMetronome(enabled);
+    localStorage.setItem('metronome', enabled ? '1' : '0');
+  };
+
+  const handleCountInChange = (bars: number) => {
+    props.engine.setCountIn(bars);
+    localStorage.setItem(
+      'metronome.countIn',
+      String(props.engine.metronome.countInBars),
+    );
+  };
+
+  onMount(() => {
+    if (localStorage.getItem('metronome') === '1') {
+      props.engine.setMetronome(true);
+    }
+    const storedCountIn = Number(localStorage.getItem('metronome.countIn'));
+    if (Number.isFinite(storedCountIn) && storedCountIn > 0) {
+      props.engine.setCountIn(storedCountIn);
+    }
+  });
 
   // Undo/redo + Export shortcuts moved to the native menu (see AppMenu); the
   // toolbar keeps Play (Space) and closing the side panel (Escape).
@@ -94,6 +155,16 @@ export const Toolbar = (props: { engine: Engine }) => {
 
   const handleTempoChange = (bpm: number) => {
     props.engine.set({ bpm });
+  };
+
+  // Tap tempo: derive BPM from the spacing of recent taps on the TAP button.
+  let taps: number[] = [];
+  const tapTempo = () => {
+    taps = pushTap(taps, Date.now());
+    const bpm = bpmFromTaps(taps);
+    if (bpm !== null) {
+      handleTempoChange(Math.max(20, Math.min(280, Math.round(bpm))));
+    }
   };
 
   const handleSwingChange = (swing: number) => {
@@ -157,6 +228,20 @@ export const Toolbar = (props: { engine: Engine }) => {
             label={'▶'}
           />
 
+          <ButtonWithLabel
+            type="button"
+            activated={metronomeEnabled()}
+            onClick={toggleMetronome}
+            labelOnButton={true}
+            activatedColor={'#46d323'}
+            blinkInterval={
+              metronomeEnabled() && engineState.playing
+                ? 60 / engineState.bpm
+                : 0
+            }
+            label={'Click'}
+          />
+
           <Show when={lastSaved()}>
             <span
               title="Your work is autosaved locally in this app"
@@ -201,6 +286,13 @@ export const Toolbar = (props: { engine: Engine }) => {
               value={engineState.bpm}
               onChange={handleTempoChange}
             />
+            <ButtonWithLabel
+              type="button"
+              label="Tap"
+              labelOnButton={true}
+              title="Tap to set the tempo"
+              onClick={tapTempo}
+            />
             <NumberInputWithArrowButtons
               label={'Swing'}
               min={0}
@@ -210,6 +302,48 @@ export const Toolbar = (props: { engine: Engine }) => {
               value={engineState.swing}
               onChange={handleSwingChange}
             />
+            <NumberInputWithArrowButtons
+              label={'Count-in'}
+              min={0}
+              max={4}
+              step={1}
+              size={3}
+              value={countInBars()}
+              onChange={handleCountInChange}
+            />
+            <label
+              class={css`
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                font-size: 12px;
+                margin: 0 4px;
+              `}
+              title="Global launch quantization — when a pattern's play button is pressed during playback, it starts at the next boundary of this grid (like Ableton's transport cue)."
+            >
+              Cue
+              <select
+                class={css`
+                  height: 22px;
+                  font-size: 14px;
+                  margin-top: 2px;
+                `}
+                value={engineState.launchQuantization}
+                onChange={(event) =>
+                  props.engine.setLaunchQuantization(
+                    event.currentTarget.value as LaunchQuantization,
+                  )
+                }
+              >
+                <For each={LAUNCH_QUANTIZATIONS}>
+                  {(quantization) => (
+                    <option value={quantization}>
+                      {LAUNCH_QUANTIZATION_LABELS[quantization]}
+                    </option>
+                  )}
+                </For>
+              </select>
+            </label>
             <NumberInputWithArrowButtons
               label={'Zoom'}
               min={0.25}
@@ -258,6 +392,7 @@ export const Toolbar = (props: { engine: Engine }) => {
             label="Master Volume"
           />
           <MasterMeter engine={props.engine} />
+          <MidiControls engine={props.engine} />
           <ChannelSwitcher />
           <AccountMenu />
         </Row>

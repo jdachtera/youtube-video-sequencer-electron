@@ -1,5 +1,5 @@
 import type { ComponentProps } from 'solid-js';
-import { splitProps, createSignal, mergeProps } from 'solid-js';
+import { splitProps, createSignal, mergeProps, onCleanup } from 'solid-js';
 import { isNumber } from 'tone';
 import { InputWithArrowButtons } from './InputWithArrowButtons';
 
@@ -80,6 +80,13 @@ export const NumberInputWithArrowButtons = (
     window.addEventListener('mousemove', onScrubMove);
     window.addEventListener('mouseup', onScrubEnd);
   };
+
+  // If the component unmounts mid-scrub (before mouseup fires), make sure the
+  // window listeners don't outlive it. Harmless when no scrub is in progress.
+  onCleanup(() => {
+    window.removeEventListener('mousemove', onScrubMove);
+    window.removeEventListener('mouseup', onScrubEnd);
+  });
 
   return (
     <InputWithArrowButtons

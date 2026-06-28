@@ -2,7 +2,8 @@ import { css } from '@emotion/css';
 import { ApolloProvider } from '@merged/solid-apollo';
 import { For, onCleanup, onMount, Show } from 'solid-js';
 import { Transport } from 'tone';
-import { SamplerView } from './Device/SamplerView';
+import { DeviceChainView } from './Device/DeviceChainView';
+import { SamplerPanel } from './Device/SamplerPanel';
 import { TrackView } from './Device/TrackView';
 import { Downloads } from './UI/Downloads';
 import { EmptyState } from './UI/EmptyState';
@@ -20,7 +21,22 @@ import { AppMenu } from './panels/AppMenu';
 import { SidePanel } from './panels/SidePanel';
 import { Toolbar } from './panels/Toolbar';
 
+// Replaced at build time by Vite's `define` (vite.config.js); true only when
+// VITE_EXPOSE_ENGINE=true, so the branch below is stripped from shipped builds.
+declare const __EXPOSE_ENGINE__: boolean;
+
+// Short commit the renderer was built from (Vite `define`); shown in a corner
+// so we can tell which deployed version is running.
+declare const __BUILD_COMMIT__: string;
+
 const engine = new Engine(Transport);
+
+// Test hook: expose the engine to the headless audio harness
+// (scripts/audiotest.mjs) so it can drive an offline render and assert the
+// output isn't silent.
+if (__EXPOSE_ENGINE__) {
+  (window as unknown as { __engine: Engine }).__engine = engine;
+}
 
 // Lowest desktop-shell IPC/contextBridge contract this UI needs. When the UI is
 // served remotely (GitHub Pages) and loaded into an older installed shell, warn
@@ -48,7 +64,7 @@ export function App() {
   const tracks = createSignalFromEventEmitter(
     engine,
     (engine) => engine.tracks,
-    ['trackAdded', 'trackRemoved'],
+    ['trackAdded', 'trackRemoved', 'tracksReordered'],
   );
 
   const zoom = createSignalFromEventEmitter(
@@ -57,16 +73,13 @@ export function App() {
     'zoomUpdated',
   );
 
-  const selectedSampler = createSignalFromEventEmitter(
-    engine,
-    (engine) => engine.currentSampler,
-    'currentSamplerChanged',
-  );
-
   onMount(() => {
     const unsubscribe = window.yt.onDownloadProgress?.(updateDownload);
     if (unsubscribe) onCleanup(unsubscribe);
     void checkShellVersion();
+    // Activate MIDI keyboard input (play + record). No-op if Web MIDI is
+    // unavailable or access is denied.
+    void engine.midiInput.init();
   });
 
   return (
@@ -95,29 +108,86 @@ export function App() {
           <Row overflow={'hidden'} flex={1}>
             <SidePanel engine={engine} />
             <Column overflow={'hidden'} flex={1}>
-              <Row>
-                <Show keyed when={selectedSampler()}>
-                  {(sampler) => <SamplerView sampler={sampler} />}
-                </Show>
-              </Row>
-              <Show
-                when={tracks().length > 0}
-                fallback={<EmptyState engine={engine} />}
+              {/* The title-bar zoom scales the whole work area — sampler
+                  included — so everything sizes together. */}
+              <Column
+                flex={1}
+                overflow={'hidden'}
+                class={css`
+                  zoom: ${zoom()};
+                `}
               >
-                <Column
-                  flex={1}
-                  overflow={'auto'}
-                  class={css`
-                    zoom: ${zoom()};
-                  `}
+                <SamplerPanel engine={engine} />
+                <Show
+                  when={tracks().length > 0}
+                  fallback={<EmptyState engine={engine} />}
                 >
-                  <For each={tracks()}>
-                    {(track) => <TrackView track={track} />}
-                  </For>
-                </Column>
-              </Show>
+                  <Column flex={1} overflow={'auto'}>
+                    <For each={tracks()}>
+                      {(track) => <TrackView track={track} />}
+                    </For>
+                  </Column>
+                </Show>
+                {/* Master FX strip: effects on the whole mix, pinned below the
+                    tracks. Reuses the per-track device chain UI. */}
+                <Show when={tracks().length > 0}>
+                  <Row
+                    classList={{
+                      [css`
+                        flex: 0 0 auto;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 4px 8px;
+                        background: #2b2b2b;
+                        border-top: 1px solid rgba(0, 0, 0, 0.5);
+                      `]: true,
+                    }}
+                  >
+                    <span
+                      class={css`
+                        font-family: 'oswald';
+                        font-size: 11px;
+                        letter-spacing: 1px;
+                        text-transform: uppercase;
+                        color: #cfcfcf;
+                        white-space: nowrap;
+                      `}
+                    >
+                      Master FX
+                    </span>
+                    <DeviceChainView
+                      deviceChain={engine.masterChain}
+                      renderDummy={false}
+                    />
+                  </Row>
+                </Show>
+              </Column>
             </Column>
           </Row>
+
+          {/* Build version — which renderer commit is running. Subtle, but
+              selectable so it can be copied into a bug report. */}
+          <div
+            title="Renderer build commit"
+            class={css`
+              position: absolute;
+              right: 6px;
+              bottom: 3px;
+              z-index: 50;
+              font-family: monospace;
+              font-size: 10px;
+              line-height: 1;
+              letter-spacing: 0.5px;
+              color: #fff;
+              opacity: 0.35;
+              user-select: text;
+              &:hover {
+                opacity: 0.75;
+              }
+            `}
+          >
+            {__BUILD_COMMIT__}
+          </div>
         </Column>
       </ApolloProvider>
     </ThemeProvider>

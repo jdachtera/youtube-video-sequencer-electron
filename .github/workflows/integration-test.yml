@@ -1,0 +1,53 @@
+name: Integration test
+
+# The headless audio + MIDI + scheduling integration harness
+# (`pnpm integration-test`). It builds the app with the engine exposed
+# (VITE_EXPOSE_ENGINE -> window.__engine), launches it under Xvfb, injects a
+# synthesized sine into the samplers and asserts on what comes out of the master
+# bus — sound, pitch (octave ratio), automation curves, mocked Web MIDI, and the
+# two scheduling crashes we fixed. Fully offline: no network calls, no audio
+# hardware, no secrets.
+#
+# Manual-only (workflow_dispatch): this is deliberately NOT wired to push /
+# pull_request, to avoid spending Actions minutes on every commit. Run it the
+# usual way locally with `pnpm integration-test`; trigger this workflow from the
+# Actions tab (or `gh workflow run "Integration test"`) only when you want it on
+# a clean GitHub runner.
+on:
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: 'bash'
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Electron is Chromium under the hood, so Playwright's dependency installer
+      # pulls the right shared libraries (it tracks the correct apt package names
+      # per Ubuntu release, avoiding the libfoo / libfoo-t64 churn). Xvfb gives
+      # the headless runner a display; the harness self-wraps in `xvfb-run`.
+      # playwright-core is already a dependency (it drives Electron in the test).
+      - name: Install Electron system libraries + Xvfb
+        run: |
+          pnpm exec playwright-core install-deps chromium
+          sudo apt-get install -y xvfb
+
+      - name: Run integration test
+        run: pnpm integration-test

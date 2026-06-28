@@ -1,31 +1,24 @@
 import { css } from '@emotion/css';
-import { Show } from 'solid-js';
+import { For, Show } from 'solid-js';
+import { start as startAudio } from 'tone';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { Column } from '../UI/Grid';
-import { NumberInputWithLabel } from '../UI/Knob';
 import { LCDLabel } from '../UI/LCD';
-import { SelectWithArrowButtons } from '../UI/SelectWithArrowButtons';
 import { ShareSliceButton } from '../UI/ShareSliceButton';
-import {
-  parseFormattedTime,
-  formatTime,
-  formatPercentage,
-  formattedTimeStep,
-} from '../UI/format';
 import { LCD } from '../UI/lcdStyles';
 import {
   createSignalFromEventEmitter,
   createStoreFromEventEmitter,
 } from '../engine/EngineBase';
-import type { SerializedSlice, Slice } from '../engine/device/Slice';
+import type { Slice } from '../engine/device/Slice';
 import { exportBuffer } from '../engine/helpers';
 import { WaveformSliceView } from './WaveformSliceView';
 
 const panel = css`
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 6px;
+  gap: 4px;
+  padding: 5px 6px;
   margin: 4px;
   border-radius: 5px;
   background: linear-gradient(180deg, #c9c9c9, #b0b0b0);
@@ -34,26 +27,35 @@ const panel = css`
   font-size: 12px;
 `;
 
-const controlsGrid = css`
-  display: grid;
-  grid-template-columns: auto auto;
-  align-items: center;
-  justify-items: start;
-  gap: 4px 12px;
-`;
-
-const inlineControl = css`
+const controlRow = css`
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 `;
 
 const buttonRow = css`
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+  flex-wrap: nowrap;
+  gap: 3px;
+  margin-left: auto;
 `;
 
+const sampleSelect = css`
+  flex: 1;
+  min-width: 0;
+  font-family: 'Oswald';
+  font-size: 12px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  background: #e9e9e9;
+  color: #3a3a3a;
+  cursor: pointer;
+`;
+
+// Thin per-track voice editor: pick which prepared sample this sequencer plays
+// and see its waveform. The sound itself (region, speed, warp, reverse, root
+// note, …) is shaped in the sampler — "Edit in Sampler" jumps there.
 export const SamplerSliceView = (props: { slice: Slice }) => {
   const sliceState = createStoreFromEventEmitter(
     () => props.slice,
@@ -61,13 +63,18 @@ export const SamplerSliceView = (props: { slice: Slice }) => {
     'change',
   );
 
-  const currentPlayPosition = createSignalFromEventEmitter(
-    () => props.slice,
-    (slice) => slice.currentPosition,
-    'currentPositionUpdated',
+  // The prepared sample slots, for the "which sample does this sequencer play"
+  // dropdown.
+  const samplers = createSignalFromEventEmitter(
+    () => props.slice.engine,
+    (engine) => engine.samplers,
+    ['samplersUpdated'],
   );
 
-  const selectSlice = () => props.slice.sampler.selectSlice(props.slice);
+  // Click the waveform to audition the slice through its own effect chain. A
+  // click is a user gesture, so resume the audio context first (no-op if the
+  // context is already running).
+  const playSlice = () => void startAudio().then(() => props.slice.audition());
 
   return (
     <Column>
@@ -86,178 +93,69 @@ export const SamplerSliceView = (props: { slice: Slice }) => {
               collapsed={!sliceState.collapsed}
               center={1}
               height={30}
-              onClickWaveform={selectSlice}
+              onClickWaveform={playSlice}
             />
           </LCD>
         </div>
       </Show>
 
-      {/* Expanded: compact editor. */}
+      {/* Expanded: pick the sample + see it; shape the sound in the sampler.
+          Laid out tight — a single control row over a slim waveform — so a
+          track stays short and many fit on screen at once. */}
       <Show when={!sliceState.collapsed}>
         <div class={panel}>
-          <LCDLabel>Sample</LCDLabel>
+          <div class={controlRow}>
+            <LCDLabel>Smpl</LCDLabel>
+            {/* Which prepared sample slot this sequencer's voice plays. */}
+            <select
+              class={sampleSelect}
+              onChange={(event) =>
+                props.slice.selectSampler(event.currentTarget.value)
+              }
+            >
+              <For each={samplers()}>
+                {(sampler) => (
+                  <option
+                    value={sampler.id}
+                    selected={sampler.id === sliceState.samplerId}
+                  >
+                    {sampler.title || sampler.url || 'Untitled sample'}
+                  </option>
+                )}
+              </For>
+            </select>
+            <div class={buttonRow}>
+              <ButtonWithLabel
+                labelOnButton
+                title="Edit this sample in the sampler"
+                onClick={() =>
+                  props.slice.engine.setCurrentSampler(props.slice.sampler)
+                }
+                label="✎"
+              />
+              <ButtonWithLabel
+                labelOnButton
+                title="Export the sliced sample as a .wav"
+                onClick={() => {
+                  exportBuffer(
+                    props.slice.player.buffer,
+                    `${encodeURI(
+                      `${props.slice.sampler.title} (${props.slice.start}-${props.slice.end})`,
+                    )}.wav`,
+                  );
+                }}
+                label="⤓"
+              />
+              <ShareSliceButton slice={props.slice} />
+            </div>
+          </div>
           <WaveformSliceView
             collapsed={sliceState.collapsed}
             slice={props.slice}
             center={1}
-            height={64}
-            onClickWaveform={selectSlice}
+            height={44}
+            onClickWaveform={playSlice}
           />
-
-          <div class={controlsGrid}>
-            <NumberInputWithLabel
-              label="Start"
-              size={8}
-              min={sliceState.end - 10}
-              max={sliceState.end - 0.00001}
-              step={formattedTimeStep}
-              parse={parseFormattedTime}
-              format={formatTime}
-              value={sliceState.start}
-              onChange={(start: number) => props.slice.set({ start })}
-            />
-            <NumberInputWithLabel
-              label="End"
-              size={8}
-              min={sliceState.start + 0.00001}
-              max={sliceState.start + 10}
-              step={formattedTimeStep}
-              parse={parseFormattedTime}
-              format={formatTime}
-              value={sliceState.end}
-              onChange={(end) => props.slice.set({ end })}
-            />
-            <NumberInputWithLabel
-              label="Pos"
-              disabled
-              size={8}
-              value={currentPlayPosition()}
-              parse={parseFormattedTime}
-              format={formatTime}
-            />
-            <NumberInputWithLabel
-              label="Volume"
-              size={6}
-              step={0.01}
-              min={0}
-              max={3}
-              format={formatPercentage()}
-              parse={parseFloat}
-              value={sliceState.volume}
-              onChange={(volume) => props.slice.set({ volume })}
-            />
-            <NumberInputWithLabel
-              label="Speed"
-              size={6}
-              step={0.01}
-              min={0}
-              max={3}
-              format={formatPercentage(0)}
-              parse={parseFloat}
-              value={sliceState.playbackRate}
-              onChange={(playbackRate) => {
-                props.slice.set({ playbackRate });
-              }}
-            />
-            <div class={inlineControl}>
-              <LCDLabel>Warp</LCDLabel>
-              <SelectWithArrowButtons
-                options={
-                  ['resample', 'stretch'] as SerializedSlice['warpmode'][]
-                }
-                size={9}
-                selectedOption={sliceState.warpmode}
-                onChange={(warpmode) => {
-                  props.slice.set({ warpmode });
-                }}
-              />
-            </div>
-            <Show when={sliceState.warpmode === 'stretch'}>
-              <NumberInputWithLabel
-                label="Transpose"
-                size={6}
-                min={-2400}
-                max={2400}
-                value={sliceState.pitch}
-                onChange={(pitch) => {
-                  props.slice.set({ pitch });
-                }}
-              />
-              <NumberInputWithLabel
-                label="Grain"
-                size={6}
-                step={0.00001}
-                min={0.00000000001}
-                max={3}
-                value={sliceState.grainSize}
-                onChange={(grainSize) => {
-                  props.slice.set({ grainSize });
-                }}
-              />
-            </Show>
-          </div>
-
-          <div class={buttonRow}>
-            <ButtonWithLabel
-              activated={sliceState.reverse}
-              labelOnButton
-              onClick={() => props.slice.set({ reverse: !sliceState.reverse })}
-              label="Reverse"
-            />
-            <ButtonWithLabel
-              labelOnButton
-              onClick={() =>
-                props.slice.set({ playbackRate: sliceState.playbackRate / 2 })
-              }
-              label="/2"
-            />
-            <ButtonWithLabel
-              labelOnButton
-              onClick={() => {
-                const bpm = props.slice.sampler.engine.transport.bpm.value;
-                const barDuration = (60 / bpm) * 4;
-                const sliceDuration = sliceState.end - sliceState.start;
-                const targetDuration =
-                  Math.round(sliceDuration / barDuration) * barDuration;
-                props.slice.set({
-                  playbackRate: sliceDuration / targetDuration,
-                });
-              }}
-              label="Align"
-            />
-            <ButtonWithLabel
-              labelOnButton
-              onClick={() =>
-                props.slice.set({ playbackRate: sliceState.playbackRate * 2 })
-              }
-              label="x2"
-            />
-            <ButtonWithLabel
-              labelOnButton
-              onClick={() => {
-                exportBuffer(
-                  props.slice.player.buffer,
-                  `${encodeURI(
-                    `${props.slice.sampler.title} (${props.slice.start}-${props.slice.end})`,
-                  )}.wav`,
-                );
-              }}
-              label="Export"
-            />
-            <ButtonWithLabel
-              labelOnButton
-              onClick={() =>
-                props.slice.engine.setCurrentSampler(props.slice.sampler)
-              }
-              label="Sampler"
-            />
-            <ShareSliceButton slice={props.slice} />
-            <ButtonWithLabel
-              labelOnButton
-              onClick={() => props.slice.sampler.removeSlice(props.slice)}
-              label="Delete"
-            />
-          </div>
         </div>
       </Show>
     </Column>

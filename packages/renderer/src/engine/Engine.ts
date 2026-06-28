@@ -8,20 +8,48 @@ import {
   OfflineContext,
   setContext,
   start,
+  Time as ToneTime,
 } from 'tone';
+import type { ToneAudioBuffer } from 'tone';
 import type { Transport } from 'tone/build/esm/core/clock/Transport';
 import type { Time, TransportTime } from 'tone/build/esm/core/type/Units';
 import type { SidePanelTab } from '../panels/SidePanel';
 import { EngineBase } from './EngineBase';
+import { Metronome } from './Metronome';
+import { MidiInput } from './MidiInput';
 import type { SerializedTrack } from './Track';
 import { Track } from './Track';
+import { DeviceChain } from './device/DeviceChain';
+import type { SerializedDeviceChain } from './device/DeviceChain';
 import type { SerializedSampler } from './device/Sampler';
 import { SamplerDevice } from './device/Sampler';
 import { SequencerDevice } from './device/Sequencer';
-import type { SerializedSlice } from './device/Slice';
+import { Slice, type SerializedSlice } from './device/Slice';
 import type { PropertyUpdateEvents } from './helpers';
 import { entries } from './helpers';
 import type { DeepPartial } from './types';
+
+// Global launch-quantization grid (Ableton-style transport cue): when a pattern
+// is launched / a track is added while the transport is running, it starts on
+// the next boundary of this grid. 'none' = as soon as possible. Values are Tone
+// subdivision strings ('m' = bar/measure, 'n' = note, 't' = triplet).
+export const LAUNCH_QUANTIZATIONS = [
+  'none',
+  '8m',
+  '4m',
+  '2m',
+  '1m',
+  '2n',
+  '2t',
+  '4n',
+  '4t',
+  '8n',
+  '8t',
+  '16n',
+  '16t',
+  '32n',
+] as const;
+export type LaunchQuantization = typeof LAUNCH_QUANTIZATIONS[number];
 
 export type SerializedEngine = {
   zoom: number;
@@ -29,6 +57,10 @@ export type SerializedEngine = {
   swing: number;
   tracks: SerializedTrack[];
   samplers: SerializedSampler[];
+  // Effects on the master bus (between the summed tracks and the limiter).
+  master: SerializedDeviceChain;
+  // Ableton-style launch-quantization grid for cueing patterns / adding tracks.
+  launchQuantization: LaunchQuantization;
   volume: number;
   viewMode: {
     channel: boolean;
@@ -47,11 +79,16 @@ type EngineEvents = {
   currentSamplerChanged: (sampler?: SamplerDevice) => void;
   trackAdded: (track: Track) => void;
   trackRemoved: (track: Track) => void;
+  tracksReordered: () => void;
   change: (engine: Engine) => void;
   start: (time?: Time, offset?: TransportTime) => void;
   stop: (time?: Time) => void;
   mixdownProgress: (progress: number) => void;
   draw: (time: number, position: Time) => void;
+  // Live-only click-track controls — deliberately not part of SerializedEngine,
+  // so they stay out of project files, undo/redo, and exports.
+  metronomeUpdated: (enabled: boolean) => void;
+  countInUpdated: (bars: number) => void;
 } & PropertyUpdateEvents<SerializedEngine>;
 
 export class Engine extends EngineBase<EngineEvents> {
@@ -74,7 +111,25 @@ export class Engine extends EngineBase<EngineEvents> {
 
   public currentSamplerIndex = 0;
 
+  // MIDI keyboard input (play + record). Created here but only activated on the
+  // live engine via `midiInput.init()` (App), never the offline render engine.
+  public midiInput: MidiInput = new MidiInput(this);
+
+  // Transport-synced click track. Off by default and never enabled on the
+  // offline render engine, so it never bleeds into a mixdown export.
+  public metronome: Metronome;
+
+  // Effects on the master bus, between the summed tracks (gain) and the limiter.
+  public masterChain: DeviceChain;
+
+  // True between pressing play with a count-in and the transport actually
+  // starting (the lead-in clicks are sounding). Guards against a second start.
+  private pendingCountIn = false;
+
   zoom = 1;
+
+  // Launch-quantization grid; defaults to one bar (Ableton's default).
+  launchQuantization: LaunchQuantization = '1m';
 
   viewMode: SerializedEngine['viewMode'] = {
     channel: true,
@@ -100,6 +155,12 @@ export class Engine extends EngineBase<EngineEvents> {
       swing: parsedData.swing ?? 0,
       zoom: parsedData.zoom ?? 1,
       volume: parsedData.volume ?? 1,
+      master: DeviceChain.normalizeData(parsedData.master ?? {}),
+      launchQuantization: LAUNCH_QUANTIZATIONS.includes(
+        parsedData.launchQuantization as LaunchQuantization,
+      )
+        ? (parsedData.launchQuantization as LaunchQuantization)
+        : '1m',
       samplers: (parsedData.samplers ?? []).map((serializedSampler) =>
         SamplerDevice.normalizeData(serializedSampler),
       ),
@@ -132,14 +193,44 @@ export class Engine extends EngineBase<EngineEvents> {
     this.on('trackAdded', () => this.emit('change', this));
     this.on('trackRemoved', () => this.emit('change', this));
     this.transport.on('start', (time: number) => {
+      // The lead-in is over once the transport actually starts.
+      this.pendingCountIn = false;
       this.emit('start', time);
+      this.metronome.onStart();
     });
     this.transport.on('stop', () => {
       this.emit('stop');
+      this.metronome.onStop();
     });
-    this.gain.connect(this.limiter);
+    // Master FX chain sits between the summed tracks (gain) and the brickwall
+    // limiter, so master effects process the whole mix before the limiter/meter.
+    this.masterChain = new DeviceChain(
+      this,
+      DeviceChain.normalizeData({ devices: [] }),
+    );
+    this.gain.connect(this.masterChain.input);
+    this.masterChain.output.connect(this.limiter);
     this.limiter.toDestination();
     this.limiter.connect(this.meter);
+    this.masterChain.on('change', this.emitChange);
+
+    // Route the click into the master bus (pre-FX) so it respects master volume
+    // and registers on the master meter.
+    this.metronome = new Metronome(this.transport, this.gain);
+  }
+
+  // Toggle the live click track. Not serialized, so it's a pure monitoring
+  // preference — never captured by undo/redo, autosave, or exports.
+  setMetronome(enabled: boolean) {
+    this.metronome.setEnabled(enabled);
+    this.emit('metronomeUpdated', enabled);
+  }
+
+  // Set the count-in length (bars of lead-in clicks before playback starts).
+  // Like the metronome toggle, a live-only preference (not serialized).
+  setCountIn(bars: number) {
+    this.metronome.setCountInBars(bars);
+    this.emit('countInUpdated', this.metronome.countInBars);
   }
 
   emitChange = () => this.emit('change', this);
@@ -151,9 +242,121 @@ export class Engine extends EngineBase<EngineEvents> {
   setCurrentSampler(sampler?: SamplerDevice) {
     if (sampler === this.currentSampler) return;
 
-    this.currentSampler?.unload();
     this.currentSampler = sampler;
+    this.currentSamplerIndex = sampler ? this.samplers.indexOf(sampler) : -1;
+    // Eagerly decode so the cover/waveform/audition are ready when shown. The
+    // buffer is kept loaded (we no longer unload on switch) so browsing through
+    // slots with ◀/▶ doesn't re-download/re-decode each step.
+    void sampler?.hasLoaded();
     this.emit('currentSamplerChanged', sampler);
+  }
+
+  // Browse the prepared sample slots (the sampler's ◀/▶ buttons). Wraps around.
+  selectSampleByIndex(index: number) {
+    if (!this.samplers.length) return;
+    const count = this.samplers.length;
+    const wrapped = ((index % count) + count) % count;
+    this.setCurrentSampler(this.samplers[wrapped]);
+  }
+
+  selectNextSample() {
+    this.selectSampleByIndex(this.currentSamplerIndex + 1);
+  }
+
+  selectPreviousSample() {
+    this.selectSampleByIndex(this.currentSamplerIndex - 1);
+  }
+
+  // Create a new sample slot (one per "add video"; chopping makes several).
+  // Slots are keyed by id, so the same url can appear in multiple slots.
+  createSample(data: DeepPartial<SerializedSampler>) {
+    const sampler = new SamplerDevice(this, SamplerDevice.normalizeData(data));
+    // Propagate slot edits (region, root note, cover, …) so they're autosaved
+    // and captured by undo/redo.
+    sampler.on('change', this.emitChange);
+    this.samplers = [...this.samplers, sampler];
+    this.emit(
+      'samplersUpdated',
+      this.samplers.map((existing) => existing.serialize()),
+    );
+    this.emit('change', this);
+    return sampler;
+  }
+
+  findSampler(id: string) {
+    return this.samplers.find((sampler) => sampler.id === id);
+  }
+
+  // Duplicate a slot (source + region + tuning) into a new one and select it,
+  // so you can prepare a variation (e.g. reversed, retuned) without re-adding
+  // the video.
+  cloneSample(sampler: SamplerDevice) {
+    const data = sampler.serialize();
+    const clone = this.createSample({
+      ...data,
+      id: '',
+      title: data.title ? `${data.title} copy` : '',
+    });
+    this.setCurrentSampler(clone);
+    return clone;
+  }
+
+  // Tracks whose voice plays this slot.
+  tracksUsingSample(sampler: SamplerDevice) {
+    return this.tracks.filter((track) =>
+      track.chain.devices.some(
+        (device) => device instanceof Slice && device.samplerId === sampler.id,
+      ),
+    );
+  }
+
+  // Find a sample slot matching a source + region, creating one if none exists.
+  // Used to migrate pre-slot slices (which carried their own url + region) onto
+  // a shared slot, so identical regions across tracks collapse to one slot.
+  findOrCreateSampleSlot(data: DeepPartial<SerializedSampler>) {
+    const start = data.start ?? 0;
+    const end = data.end ?? 0;
+    // Match on everything that defines the sound, so two legacy voices with the
+    // same region but different tuning migrate to distinct slots (rather than
+    // collapsing and losing one's settings).
+    const match = this.samplers.find(
+      (sampler) =>
+        sampler.url === data.url &&
+        sampler.start === start &&
+        sampler.end === end &&
+        sampler.playbackRate === (data.playbackRate ?? 1) &&
+        sampler.warpmode === (data.warpmode ?? 'resample') &&
+        sampler.reverse === (data.reverse ?? false) &&
+        sampler.grainSize === (data.grainSize ?? 0.1) &&
+        sampler.volume === (data.volume ?? 1),
+    );
+    return match ?? this.createSample(data);
+  }
+
+  removeSample(sampler: SamplerDevice) {
+    // Remove tracks whose voice plays this slot first, so deleting a sample
+    // never leaves orphaned sequencers bound to a slot that's gone (which left
+    // the project in a stuck, unusable state).
+    this.tracksUsingSample(sampler).forEach((track) => this.removeTrack(track));
+
+    const index = this.samplers.indexOf(sampler);
+    sampler.off('change', this.emitChange);
+    this.samplers = this.samplers.filter((existing) => existing !== sampler);
+
+    if (this.currentSampler === sampler) {
+      this.currentSampler = undefined;
+      this.currentSamplerIndex = -1;
+      // Fall back to a neighbouring slot so the panel still has something to
+      // show.
+      this.setCurrentSampler(this.samplers[Math.max(0, index - 1)]);
+    }
+
+    sampler.dispose();
+    this.emit(
+      'samplersUpdated',
+      this.samplers.map((existing) => existing.serialize()),
+    );
+    this.emit('change', this);
   }
 
   createTrack(serializedTrack: SerializedTrack) {
@@ -181,6 +384,23 @@ export class Engine extends EngineBase<EngineEvents> {
     return this.tracks.find(predicate);
   }
 
+  // Reorder a track within the list (drag-/button-driven reorder in the UI).
+  // Track order is part of the serialized project, so this is a real edit —
+  // autosaved and captured by undo/redo.
+  moveTrack(fromIndex: number, toIndex: number) {
+    const count = this.tracks.length;
+    const to = Math.max(0, Math.min(count - 1, toIndex));
+    if (fromIndex < 0 || fromIndex >= count || fromIndex === to) return;
+
+    const next = [...this.tracks];
+    const [moved] = next.splice(fromIndex, 1);
+    next.splice(to, 0, moved);
+    this.tracks = next;
+
+    this.emit('tracksReordered');
+    this.emit('change', this);
+  }
+
   removeTrack(track: Track) {
     track.off('change', this.emitChange);
     track.dispose();
@@ -204,6 +424,15 @@ export class Engine extends EngineBase<EngineEvents> {
   // render engine — never the live singleton, or playback would go silent.
   dispose() {
     this.clear();
+    this.midiInput.dispose();
+    this.metronome.dispose();
+    this.masterChain.off('change', this.emitChange);
+    this.masterChain.dispose();
+    this.samplers.forEach((sampler) => {
+      sampler.off('change', this.emitChange);
+      sampler.dispose();
+    });
+    this.samplers = [];
     this.gain.dispose();
     this.limiter.dispose();
     this.meter.dispose();
@@ -225,6 +454,55 @@ export class Engine extends EngineBase<EngineEvents> {
           this.transport.swing = entry[1] ?? 0;
           this.transport.swingSubdivision = '16n';
           break;
+        case 'samplers': {
+          // Restore prepared sample slots. normalizeData emits `samplers`
+          // before `tracks`, so this runs first and slices created during
+          // track restore can bind to the matching slot (by url) instead of
+          // lazily creating a duplicate.
+          //
+          // Reconcile by id rather than dispose-and-rebuild: undo/redo applies
+          // full snapshots through set(), and re-decoding every buffer on each
+          // step would be slow — so unchanged slots (and their loaded buffers)
+          // are kept in place.
+          const previousId = this.currentSampler?.id;
+          const byId = new Map(
+            this.samplers.map((sampler) => [sampler.id, sampler]),
+          );
+          const seen = new Set<string>();
+
+          this.samplers = (entry[1] ?? []).map((serializedSampler) => {
+            const normalized = SamplerDevice.normalizeData(serializedSampler);
+            const existing = byId.get(normalized.id);
+            seen.add(normalized.id);
+            if (existing) {
+              existing.set(normalized);
+              return existing;
+            }
+            const sampler = new SamplerDevice(this, normalized);
+            sampler.on('change', this.emitChange);
+            return sampler;
+          });
+
+          byId.forEach((sampler, id) => {
+            if (!seen.has(id)) {
+              sampler.off('change', this.emitChange);
+              sampler.dispose();
+            }
+          });
+
+          this.currentSampler = undefined;
+          this.currentSamplerIndex = -1;
+          this.emit(
+            'samplersUpdated',
+            this.samplers.map((sampler) => sampler.serialize()),
+          );
+          // Keep the current selection if it survived; otherwise show the first
+          // slot in the always-visible sampler panel.
+          this.setCurrentSampler(
+            (previousId && this.findSampler(previousId)) || this.samplers[0],
+          );
+          break;
+        }
         case 'tracks':
           this.tracks.forEach((track) => this.removeTrack(track));
           Engine.normalizeTracks({ tracks: entry[1] ?? [] }).forEach(
@@ -233,6 +511,13 @@ export class Engine extends EngineBase<EngineEvents> {
           break;
         case 'volume':
           this.gain.gain.value = entry[1] ?? 1;
+          break;
+        case 'master':
+          // Rebuild the master FX chain from the snapshot (load + undo/redo).
+          this.masterChain.set(DeviceChain.normalizeData(entry[1] ?? {}));
+          break;
+        case 'launchQuantization':
+          this.launchQuantization = entry[1] ?? '1m';
           break;
         case 'viewMode':
           this.viewMode = {
@@ -255,8 +540,14 @@ export class Engine extends EngineBase<EngineEvents> {
   serialize(): SerializedEngine {
     return {
       viewMode: this.viewMode,
-      tracks: this.tracks.map((track) => track.serialize()),
+      // Sample slots before tracks: set() restores them in this order so slices
+      // (created during track restore) bind to an existing slot rather than
+      // lazily creating a duplicate. Matters for offline render, which calls
+      // set(serialize()) directly without normalizeData.
       samplers: this.samplers.map((sampler) => sampler.serialize()),
+      tracks: this.tracks.map((track) => track.serialize()),
+      master: this.masterChain.serialize(),
+      launchQuantization: this.launchQuantization,
       bpm: this.transport.bpm.value,
       swing: this.transport.swing,
       zoom: this.zoom,
@@ -265,21 +556,69 @@ export class Engine extends EngineBase<EngineEvents> {
   }
 
   start(time?: Time, offset?: TransportTime) {
+    // Ignore a second press while a count-in is already counting in.
+    if (this.pendingCountIn) return;
+
     this.transport.clear(this.drawInterval);
 
+    // 20 Hz is smooth enough for the position readout / playheads and halves the
+    // per-tick cost of the 'draw' fan-out (each one does a Tone Time conversion
+    // in the toolbar's position display + a re-render).
     this.drawInterval = this.transport.scheduleRepeat((time) => {
       batch(() => {
         this.emit('draw', time, this.transport.position);
       });
-    }, '40hz');
+    }, '20hz');
 
     start();
 
-    this.transport.start(time, offset);
+    // A count-in only applies to a plain "play from here" (no explicit start
+    // time): play N bars of lead-in clicks on the audio clock, then start the
+    // transport on the next downbeat. Programmatic starts pass a time and skip it.
+    if (time === undefined && this.metronome.countInBars > 0) {
+      const startAt = this.transport.context.now() + 0.1;
+      const playbackAt = startAt + this.metronome.playCountIn(startAt);
+      this.pendingCountIn = true;
+      this.transport.start(playbackAt, offset);
+    } else {
+      this.transport.start(time, offset);
+    }
   }
 
   stop() {
+    // Stopping during a count-in cancels the pending start and its lead-in clicks.
+    if (this.pendingCountIn) {
+      this.pendingCountIn = false;
+      this.metronome.cancelCountIn();
+    }
     this.transport.stop();
+  }
+
+  // The transport time at which a launch (cueing a pattern, or adding a track
+  // while playing) should take effect: the next boundary of the launch grid.
+  // undefined when stopped — the caller then starts immediately from the top.
+  launchTime(): TransportTime | undefined {
+    if (this.transport.state !== 'started') return undefined;
+    // 'none' = as soon as possible, but still a future tick (the next 16th) so
+    // it can't be scheduled in the past, which Tone rejects.
+    const grid =
+      this.launchQuantization === 'none' ? '16n' : this.launchQuantization;
+    // NB: transport.nextSubdivision() returns an *absolute* AudioContext time,
+    // but Sequence/Part/scheduleOnce all interpret their time as a *transport*
+    // position — feeding them nextSubdivision() schedules events far in the
+    // future (the context clock, ~tens of seconds in) and they never fire. So
+    // compute the next grid boundary in transport ticks instead: round the
+    // current tick up to the next multiple of the grid length. Landing exactly
+    // on a boundary rolls to the following one (never the current, past tick).
+    const gridTicks = ToneTime(grid).toTicks();
+    const currentTicks = this.transport.ticks;
+    const nextBoundaryTicks =
+      currentTicks + (gridTicks - (currentTicks % gridTicks));
+    return `${nextBoundaryTicks}i`;
+  }
+
+  setLaunchQuantization(quantization: LaunchQuantization) {
+    this.set({ launchQuantization: quantization });
   }
 
   // The render length (in seconds) for a mixdown: one full loop of the longest
@@ -298,31 +637,51 @@ export class Engine extends EngineBase<EngineEvents> {
     return Math.max(longest, 2);
   }
 
-  getOrCreateSampler(url: string) {
-    const existingSampler = this.samplers.find(
-      (sampler) => sampler.url === url,
+  async renderToBuffer(timeToRender: number) {
+    return this.renderSerializedToBuffer(this.serialize(), timeToRender, (p) =>
+      this.emit('mixdownProgress', p),
     );
-
-    if (existingSampler) return existingSampler;
-
-    console.trace(url);
-
-    const newSampler = new SamplerDevice(
-      this,
-      SamplerDevice.normalizeData({ url }),
-    );
-
-    this.samplers = [...this.samplers, newSampler];
-
-    this.emit(
-      'samplersUpdated',
-      this.samplers.map((sampler) => sampler.serialize()),
-    );
-
-    return newSampler;
   }
 
-  async renderToBuffer(timeToRender: number) {
+  // Render each track in isolation (every other track muted) to its own buffer,
+  // for exporting stems. Returns one entry per track, in track order.
+  async renderStems(
+    timeToRender: number,
+  ): Promise<{ name: string; buffer: ToneAudioBuffer }[]> {
+    const base = this.serialize();
+    const total = base.tracks.length;
+    const stems: { name: string; buffer: ToneAudioBuffer }[] = [];
+
+    for (let i = 0; i < total; i++) {
+      const isolated: SerializedEngine = {
+        ...base,
+        // Isolate track i: mute every other track, and clear solo everywhere so
+        // a leftover solo can't override the mutes.
+        tracks: base.tracks.map((track, index) => ({
+          ...track,
+          mute: index !== i,
+          solo: false,
+        })),
+      };
+      const buffer = await this.renderSerializedToBuffer(
+        isolated,
+        timeToRender,
+        // Map each stem's 0..1 progress onto its slice of the overall job.
+        (p) => this.emit('mixdownProgress', (i + p) / total),
+      );
+      stems.push({ name: base.tracks[i].name || `Track ${i + 1}`, buffer });
+    }
+
+    return stems;
+  }
+
+  // Render one serialized engine snapshot to a stereo buffer in an offline
+  // context. Shared by the full mixdown and per-track stem export.
+  private async renderSerializedToBuffer(
+    serialized: SerializedEngine,
+    timeToRender: number,
+    onProgress?: (progress: number) => void,
+  ): Promise<ToneAudioBuffer> {
     const originalContext = getContext();
     const channels = 2;
     const sampleRate = getContext().sampleRate;
@@ -336,23 +695,23 @@ export class Engine extends EngineBase<EngineEvents> {
     setContext(offlineContext);
 
     const offlineEngine = new Engine(offlineContext.transport);
-    offlineEngine.set(this.serialize());
+    offlineEngine.set(serialized);
 
-    offlineContext.transport.scheduleRepeat(
-      (time) => {
-        this.emit('mixdownProgress', time / timeToRender);
-      },
-      1,
-      0,
-      timeToRender,
-    );
+    if (onProgress) {
+      offlineContext.transport.scheduleRepeat(
+        (time) => onProgress(time / timeToRender),
+        1,
+        0,
+        timeToRender,
+      );
+    }
 
     await offlineEngine.hasLoaded();
 
     offlineContext.transport.start();
     const buffer = await offlineContext.render(true);
 
-    this.emit('mixdownProgress', 1);
+    onProgress?.(1);
 
     offlineEngine.dispose();
 
