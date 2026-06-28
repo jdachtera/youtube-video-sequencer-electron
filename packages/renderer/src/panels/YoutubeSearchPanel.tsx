@@ -32,6 +32,13 @@ const durationFilters = [
 
 type DurationFilter = typeof durationFilters[number];
 
+// The selected length bucket is remembered across sessions. Default to short
+// clips (<3m) — they're the most sample-friendly and download fastest.
+const DURATION_FILTER_KEY = 'youtube.durationFilter';
+const defaultDurationFilter =
+  durationFilters.find((filter) => filter.value === 'under_three_mins') ??
+  durationFilters[0];
+
 // Parse a "M:SS" / "H:MM:SS" duration string into seconds. Returns undefined for
 // missing/odd values (e.g. live streams have no length).
 const parseDuration = (raw?: string | null): number | undefined => {
@@ -89,10 +96,18 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
   };
 
   // The length bucket is sent with the query so YouTube filters server-side;
-  // changing it re-runs the search.
+  // changing it re-runs the search. Restored from localStorage, defaulting to
+  // short clips.
+  const storedDurationValue = localStorage.getItem(DURATION_FILTER_KEY);
   const [durationFilter, setDurationFilter] = createSignal<DurationFilter>(
-    durationFilters[0],
+    durationFilters.find((filter) => filter.value === storedDurationValue) ??
+      defaultDurationFilter,
   );
+
+  const selectDurationFilter = (filter: DurationFilter) => {
+    setDurationFilter(filter);
+    localStorage.setItem(DURATION_FILTER_KEY, filter.value);
+  };
 
   const [results] = createResource(
     () => ({ term: query(), duration: durationFilter().value }),
@@ -171,7 +186,7 @@ export const YoutubeSearchPanel = (props: { engine: Engine }) => {
               label={filter.label}
               labelOnButton
               activated={durationFilter() === filter}
-              onClick={() => setDurationFilter(filter)}
+              onClick={() => selectDurationFilter(filter)}
             />
           )}
         </For>

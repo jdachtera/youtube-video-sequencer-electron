@@ -6,6 +6,7 @@ import {
   createSignal,
   mergeProps,
   onCleanup,
+  Show,
   splitProps,
   untrack,
 } from 'solid-js';
@@ -284,8 +285,19 @@ export const MoogKnobWithLabel = (
 
   const formatted = () =>
     (ownProps.format ?? formatKnobValue)(props.value ?? 0);
-  const display = () =>
-    ownProps.unit ? `${formatted()} ${ownProps.unit}` : formatted();
+
+  // Click the readout to type an exact value. While editing we show the raw
+  // draft; otherwise the formatted current value (which tracks knob drags).
+  const [editing, setEditing] = createSignal(false);
+  const [draft, setDraft] = createSignal('');
+
+  const commit = () => {
+    setEditing(false);
+    const parsed = Number.parseFloat(draft());
+    if (!Number.isFinite(parsed)) return;
+    const clamped = Math.max(props.min ?? 0, Math.min(props.max ?? 10, parsed));
+    props.onChange(clamped);
+  };
 
   return (
     <div
@@ -313,18 +325,21 @@ export const MoogKnobWithLabel = (
       >
         <MoogKnob {...knobProps} image={MoogKnobSvg} size={size()} />
       </div>
-      {/* Current value readout. */}
+      {/* Current value readout — click to type an exact value. */}
       <div
-        title={`${props.label ?? ''}: ${display()} (${formatKnobValue(
+        title={`${props.label ?? ''} — click to type a value (${formatKnobValue(
           props.min ?? 0,
         )} – ${formatKnobValue(props.max ?? 10)})`}
         class={css`
+          display: flex;
+          align-items: baseline;
+          justify-content: center;
+          gap: 2px;
           background: ${theme.colors.lcdBackground};
           color: ${theme.colors.lcdText};
           font-family: ${theme.fonts.lcdFont};
           font-size: ${Math.max(9, size() / 5)}px;
           line-height: 1.2;
-          text-align: center;
           border-radius: ${theme.sizes.labelBorderRadius};
           padding: 0 4px;
           min-width: ${size()}px;
@@ -332,7 +347,47 @@ export const MoogKnobWithLabel = (
           white-space: nowrap;
         `}
       >
-        {display()}
+        <input
+          type="text"
+          inputmode="decimal"
+          value={editing() ? draft() : formatted()}
+          onFocus={(event) => {
+            setDraft(String(props.value ?? 0));
+            setEditing(true);
+            event.currentTarget.select();
+          }}
+          onInput={(event) => setDraft(event.currentTarget.value)}
+          onBlur={commit}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.currentTarget.blur();
+            } else if (event.key === 'Escape') {
+              setEditing(false);
+              event.currentTarget.blur();
+            }
+          }}
+          class={css`
+            width: 100%;
+            min-width: 0;
+            background: transparent;
+            border: none;
+            outline: none;
+            text-align: center;
+            color: inherit;
+            font: inherit;
+            padding: 0;
+            cursor: text;
+          `}
+        />
+        <Show when={ownProps.unit}>
+          <span
+            class={css`
+              opacity: 0.7;
+            `}
+          >
+            {ownProps.unit}
+          </span>
+        </Show>
       </div>
       {/* Min/max scale hints. */}
       <div
