@@ -15,6 +15,8 @@ const meterTrack = css`
 const meterFill = css`
   position: absolute;
   inset: 0 auto 0 0;
+  width: 100%;
+  transform-origin: left center;
   background: linear-gradient(
     90deg,
     #4caf50 0%,
@@ -22,7 +24,11 @@ const meterFill = css`
     #ffc107 80%,
     #ff5252 100%
   );
-  transition: width 0.05s linear;
+  /* Animate the fill with transform (scaleX), NOT width. width changes force a
+     layout + paint on every frame (profiled at ~45% of total CPU); transform is
+     composited on the GPU, so updating it 20x/sec is nearly free. */
+  transition: transform 0.08s linear;
+  will-change: transform;
 `;
 
 const clipLight = css`
@@ -50,27 +56,28 @@ export const MasterMeter = (props: { engine: Engine }) => {
   };
 
   const tick = (now: number) => {
-    const value = props.engine.meter.getValue();
-    const normalized = Array.isArray(value) ? Math.max(...value) : value;
-    const next = Math.max(0, Math.min(1, normalized || 0));
-
-    // Update the DOM at ~30 fps — plenty for a level meter, and halves the
-    // per-frame repaint/compositing cost vs. every animation frame. The dynamic
-    // width/colour are inline styles (never css``), so no class is serialized.
-    if (now - lastTick >= 33) {
+    // Read the analyser + touch the DOM at ~20 fps. Reading getValue() and
+    // committing a style is the expensive part, and a level meter doesn't need
+    // more than this.
+    if (now - lastTick >= 50) {
       lastTick = now;
-      if (Math.abs(next - level()) > 0.001) setLevel(next);
+      const value = props.engine.meter.getValue();
+      const normalized = Array.isArray(value) ? Math.max(...value) : value;
+      const next = Math.max(0, Math.min(1, normalized || 0));
+      // Only commit visible changes (>=1% of the 90px track) so a jittering
+      // noise floor doesn't repaint when nothing perceptibly moved.
+      if (Math.abs(next - level()) > 0.01) setLevel(next);
       if (props.engine.limiter.reduction < -0.3) clipUntil = now + 600;
       const isClipping = now < clipUntil;
       if (isClipping !== clipping()) setClipping(isClipping);
     }
 
     // When there's signal, the transport is running, or we just clipped, keep
-    // animating. Otherwise the meter is a static "0" — a constant 60 fps rAF
-    // would keep the whole renderer/compositor awake for nothing, so drop to a
-    // 5 fps poll. Any audio activity wakes it back to full rate within ~200 ms.
+    // animating. Otherwise the meter is a static "0" — a constant rAF would keep
+    // the whole renderer/compositor awake for nothing, so drop to a 5 fps poll.
+    // Any audio activity wakes it back to full rate within ~200 ms.
     const busy =
-      next > 0.0005 ||
+      level() > 0.005 ||
       now < clipUntil ||
       props.engine.transport.state === 'started';
     if (busy) lastActive = now;
@@ -101,10 +108,7 @@ export const MasterMeter = (props: { engine: Engine }) => {
       title="Master output level"
     >
       <div class={meterTrack}>
-        <div
-          class={meterFill}
-          style={{ width: `${Math.round(level() * 100)}%` }}
-        />
+        <div class={meterFill} style={{ transform: `scaleX(${level()})` }} />
       </div>
       <div
         class={clipLight}
