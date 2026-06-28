@@ -561,11 +561,14 @@ export class Engine extends EngineBase<EngineEvents> {
 
     this.transport.clear(this.drawInterval);
 
+    // 20 Hz is smooth enough for the position readout / playheads and halves the
+    // per-tick cost of the 'draw' fan-out (each one does a Tone Time conversion
+    // in the toolbar's position display + a re-render).
     this.drawInterval = this.transport.scheduleRepeat((time) => {
       batch(() => {
         this.emit('draw', time, this.transport.position);
       });
-    }, '40hz');
+    }, '20hz');
 
     start();
 

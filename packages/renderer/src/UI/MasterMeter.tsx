@@ -56,14 +56,19 @@ export const MasterMeter = (props: { engine: Engine }) => {
   let lastActive = 0;
   let lastLevel = -1;
   let lastClipping = false;
+  // Track playback from start/stop events instead of reading transport.state in
+  // the hot loop — Tone's .state getter does a Clock/Timeline lookup
+  // (getStateAtTime -> forEachBetween) that showed up as a real cost at 20 fps.
+  let playing = false;
 
   const schedule = () => {
     frame = requestAnimationFrame(tick);
   };
 
   const tick = (now: number) => {
-    // Read + write at ~20 fps — plenty for a level meter.
-    if (now - lastTick >= 50) {
+    // Read + write at ~12 fps — plenty for a level meter, and keeps the
+    // per-frame analyser read + style write off the critical path.
+    if (now - lastTick >= 80) {
       lastTick = now;
 
       const value = props.engine.meter.getValue();
@@ -87,10 +92,7 @@ export const MasterMeter = (props: { engine: Engine }) => {
 
     // Keep animating while there's signal / playback / a recent clip; otherwise
     // drop to a 5 fps poll so the renderer can idle. Wakes back within ~200 ms.
-    const busy =
-      lastLevel > 0.005 ||
-      now < clipUntil ||
-      props.engine.transport.state === 'started';
+    const busy = lastLevel > 0.005 || now < clipUntil || playing;
     if (busy) lastActive = now;
 
     if (now - lastActive > 400) {
@@ -100,8 +102,22 @@ export const MasterMeter = (props: { engine: Engine }) => {
     }
   };
 
-  onMount(() => schedule());
+  const onStart = () => {
+    playing = true;
+    lastActive = performance.now();
+  };
+  const onStop = () => {
+    playing = false;
+  };
+
+  onMount(() => {
+    props.engine.on('start', onStart);
+    props.engine.on('stop', onStop);
+    schedule();
+  });
   onCleanup(() => {
+    props.engine.off('start', onStart);
+    props.engine.off('stop', onStop);
     cancelAnimationFrame(frame);
     if (idleTimer) clearTimeout(idleTimer);
   });
