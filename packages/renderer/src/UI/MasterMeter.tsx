@@ -40,33 +40,53 @@ export const MasterMeter = (props: { engine: Engine }) => {
   const [clipping, setClipping] = createSignal(false);
 
   let frame = 0;
+  let idleTimer: ReturnType<typeof setTimeout> | undefined;
   let clipUntil = 0;
   let lastTick = 0;
+  let lastActive = 0;
+
+  const schedule = () => {
+    frame = requestAnimationFrame(tick);
+  };
 
   const tick = (now: number) => {
-    frame = requestAnimationFrame(tick);
-    // ~30 fps is plenty for a level meter and halves the per-frame repaint /
-    // compositing cost vs. running on every animation frame.
-    if (now - lastTick < 33) return;
-    lastTick = now;
-
     const value = props.engine.meter.getValue();
     const normalized = Array.isArray(value) ? Math.max(...value) : value;
     const next = Math.max(0, Math.min(1, normalized || 0));
-    // Skip redundant updates (e.g. while idle at 0) so a still meter does no
-    // reactive/DOM work. The dynamic width/colour are applied as inline styles
-    // — never via css`` — so we don't serialize a new emotion class every frame.
-    if (Math.abs(next - level()) > 0.001) setLevel(next);
 
-    if (props.engine.limiter.reduction < -0.3) clipUntil = now + 600;
-    const isClipping = now < clipUntil;
-    if (isClipping !== clipping()) setClipping(isClipping);
+    // Update the DOM at ~30 fps — plenty for a level meter, and halves the
+    // per-frame repaint/compositing cost vs. every animation frame. The dynamic
+    // width/colour are inline styles (never css``), so no class is serialized.
+    if (now - lastTick >= 33) {
+      lastTick = now;
+      if (Math.abs(next - level()) > 0.001) setLevel(next);
+      if (props.engine.limiter.reduction < -0.3) clipUntil = now + 600;
+      const isClipping = now < clipUntil;
+      if (isClipping !== clipping()) setClipping(isClipping);
+    }
+
+    // When there's signal, the transport is running, or we just clipped, keep
+    // animating. Otherwise the meter is a static "0" — a constant 60 fps rAF
+    // would keep the whole renderer/compositor awake for nothing, so drop to a
+    // 5 fps poll. Any audio activity wakes it back to full rate within ~200 ms.
+    const busy =
+      next > 0.0005 ||
+      now < clipUntil ||
+      props.engine.transport.state === 'started';
+    if (busy) lastActive = now;
+
+    if (now - lastActive > 400) {
+      idleTimer = setTimeout(schedule, 200);
+    } else {
+      schedule();
+    }
   };
 
-  onMount(() => {
-    frame = requestAnimationFrame(tick);
+  onMount(() => schedule());
+  onCleanup(() => {
+    cancelAnimationFrame(frame);
+    if (idleTimer) clearTimeout(idleTimer);
   });
-  onCleanup(() => cancelAnimationFrame(frame));
 
   return (
     <div
