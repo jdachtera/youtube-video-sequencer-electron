@@ -46,6 +46,9 @@ type SamplerDeviceEvents = {
   sliceUpdated: (slice: Slice) => void;
   sliceSelected: (slice?: Slice) => void;
   load: () => void;
+  // Fired when the source download/decode starts (true) and finishes (false),
+  // so the UI can show a spinner while a freshly added sample is fetched.
+  loadingUpdated: (loading: boolean) => void;
   change: (sampler: SamplerDevice) => void;
 } & PropertyUpdateEvents<SerializedSampler>;
 
@@ -76,6 +79,15 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
   private isLoading = false;
 
   private _hasLoaded = false;
+
+  // Set when the sampler is removed/unloaded while a download is still running,
+  // so the load() failure (yt-dlp killed) doesn't pop a spurious error toast.
+  private cancelled = false;
+
+  // Whether the source is currently being downloaded/decoded.
+  get loading() {
+    return this.isLoading;
+  }
 
   // Sliced regions of the decoded buffer, cached and SHARED across every voice
   // (slice) that plays the same region. Without this each voice copied its own
@@ -120,6 +132,8 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
   private async load() {
     this.isLoading = true;
     this._hasLoaded = false;
+    this.cancelled = false;
+    this.emit('loadingUpdated', true);
 
     try {
       if (this.url.startsWith('http://file.local')) {
@@ -150,16 +164,30 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
         this.clearSlicedBuffers();
       }
     } catch (error) {
-      // Surface the failure instead of leaving the slice spinning forever.
-      const reason = error instanceof Error ? error.message : 'unknown error';
-      notify(`Couldn't load "${this.title || this.url}": ${reason}`, 'error');
+      // Surface the failure instead of leaving the slice spinning forever —
+      // unless we deliberately cancelled the download (sample removed), in which
+      // case the error is expected and shouldn't bother the user.
+      if (!this.cancelled) {
+        const reason = error instanceof Error ? error.message : 'unknown error';
+        notify(`Couldn't load "${this.title || this.url}": ${reason}`, 'error');
+      }
     } finally {
       // Always resolve waiters (hasLoaded) even on failure so the UI doesn't
       // hang; the buffer simply stays empty and the slice won't play.
       this.emit('load');
+      this.emit('loadingUpdated', false);
       this.isLoading = false;
       this._hasLoaded = true;
     }
+  }
+
+  // Abort an in-flight source download (e.g. the sample was removed before it
+  // finished). Only meaningful for remote sources fetched through yt-dlp.
+  private cancelDownload() {
+    if (!this.isLoading) return;
+    if (this.url.startsWith('http://file.local') || !this.url) return;
+    this.cancelled = true;
+    void window.yt?.cancelDownload?.(this.url);
   }
 
   hasLoaded = async () => {
@@ -349,6 +377,7 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
   }
 
   unload() {
+    this.cancelDownload();
     this.stopAudition();
     this.clearSlicedBuffers();
     this.buffer.dispose();
@@ -358,6 +387,7 @@ export class SamplerDevice extends EngineBase<SamplerDeviceEvents> {
   }
 
   dispose() {
+    this.cancelDownload();
     this.stopAudition();
     this.buffer.dispose();
   }

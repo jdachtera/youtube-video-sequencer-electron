@@ -36,6 +36,9 @@ export type SerializedSlice = SerializedDeviceBase & {
 export type SliceEvents = {
   playingUpdated: (playing: boolean) => void;
   load: () => void;
+  // Mirrors the bound sample slot's download/decode state so the voice's
+  // waveform can show a spinner.
+  loadingUpdated: (loading: boolean) => void;
 } & PropertyUpdateEvents<SerializedSlice>;
 
 export class Slice extends Device<SliceEvents> {
@@ -112,6 +115,16 @@ export class Slice extends Device<SliceEvents> {
   // that plays the slot.
   private samplerChangeHandler = () => this.syncFromSampler();
 
+  // Re-emit the slot's loading state on the voice so the waveform view (which
+  // holds the Slice, not the slot) can show a spinner.
+  private samplerLoadingHandler = (loading: boolean) =>
+    this.emit('loadingUpdated', loading);
+
+  // Whether the bound sample slot is currently downloading/decoding its source.
+  get loading() {
+    return this.sampler?.loading ?? false;
+  }
+
   /**
    * Resolve and bind the sample slot this voice plays. By id when set;
    * otherwise migrate this voice's url + region into a matching slot (projects
@@ -135,6 +148,7 @@ export class Slice extends Device<SliceEvents> {
 
     if (this.sampler && this.sampler !== resolved) {
       this.sampler.off('change', this.samplerChangeHandler);
+      this.sampler.off('loadingUpdated', this.samplerLoadingHandler);
       this.sampler.removeSlice(this);
     }
 
@@ -145,6 +159,10 @@ export class Slice extends Device<SliceEvents> {
     if (isRebind) {
       this.sampler.addSlice(this);
       this.sampler.on('change', this.samplerChangeHandler);
+      this.sampler.on('loadingUpdated', this.samplerLoadingHandler);
+      // Reflect the slot's current loading state immediately (the download may
+      // already be in flight when this voice binds to it).
+      this.emit('loadingUpdated', this.sampler.loading);
     }
 
     this.syncFromSampler();
@@ -386,6 +404,7 @@ export class Slice extends Device<SliceEvents> {
 
   dispose() {
     this.sampler.off('change', this.samplerChangeHandler);
+    this.sampler.off('loadingUpdated', this.samplerLoadingHandler);
     this.sampler.removeSlice(this);
     this.engine.off('stop', this.handleTransportStop);
 

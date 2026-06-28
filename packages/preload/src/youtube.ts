@@ -126,6 +126,10 @@ const yt = {
     throw new Error('Audio download is only available in the desktop app.');
   },
 
+  // Overridden in exposedVars.ts; no main-process download to abort in the
+  // browser fallback.
+  cancelDownload: async (_url: string): Promise<void> => undefined,
+
   // Overridden in exposedVars.ts with the real IPC subscription; the browser
   // fallback has no main process to report download progress.
   onDownloadProgress: (

@@ -124,6 +124,9 @@ const exposedVars = {
     // packages/main/src/youtubeDownload.ts).
     fetchVideo: (url: string): Promise<ArrayBuffer> =>
       ipcRenderer.invoke('yt:download', url),
+    // Abort an in-flight download (the sample was removed before it finished).
+    cancelDownload: (url: string): Promise<void> =>
+      ipcRenderer.invoke('yt:cancel', url),
     // Subscribe to download progress emitted by the main process. Returns an
     // unsubscribe function.
     onDownloadProgress: (

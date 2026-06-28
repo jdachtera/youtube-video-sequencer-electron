@@ -65,10 +65,14 @@ export function randomColor() {
 
 export async function fetchSliceUrlInfo(url: string) {
   if (url.includes('youtube.com')) {
-    // The title/cover are best-effort metadata. youtubei.js can fail (YouTube
-    // keeps changing its InnerTube endpoints — e.g. a 400 from
-    // /youtubei/v1/config), so never let it block the actual audio download,
-    // which goes through the separate yt-dlp path.
+    // Kick off the audio download IMMEDIATELY (before awaiting metadata) so the
+    // "Downloading audio…" indicator appears right away. The title/cover are
+    // best-effort metadata: youtubei.js can be slow or fail (YouTube keeps
+    // changing its InnerTube endpoints — e.g. a 400 from /youtubei/v1/config),
+    // and awaiting it first made the download look like it took a while to
+    // "kick in". The audio itself comes from the separate yt-dlp path.
+    const bufferPromise = window.yt.fetchVideo(url);
+
     let title = '';
     let cover = '';
     try {
@@ -79,7 +83,7 @@ export async function fetchSliceUrlInfo(url: string) {
       // Ignore: fall back to a title derived from the URL below.
     }
 
-    const buffer = await window.yt.fetchVideo(url);
+    const buffer = await bufferPromise;
 
     if (!buffer) throw new Error('Download failed');
 

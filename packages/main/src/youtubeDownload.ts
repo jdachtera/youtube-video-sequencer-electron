@@ -125,21 +125,29 @@ const cachePathFor = (url: string): string =>
 const toArrayBuffer = (buffer: Buffer): ArrayBuffer =>
   buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
 
+type InFlightDownload = {
+  promise: Promise<ArrayBuffer>;
+  child: ReturnType<typeof spawn> | null;
+  refs: number;
+  cancelled: boolean;
+};
+
 /**
- * Return the best audio-only stream for a YouTube URL as compressed bytes,
- * serving from the on-disk cache when present and otherwise downloading it with
- * yt-dlp. The fresh download is written to a temp directory (robust across
- * container formats) and then persisted to the cache before being returned.
+ * In-flight yt-dlp downloads keyed by URL. Two things ride on this:
+ *  - de-duplication: if several samples request the same URL at once (e.g. a
+ *    project with the same source in multiple slots loading on open), they share
+ *    one yt-dlp run instead of spawning a process per slot.
+ *  - cancellation: we keep a handle on the child process so a download can be
+ *    aborted (yt:cancel) when its sample is removed before it finishes.
  */
-const downloadAudio = async (
+const inFlightDownloads = new Map<string, InFlightDownload>();
+
+const runYtDlp = async (
   url: string,
+  entry: InFlightDownload,
   onProgress?: ProgressReporter,
 ): Promise<ArrayBuffer> => {
   const cachePath = cachePathFor(url);
-  if (existsSync(cachePath)) {
-    return toArrayBuffer(readFileSync(cachePath));
-  }
-
   const binary = await ensureBinary(onProgress);
   const workDir = mkdtempSync(join(tmpdir(), 'yvs-yt-'));
 
@@ -149,12 +157,17 @@ const downloadAudio = async (
         '--no-playlist',
         '--no-warnings',
         '--newline',
+        // Fetch DASH audio segments in parallel — yt-dlp otherwise pulls them
+        // one at a time, which dominates the wall-clock on longer videos.
+        '--concurrent-fragments',
+        '4',
         '-f',
         'bestaudio[ext=m4a]/bestaudio',
         '-o',
         join(workDir, 'audio.%(ext)s'),
         url,
       ]);
+      entry.child = child;
 
       let stderr = '';
       // yt-dlp prints "[download]  42.3%" lines (one per line thanks to
@@ -173,13 +186,17 @@ const downloadAudio = async (
       });
       child.on('error', reject);
       child.on('close', (code) => {
-        if (code === 0) resolve();
-        else
+        if (entry.cancelled) {
+          reject(new Error('download cancelled'));
+        } else if (code === 0) {
+          resolve();
+        } else {
           reject(
             new Error(
               `yt-dlp exited with code ${code}: ${stderr.trim().slice(-300)}`,
             ),
           );
+        }
       });
     });
 
@@ -198,6 +215,54 @@ const downloadAudio = async (
     return toArrayBuffer(buffer);
   } finally {
     rmSync(workDir, { recursive: true, force: true });
+  }
+};
+
+/**
+ * Return the best audio-only stream for a YouTube URL as compressed bytes,
+ * serving from the on-disk cache when present and otherwise downloading it with
+ * yt-dlp. Concurrent requests for the same URL share one download.
+ */
+const downloadAudio = (
+  url: string,
+  onProgress?: ProgressReporter,
+): Promise<ArrayBuffer> => {
+  const cachePath = cachePathFor(url);
+  if (existsSync(cachePath)) {
+    return Promise.resolve(toArrayBuffer(readFileSync(cachePath)));
+  }
+
+  const existing = inFlightDownloads.get(url);
+  if (existing) {
+    existing.refs += 1;
+    return existing.promise;
+  }
+
+  const entry: InFlightDownload = {
+    promise: null as unknown as Promise<ArrayBuffer>,
+    child: null,
+    refs: 1,
+    cancelled: false,
+  };
+  entry.promise = runYtDlp(url, entry, onProgress).finally(() => {
+    inFlightDownloads.delete(url);
+  });
+  inFlightDownloads.set(url, entry);
+  return entry.promise;
+};
+
+/**
+ * Abort an in-flight download when a requester goes away (its sample was
+ * removed). Reference-counted so a shared download isn't killed while another
+ * sample still needs it.
+ */
+const cancelDownload = (url: string): void => {
+  const entry = inFlightDownloads.get(url);
+  if (!entry) return;
+  entry.refs -= 1;
+  if (entry.refs <= 0 && !entry.cancelled) {
+    entry.cancelled = true;
+    entry.child?.kill();
   }
 };
 
@@ -222,6 +287,11 @@ export const registerYoutubeDownload = (): void => {
     const freed = cacheUsage();
     rmSync(cacheDir(), { recursive: true, force: true });
     return freed;
+  });
+
+  // Abort an in-flight download whose sample was removed before it finished.
+  ipcMain.handle('yt:cancel', (_event, url: string) => {
+    cancelDownload(url);
   });
 
   ipcMain.handle('yt:download', async (event, url: string) => {
