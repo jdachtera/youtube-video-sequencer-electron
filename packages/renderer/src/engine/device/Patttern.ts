@@ -693,7 +693,15 @@ export class Pattern extends EngineBase<
       try {
         part.start(startAt);
       } catch {
-        this.rebuildPart(startAt);
+        // startAt landed in the past (e.g. a track added mid-bar). Retry at the
+        // next launch boundary — a future, grid-aligned transport time — so it
+        // actually starts rather than being rebuilt silently; only then fall
+        // back to a rebuild.
+        try {
+          part.start(this.engine.launchTime());
+        } catch {
+          this.rebuildPart(startAt);
+        }
       }
       return;
     }
@@ -701,8 +709,14 @@ export class Pattern extends EngineBase<
     try {
       this.sequence.start(startAt);
     } catch {
-      // A stale timeline slipped through; rebuild the sequence from scratch.
-      this.createSequence();
+      // See above: a stopped sequence launched mid-bar schedules in the past.
+      // Retry at the next launch boundary before falling back to a full rebuild.
+      try {
+        this.sequence.start(this.engine.launchTime());
+      } catch {
+        // A stale timeline slipped through; rebuild the sequence from scratch.
+        this.createSequence();
+      }
     }
   }
 

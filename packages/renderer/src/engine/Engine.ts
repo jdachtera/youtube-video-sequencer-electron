@@ -8,6 +8,7 @@ import {
   OfflineContext,
   setContext,
   start,
+  Time as ToneTime,
 } from 'tone';
 import type { ToneAudioBuffer } from 'tone';
 import type { Transport } from 'tone/build/esm/core/clock/Transport';
@@ -28,6 +29,28 @@ import type { PropertyUpdateEvents } from './helpers';
 import { entries } from './helpers';
 import type { DeepPartial } from './types';
 
+// Global launch-quantization grid (Ableton-style transport cue): when a pattern
+// is launched / a track is added while the transport is running, it starts on
+// the next boundary of this grid. 'none' = as soon as possible. Values are Tone
+// subdivision strings ('m' = bar/measure, 'n' = note, 't' = triplet).
+export const LAUNCH_QUANTIZATIONS = [
+  'none',
+  '8m',
+  '4m',
+  '2m',
+  '1m',
+  '2n',
+  '2t',
+  '4n',
+  '4t',
+  '8n',
+  '8t',
+  '16n',
+  '16t',
+  '32n',
+] as const;
+export type LaunchQuantization = typeof LAUNCH_QUANTIZATIONS[number];
+
 export type SerializedEngine = {
   zoom: number;
   bpm: number;
@@ -36,6 +59,8 @@ export type SerializedEngine = {
   samplers: SerializedSampler[];
   // Effects on the master bus (between the summed tracks and the limiter).
   master: SerializedDeviceChain;
+  // Ableton-style launch-quantization grid for cueing patterns / adding tracks.
+  launchQuantization: LaunchQuantization;
   volume: number;
   viewMode: {
     channel: boolean;
@@ -103,6 +128,9 @@ export class Engine extends EngineBase<EngineEvents> {
 
   zoom = 1;
 
+  // Launch-quantization grid; defaults to one bar (Ableton's default).
+  launchQuantization: LaunchQuantization = '1m';
+
   viewMode: SerializedEngine['viewMode'] = {
     channel: true,
     slice: true,
@@ -128,6 +156,11 @@ export class Engine extends EngineBase<EngineEvents> {
       zoom: parsedData.zoom ?? 1,
       volume: parsedData.volume ?? 1,
       master: DeviceChain.normalizeData(parsedData.master ?? {}),
+      launchQuantization: LAUNCH_QUANTIZATIONS.includes(
+        parsedData.launchQuantization as LaunchQuantization,
+      )
+        ? (parsedData.launchQuantization as LaunchQuantization)
+        : '1m',
       samplers: (parsedData.samplers ?? []).map((serializedSampler) =>
         SamplerDevice.normalizeData(serializedSampler),
       ),
@@ -483,6 +516,9 @@ export class Engine extends EngineBase<EngineEvents> {
           // Rebuild the master FX chain from the snapshot (load + undo/redo).
           this.masterChain.set(DeviceChain.normalizeData(entry[1] ?? {}));
           break;
+        case 'launchQuantization':
+          this.launchQuantization = entry[1] ?? '1m';
+          break;
         case 'viewMode':
           this.viewMode = {
             ...this.viewMode,
@@ -511,6 +547,7 @@ export class Engine extends EngineBase<EngineEvents> {
       samplers: this.samplers.map((sampler) => sampler.serialize()),
       tracks: this.tracks.map((track) => track.serialize()),
       master: this.masterChain.serialize(),
+      launchQuantization: this.launchQuantization,
       bpm: this.transport.bpm.value,
       swing: this.transport.swing,
       zoom: this.zoom,
@@ -552,6 +589,33 @@ export class Engine extends EngineBase<EngineEvents> {
       this.metronome.cancelCountIn();
     }
     this.transport.stop();
+  }
+
+  // The transport time at which a launch (cueing a pattern, or adding a track
+  // while playing) should take effect: the next boundary of the launch grid.
+  // undefined when stopped — the caller then starts immediately from the top.
+  launchTime(): TransportTime | undefined {
+    if (this.transport.state !== 'started') return undefined;
+    // 'none' = as soon as possible, but still a future tick (the next 16th) so
+    // it can't be scheduled in the past, which Tone rejects.
+    const grid =
+      this.launchQuantization === 'none' ? '16n' : this.launchQuantization;
+    // NB: transport.nextSubdivision() returns an *absolute* AudioContext time,
+    // but Sequence/Part/scheduleOnce all interpret their time as a *transport*
+    // position — feeding them nextSubdivision() schedules events far in the
+    // future (the context clock, ~tens of seconds in) and they never fire. So
+    // compute the next grid boundary in transport ticks instead: round the
+    // current tick up to the next multiple of the grid length. Landing exactly
+    // on a boundary rolls to the following one (never the current, past tick).
+    const gridTicks = ToneTime(grid).toTicks();
+    const currentTicks = this.transport.ticks;
+    const nextBoundaryTicks =
+      currentTicks + (gridTicks - (currentTicks % gridTicks));
+    return `${nextBoundaryTicks}i`;
+  }
+
+  setLaunchQuantization(quantization: LaunchQuantization) {
+    this.set({ launchQuantization: quantization });
   }
 
   // The render length (in seconds) for a mixdown: one full loop of the longest

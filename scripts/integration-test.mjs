@@ -614,6 +614,54 @@ const sampleIds = await win.evaluate(async () => {
 });
 console.log('[itest] sampleIds:', JSON.stringify(sampleIds));
 
+// Arm bug: a sequencer track added while the transport is already playing must
+// arm its pattern so it actually starts — previously start() scheduled at a
+// now-past time, threw, and the sequence stayed 'stopped' (silent). The fix
+// launches the new pattern at the next launch-grid boundary (launchTime()).
+const armWhilePlaying = await win.evaluate(async () => {
+  const w = window;
+  const e = w.__engine;
+  const s = e.createSample({ title: 'Arm', url: 'arm' });
+  const ctx = e.gain.context.rawContext;
+  const ab = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 1), ctx.sampleRate);
+  s.buffer.set(ab);
+  s._hasLoaded = true;
+  await e.hasLoaded();
+  // A 1/16 launch grid so the scheduled boundary arrives within a few hundred
+  // ms — sequence.state is evaluated at the current transport time, so it only
+  // flips to 'started' once the boundary actually passes.
+  const prevQuant = e.launchQuantization;
+  e.setLaunchQuantization('16n');
+  e.start(); // transport already running before the track is added
+  await w.__sleep(200);
+  e.createSliceTrack({ name: 'Slice', samplerId: s.id });
+  const newTrack = e.tracks[e.tracks.length - 1];
+  const seq = newTrack.chain.devices.find((d) => d.name === 'Sequencer');
+  // The real signal that a sequencer is running: its step callback fires. Count
+  // sequenceEvent emissions over ~600ms — a 16-step pattern on a 1/16 grid fires
+  // several times per beat. Zero firings == the arm bug (silent, never started).
+  let eventCount = 0;
+  const onSeq = () => {
+    eventCount += 1;
+  };
+  seq?.on('sequenceEvent', onSeq);
+  const launchAt = e.launchTime();
+  await w.__sleep(600); // cross the launch boundary and run a few steps
+  seq?.off('sequenceEvent', onSeq);
+  const armState = seq?.getPattern()?.sequence?.state;
+  e.stop();
+  e.removeTrack(newTrack);
+  e.removeSample(s);
+  e.setLaunchQuantization(prevQuant);
+  return {
+    armState,
+    eventCount,
+    launchAt,
+    transportWasStarted: true,
+  };
+});
+console.log('[itest] armWhilePlaying:', JSON.stringify(armWhilePlaying));
+
 // Master FX: a highpass on the master bus (cutoff well above the 440 Hz sine)
 // attenuates the mix — proving master effects sit in the signal path. Clearing
 // them restores the level.
@@ -840,6 +888,11 @@ check(
   'new slice binds to its own sampler (not a colliding one)',
   sampleIds.boundIsB && sampleIds.bufferDuration === sampleIds.bDur,
   `boundIsB=${sampleIds.boundIsB} dur=${sampleIds.bufferDuration}/${sampleIds.bDur}`,
+);
+check(
+  'arm: a sequencer added while playing arms its pattern (not silent)',
+  armWhilePlaying.eventCount > 0,
+  `events=${armWhilePlaying.eventCount} armState=${armWhilePlaying.armState} launchAt=${armWhilePlaying.launchAt}`,
 );
 check(
   'master FX: chain is in the signal path (highpass attenuates the sine)',

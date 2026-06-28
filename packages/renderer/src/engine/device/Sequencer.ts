@@ -113,7 +113,11 @@ export class SequencerDevice extends Device<SequencerEvents> {
 
   rewindSequence = () => {
     this.stopSequence();
-    this.getPattern()?.start();
+    // launchTime() is undefined when stopped (start from the top) and the next
+    // launch-grid boundary when the transport is already running — so a track
+    // added during playback launches on the boundary instead of failing to
+    // start at a now-past time.
+    this.getPattern()?.start(this.engine.launchTime());
     this.engine.transport.scheduleOnce(() => {
       this.scheduleFollowUpAction();
     }, 0);
@@ -233,7 +237,7 @@ export class SequencerDevice extends Device<SequencerEvents> {
     }
   }
 
-  async cuePattern(nextPatternIndex: number, time: TransportTime) {
+  async cuePattern(nextPatternIndex: number, time?: TransportTime) {
     if (this.scheduledFollowUpAction) {
       this.engine.transport.clear(this.scheduledFollowUpAction);
     }
@@ -251,7 +255,9 @@ export class SequencerDevice extends Device<SequencerEvents> {
       await new Promise((resolve) => {
         this.scheduledFollowUpAction = this.engine.transport.scheduleOnce(
           resolve,
-          time,
+          // Defined whenever the transport is running (launchTime returns a
+          // boundary); fall back to now only to satisfy the type.
+          time ?? this.engine.transport.seconds,
         );
       });
     }

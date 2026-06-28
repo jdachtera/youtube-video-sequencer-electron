@@ -13,7 +13,6 @@ import {
   For,
 } from 'solid-js';
 import type { DeepReadonly } from 'solid-js/store';
-import { Time } from 'tone';
 import { ButtonWithLabel } from '../UI/ButtonWithLabel';
 import { Row } from '../UI/Grid';
 import { NumberInputWithArrowButtons } from '../UI/NumberInputWithArrowButtons';
@@ -248,14 +247,11 @@ const PatternSelector = (props: { sequencer: SequencerDevice }) => {
                     labelOnButton={true}
                     onClick={(event) => {
                       event.preventDefault();
+                      // Cue at the next launch-grid boundary (global transport
+                      // quantization); undefined when stopped -> starts from top.
                       props.sequencer.cuePattern(
                         index(),
-
-                        Time(
-                          Time(pattern.engine.transport.position).quantize(
-                            '1n',
-                          ),
-                        ).toBarsBeatsSixteenths(),
+                        pattern.engine.launchTime(),
                       );
 
                       if (pattern.engine.transport.state !== 'started') {
