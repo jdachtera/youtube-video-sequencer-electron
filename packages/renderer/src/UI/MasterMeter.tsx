@@ -1,5 +1,5 @@
 import { css } from '@emotion/css';
-import { createSignal, onCleanup, onMount } from 'solid-js';
+import { onCleanup, onMount } from 'solid-js';
 import type { Engine } from '../engine/Engine';
 
 const meterTrack = css`
@@ -24,9 +24,10 @@ const meterFill = css`
     #ffc107 80%,
     #ff5252 100%
   );
-  /* Animate the fill with transform (scaleX), NOT width. width changes force a
-     layout + paint on every frame (profiled at ~45% of total CPU); transform is
-     composited on the GPU, so updating it 20x/sec is nearly free. */
+  /* Animated via transform (scaleX), which is GPU-composited — no layout, no
+     paint. See the tick loop below: it writes this transform DIRECTLY on the
+     element (not through a Solid signal), so a busy meter does zero reactive /
+     Commit work. */
   transition: transform 0.08s linear;
   will-change: transform;
 `;
@@ -35,49 +36,59 @@ const clipLight = css`
   width: 9px;
   height: 9px;
   border-radius: 50%;
+  background: #511;
   transition: background 0.1s, box-shadow 0.1s;
 `;
 
-// A compact master output meter with a clip light. Reads the engine's
-// post-limiter level (0..1) and the limiter's gain reduction on its own
-// animation frame, so it updates whether or not the transport is running.
+// A compact master output meter with a clip light. It runs on its own rAF, but
+// deliberately does NOT use Solid signals: reading the analyser 20x/sec and
+// re-rendering through the reactive system (a Commit per frame) was ~40% of CPU
+// on a busy mix. Instead it writes the fill transform straight onto the element
+// via a ref, so the only per-frame work is reading the meter + one style write.
 export const MasterMeter = (props: { engine: Engine }) => {
-  const [level, setLevel] = createSignal(0);
-  const [clipping, setClipping] = createSignal(false);
+  let fillRef: HTMLDivElement | undefined;
+  let clipRef: HTMLDivElement | undefined;
 
   let frame = 0;
   let idleTimer: ReturnType<typeof setTimeout> | undefined;
   let clipUntil = 0;
   let lastTick = 0;
   let lastActive = 0;
+  let lastLevel = -1;
+  let lastClipping = false;
 
   const schedule = () => {
     frame = requestAnimationFrame(tick);
   };
 
   const tick = (now: number) => {
-    // Read the analyser + touch the DOM at ~20 fps. Reading getValue() and
-    // committing a style is the expensive part, and a level meter doesn't need
-    // more than this.
+    // Read + write at ~20 fps — plenty for a level meter.
     if (now - lastTick >= 50) {
       lastTick = now;
+
       const value = props.engine.meter.getValue();
       const normalized = Array.isArray(value) ? Math.max(...value) : value;
       const next = Math.max(0, Math.min(1, normalized || 0));
-      // Only commit visible changes (>=1% of the 90px track) so a jittering
-      // noise floor doesn't repaint when nothing perceptibly moved.
-      if (Math.abs(next - level()) > 0.01) setLevel(next);
+      // Write directly to the DOM (no signal -> no Solid Commit), and only when
+      // the level moved a visible amount (>=1% of the 90px track).
+      if (fillRef && Math.abs(next - lastLevel) > 0.01) {
+        lastLevel = next;
+        fillRef.style.transform = `scaleX(${next})`;
+      }
+
       if (props.engine.limiter.reduction < -0.3) clipUntil = now + 600;
       const isClipping = now < clipUntil;
-      if (isClipping !== clipping()) setClipping(isClipping);
+      if (clipRef && isClipping !== lastClipping) {
+        lastClipping = isClipping;
+        clipRef.style.background = isClipping ? '#ff3b30' : '#511';
+        clipRef.style.boxShadow = isClipping ? '0 0 6px 1px #ff3b30' : 'none';
+      }
     }
 
-    // When there's signal, the transport is running, or we just clipped, keep
-    // animating. Otherwise the meter is a static "0" — a constant rAF would keep
-    // the whole renderer/compositor awake for nothing, so drop to a 5 fps poll.
-    // Any audio activity wakes it back to full rate within ~200 ms.
+    // Keep animating while there's signal / playback / a recent clip; otherwise
+    // drop to a 5 fps poll so the renderer can idle. Wakes back within ~200 ms.
     const busy =
-      level() > 0.005 ||
+      lastLevel > 0.005 ||
       now < clipUntil ||
       props.engine.transport.state === 'started';
     if (busy) lastActive = now;
@@ -108,16 +119,13 @@ export const MasterMeter = (props: { engine: Engine }) => {
       title="Master output level"
     >
       <div class={meterTrack}>
-        <div class={meterFill} style={{ transform: `scaleX(${level()})` }} />
+        <div
+          ref={fillRef}
+          class={meterFill}
+          style={{ transform: 'scaleX(0)' }}
+        />
       </div>
-      <div
-        class={clipLight}
-        style={{
-          background: clipping() ? '#ff3b30' : '#511',
-          'box-shadow': clipping() ? '0 0 6px 1px #ff3b30' : 'none',
-        }}
-        title="Clip / limiter active"
-      />
+      <div ref={clipRef} class={clipLight} title="Clip / limiter active" />
     </div>
   );
 };
