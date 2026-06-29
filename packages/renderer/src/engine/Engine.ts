@@ -14,6 +14,11 @@ import type { ToneAudioBuffer } from 'tone';
 import type { Transport } from 'tone/build/esm/core/clock/Transport';
 import type { Time, TransportTime } from 'tone/build/esm/core/type/Units';
 import type { SidePanelTab } from '../panels/SidePanel';
+import {
+  AudioContextClock,
+  Scheduler,
+  Transport as SchedulerTransport,
+} from '../scheduler';
 import { EngineBase } from './EngineBase';
 import { Metronome } from './Metronome';
 import { MidiInput } from './MidiInput';
@@ -147,6 +152,17 @@ export class Engine extends EngineBase<EngineEvents> {
 
   drawInterval = 0;
 
+  // --- Experimental custom scheduler (behind the `megarack.scheduler` flag) ---
+  // When enabled, step-pattern playback is driven by our own lookahead scheduler
+  // instead of Tone's Sequence, so the two can be A/B'd for CPU. Each scheduled
+  // event carries a `(time) => void` play-callback, so the engine stays
+  // decoupled from the pattern's data shape.
+  readonly useScheduler =
+    typeof localStorage !== 'undefined' &&
+    localStorage.getItem('megarack.scheduler') === '1';
+  scheduler?: Scheduler<(time: number) => void>;
+  schedulerTransport?: SchedulerTransport;
+
   static normalizeData = (
     parsedData: DeepPartial<SerializedEngine>,
   ): SerializedEngine => {
@@ -217,6 +233,20 @@ export class Engine extends EngineBase<EngineEvents> {
     // Route the click into the master bus (pre-FX) so it respects master volume
     // and registers on the master meter.
     this.metronome = new Metronome(this.transport, this.gain);
+
+    if (this.useScheduler) {
+      // Share the audio clock with Tone so the custom scheduler and Tone's
+      // transport (still used for metronome / draw / count-in) stay in lockstep.
+      const clock = new AudioContextClock(this.transport.context);
+      this.schedulerTransport = new SchedulerTransport(
+        clock,
+        this.transport.bpm.value,
+      );
+      this.scheduler = new Scheduler(clock, this.schedulerTransport, {
+        lookahead: 0.1,
+      });
+      this.scheduler.onSchedule((event, time) => event.data(time));
+    }
   }
 
   // Toggle the live click track. Not serialized, so it's a pure monitoring
@@ -449,6 +479,9 @@ export class Engine extends EngineBase<EngineEvents> {
           break;
         case 'bpm':
           this.transport.bpm.value = entry[1] ?? 120;
+          if (this.schedulerTransport) {
+            this.schedulerTransport.bpm = entry[1] ?? 120;
+          }
           break;
         case 'swing':
           this.transport.swing = entry[1] ?? 0;
@@ -575,13 +608,21 @@ export class Engine extends EngineBase<EngineEvents> {
     // A count-in only applies to a plain "play from here" (no explicit start
     // time): play N bars of lead-in clicks on the audio clock, then start the
     // transport on the next downbeat. Programmatic starts pass a time and skip it.
+    let startAudioTime: number;
     if (time === undefined && this.metronome.countInBars > 0) {
       const startAt = this.transport.context.now() + 0.1;
       const playbackAt = startAt + this.metronome.playCountIn(startAt);
       this.pendingCountIn = true;
       this.transport.start(playbackAt, offset);
+      startAudioTime = playbackAt;
     } else {
       this.transport.start(time, offset);
+      startAudioTime = this.transport.context.now();
+    }
+
+    if (this.scheduler && this.schedulerTransport) {
+      this.schedulerTransport.bpm = this.transport.bpm.value;
+      this.scheduler.start(0, startAudioTime);
     }
   }
 
@@ -592,6 +633,7 @@ export class Engine extends EngineBase<EngineEvents> {
       this.metronome.cancelCountIn();
     }
     this.transport.stop();
+    this.scheduler?.stop();
   }
 
   // The transport time at which a launch (cueing a pattern, or adding a track

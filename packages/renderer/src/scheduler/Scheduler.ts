@@ -69,9 +69,9 @@ export class Scheduler<T = unknown> {
    * synchronously, so events at `atBeat` are queued for "now" and sound
    * immediately (only the audio device's output latency applies).
    */
-  start(atBeat: Beats = 0): void {
+  start(atBeat: Beats = 0, atTime?: Seconds): void {
     if (this.cancelTimer) this.cancelTimer();
-    this.transport.start(atBeat);
+    this.transport.start(atBeat, atTime);
     this.scheduledUntil = atBeat;
     this.tick();
     this.cancelTimer = this.clock.every(this.intervalMs, () => this.tick());

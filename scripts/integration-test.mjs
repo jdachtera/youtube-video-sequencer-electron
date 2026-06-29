@@ -49,7 +49,8 @@ const WIDTH = 1400;
 const HEIGHT = 900;
 
 const has = (cmd) =>
-  spawnSync('sh', ['-c', `command -v ${cmd}`], { stdio: 'ignore' }).status === 0;
+  spawnSync('sh', ['-c', `command -v ${cmd}`], { stdio: 'ignore' }).status ===
+  0;
 
 // Re-exec under a virtual framebuffer when there's no display (CI / containers).
 if (
@@ -175,7 +176,12 @@ win.on('pageerror', (e) => {
 });
 await win.waitForLoadState('domcontentloaded').catch(() => {});
 
-await win.evaluate((s) => localStorage.setItem('track', s), seed);
+await win.evaluate((s) => {
+  localStorage.setItem('track', s);
+  // The main run uses Tone; clear any custom-scheduler flag a prior run left so
+  // the baseline tests aren't accidentally on the experimental path.
+  localStorage.removeItem('megarack.scheduler');
+}, seed);
 await win.reload();
 await win.waitForLoadState('domcontentloaded').catch(() => {});
 
@@ -194,7 +200,9 @@ const setup = await win.evaluate(async () => {
     }
   };
   const w = window;
-  await wait(() => w.__engine && w.__engine.samplers && w.__engine.samplers.length > 0);
+  await wait(
+    () => w.__engine && w.__engine.samplers && w.__engine.samplers.length > 0,
+  );
   await wait(() => w.__engine.tracks && w.__engine.tracks.length > 1);
   const e = w.__engine;
   const ctx = e.gain.context.rawContext;
@@ -340,7 +348,8 @@ const bufferShare = await win.evaluate(async () => {
   const w = window;
   const e = w.__engine;
   await e.hasLoaded();
-  const sliceOf = (t) => e.tracks[t]?.chain.devices.find((d) => d.name === 'Slice');
+  const sliceOf = (t) =>
+    e.tracks[t]?.chain.devices.find((d) => d.name === 'Slice');
   const b0 = sliceOf(0)?.player?.buffer?.get?.();
   const b1 = sliceOf(1)?.player?.buffer?.get?.();
   return { hasBoth: !!b0 && !!b1, shared: !!b0 && b0 === b1 };
@@ -623,7 +632,11 @@ const armWhilePlaying = await win.evaluate(async () => {
   const e = w.__engine;
   const s = e.createSample({ title: 'Arm', url: 'arm' });
   const ctx = e.gain.context.rawContext;
-  const ab = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 1), ctx.sampleRate);
+  const ab = ctx.createBuffer(
+    1,
+    Math.floor(ctx.sampleRate * 1),
+    ctx.sampleRate,
+  );
   s.buffer.set(ab);
   s._hasLoaded = true;
   await e.hasLoaded();
@@ -819,6 +832,61 @@ const countIn = await win.evaluate(async () => {
 });
 console.log('[itest] countIn:', JSON.stringify(countIn));
 
+// ---------------------------------------------------------------------------
+// Custom scheduler (experimental flag): reload with `megarack.scheduler` on and
+// verify our lookahead scheduler — not Tone's Sequence — drives step playback
+// (it fires the same onSequenceEvent path). Done last since it reloads the app.
+// ---------------------------------------------------------------------------
+// Re-seed the original project (earlier tests mutate/clear it via autosave) and
+// flip on the custom-scheduler flag, then reload onto the experimental path.
+await win.evaluate(
+  ({ s }) => {
+    localStorage.setItem('track', s);
+    localStorage.setItem('megarack.scheduler', '1');
+  },
+  { s: seed },
+);
+await win.reload();
+await win.waitForLoadState('domcontentloaded').catch(() => {});
+const schedulerRun = await win.evaluate(async () => {
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const w = window;
+  const t0 = Date.now();
+  while (!(w.__engine?.tracks && w.__engine.tracks.length > 1)) {
+    if (Date.now() - t0 > 8000) {
+      return {
+        error: 'engine/tracks not ready',
+        hasEngine: !!w.__engine,
+        trackCount: w.__engine?.tracks?.length ?? 0,
+        useScheduler: w.__engine?.useScheduler,
+        hasScheduler: !!w.__engine?.scheduler,
+      };
+    }
+    await sleep(50);
+  }
+  const e = w.__engine;
+  try {
+    const seq = e.tracks[0].chain.devices.find((d) => d.name === 'Sequencer');
+    let events = 0;
+    const onEvent = () => (events += 1);
+    seq?.on('sequenceEvent', onEvent);
+    e.start();
+    await sleep(800);
+    const playingDuring = e.transport.state === 'started';
+    e.stop();
+    seq?.off('sequenceEvent', onEvent);
+    return {
+      useScheduler: e.useScheduler,
+      hasScheduler: !!e.scheduler,
+      events,
+      playingDuring,
+    };
+  } catch (err) {
+    return { error: String((err && err.message) || err) };
+  }
+});
+console.log('[itest] schedulerRun:', JSON.stringify(schedulerRun));
+
 await app.close();
 
 // ---------------------------------------------------------------------------
@@ -835,11 +903,15 @@ check(
     setup.samplerCount > 0 &&
     setup.trackCount > 1 &&
     setup.sampleDuration > 1.5,
-  `samplers=${setup?.samplerCount} tracks=${setup?.trackCount} dur=${setup?.sampleDuration?.toFixed?.(
-    2,
-  )}`,
+  `samplers=${setup?.samplerCount} tracks=${
+    setup?.trackCount
+  } dur=${setup?.sampleDuration?.toFixed?.(2)}`,
 );
-check('analyser tapped onto master bus', !!setup && setup.analyserConnected, '');
+check(
+  'analyser tapped onto master bus',
+  !!setup && setup.analyserConnected,
+  '',
+);
 check(
   'buffer share: voices on the same region share one sliced buffer',
   bufferShare.hasBoth && bufferShare.shared,
@@ -875,7 +947,9 @@ check(
 check(
   'automation: volume 0.25 curve scales peak to ~1/4',
   automation.ratio > 0.12 && automation.ratio < 0.45,
-  `ratio=${automation.ratio?.toFixed?.(3)} (base=${automation.basePeak?.toFixed?.(
+  `ratio=${automation.ratio?.toFixed?.(
+    3,
+  )} (base=${automation.basePeak?.toFixed?.(
     3,
   )} auto=${automation.autoPeak?.toFixed?.(3)})`,
 );
@@ -912,7 +986,9 @@ check(
 check(
   'slice audition: play() produces audio on the master bus',
   sliceAudition.hasSlice && sliceAudition.peak > 1e-3,
-  `peak=${sliceAudition.peak?.toExponential?.(2)} hasSlice=${sliceAudition.hasSlice}`,
+  `peak=${sliceAudition.peak?.toExponential?.(2)} hasSlice=${
+    sliceAudition.hasSlice
+  }`,
 );
 check(
   'sampler ids are globally unique (uuid, not the session counter)',
@@ -933,12 +1009,18 @@ check(
   'master FX: chain is in the signal path (highpass attenuates the sine)',
   masterFx.masterDeviceCount === 1 &&
     masterFx.filteredPeak < masterFx.basePeak * 0.5,
-  `base=${masterFx.basePeak?.toExponential?.(2)} filtered=${masterFx.filteredPeak?.toExponential?.(2)} devices=${masterFx.masterDeviceCount}`,
+  `base=${masterFx.basePeak?.toExponential?.(
+    2,
+  )} filtered=${masterFx.filteredPeak?.toExponential?.(2)} devices=${
+    masterFx.masterDeviceCount
+  }`,
 );
 check(
   'master FX: clearing restores the level',
   masterFx.restoredPeak > masterFx.filteredPeak * 1.5,
-  `restored=${masterFx.restoredPeak?.toExponential?.(2)} filtered=${masterFx.filteredPeak?.toExponential?.(2)}`,
+  `restored=${masterFx.restoredPeak?.toExponential?.(
+    2,
+  )} filtered=${masterFx.filteredPeak?.toExponential?.(2)}`,
 );
 check(
   'bypass: routes dry when bypassed, restores the effect when re-enabled',
@@ -954,7 +1036,17 @@ check(
     (bypass.basePeak < 1e-3 ||
       (bypass.bypassedPeak > bypass.basePeak * 0.8 &&
         bypass.bypassedPeak > bypass.reEnabledPeak * 1.3)),
-  `base=${bypass.basePeak?.toExponential?.(2)} active=${bypass.activePeak?.toExponential?.(2)} bypassed=${bypass.bypassedPeak?.toExponential?.(2)} reEnabled=${bypass.reEnabledPeak?.toExponential?.(2)} wet/dry bypass=${bypass.wetAfterBypass}/${bypass.dryAfterBypass} reenable=${bypass.wetAfterReenable}/${bypass.dryAfterReenable}`,
+  `base=${bypass.basePeak?.toExponential?.(
+    2,
+  )} active=${bypass.activePeak?.toExponential?.(
+    2,
+  )} bypassed=${bypass.bypassedPeak?.toExponential?.(
+    2,
+  )} reEnabled=${bypass.reEnabledPeak?.toExponential?.(2)} wet/dry bypass=${
+    bypass.wetAfterBypass
+  }/${bypass.dryAfterBypass} reenable=${bypass.wetAfterReenable}/${
+    bypass.dryAfterReenable
+  }`,
 );
 check(
   'reorder: moveTrack swaps track order and restores',
@@ -969,7 +1061,8 @@ check(
   'device reorder: moving onto an occupied slot keeps all devices',
   deviceReorder.after.length === deviceReorder.before.length &&
     deviceReorder.before.length >= 2 &&
-    deviceReorder.after[0] === deviceReorder.before[deviceReorder.before.length - 1],
+    deviceReorder.after[0] ===
+      deviceReorder.before[deviceReorder.before.length - 1],
   `before=${deviceReorder.before} after=${deviceReorder.after}`,
 );
 check(
@@ -979,8 +1072,11 @@ check(
 );
 check(
   'metronome: master is silent without the click',
-  metronome.silentPeak < 5e-2 && metronome.silentPeak < metronome.clickPeak * 0.5,
-  `off=${metronome.silentPeak?.toExponential?.(2)} on=${metronome.clickPeak?.toExponential?.(2)}`,
+  metronome.silentPeak < 5e-2 &&
+    metronome.silentPeak < metronome.clickPeak * 0.5,
+  `off=${metronome.silentPeak?.toExponential?.(
+    2,
+  )} on=${metronome.clickPeak?.toExponential?.(2)}`,
 );
 check(
   'metronome: toggle updates enabled state',
@@ -997,12 +1093,21 @@ check(
   countIn.stateDuringCountIn !== 'started' && !countIn.startedDuringLeadIn,
   `state=${countIn.stateDuringCountIn} startedDuringLeadIn=${countIn.startedDuringLeadIn}`,
 );
+check(
+  'custom scheduler flag drives step playback (fires sequence events)',
+  schedulerRun.useScheduler &&
+    schedulerRun.hasScheduler &&
+    schedulerRun.events > 0,
+  `useScheduler=${schedulerRun.useScheduler} hasScheduler=${schedulerRun.hasScheduler} events=${schedulerRun.events} playing=${schedulerRun.playingDuring}`,
+);
 
 const failed = results.filter((r) => !r.pass);
 console.log('\n[itest] ---- results ----');
 for (const r of results) {
   console.log(
-    `[itest] ${r.pass ? 'PASS' : 'FAIL'}  ${r.name}${r.detail ? `  (${r.detail})` : ''}`,
+    `[itest] ${r.pass ? 'PASS' : 'FAIL'}  ${r.name}${
+      r.detail ? `  (${r.detail})` : ''
+    }`,
   );
 }
 console.log(
@@ -1013,4 +1118,6 @@ if (failed.length) {
   console.error(`[itest] FAIL: ${failed.length} check(s) failed`);
   process.exit(1);
 }
-console.log('[itest] PASS: full audio + MIDI + scheduling integration verified');
+console.log(
+  '[itest] PASS: full audio + MIDI + scheduling integration verified',
+);

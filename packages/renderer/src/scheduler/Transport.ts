@@ -95,9 +95,13 @@ export class Transport {
     };
   }
 
-  /** Start playing, with the playhead at musical beat `atBeat`. */
-  start(atBeat: Beats = 0): void {
-    this.anchorTime = this.clock.now;
+  /**
+   * Start playing, with the playhead at musical beat `atBeat`. Pass `atTime` to
+   * anchor the start to a specific (possibly future) audio time — e.g. to align
+   * with a count-in or another transport. Defaults to "now".
+   */
+  start(atBeat: Beats = 0, atTime: Seconds = this.clock.now): void {
+    this.anchorTime = atTime;
     this.anchorBeat = atBeat;
     this.playing = true;
   }

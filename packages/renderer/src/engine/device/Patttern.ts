@@ -2,12 +2,16 @@ import type { Automation, Note } from 'solid-pianoroll';
 import { automationValueAtTicks } from 'solid-pianoroll';
 import { Part, Sequence, Time } from 'tone';
 import type { TransportTime } from 'tone/build/esm/core/type/Units';
+import type { ClipSource, ScheduledEvent } from '../../scheduler';
 import type { Engine } from '../Engine';
 import { EngineBase } from '../EngineBase';
 import type { PropertyUpdateEvents } from '../helpers';
 import { entries, randomColor } from '../helpers';
 import type { DeepPartial, subdivisionTypes } from '../types';
 import type { SequencerDevice } from './Sequencer';
+
+/** Event payload for the custom scheduler: a "play this step at `time`" thunk. */
+type StepPlay = (time: number) => void;
 
 export type FollowupActionBase = {
   linked: boolean;
@@ -428,6 +432,58 @@ export class Pattern extends EngineBase<
     return steps;
   }
 
+  // --- Custom scheduler integration (behind engine.useScheduler) ---------
+  // A clip is just live data: it answers "which steps start in [from, to)?" and
+  // the scheduler reads it fresh every tick, so edits during playback need no
+  // rescheduling. Only used in step mode for now (piano roll stays on Tone).
+  private schedulerClip?: ClipSource<StepPlay>;
+
+  /** Beats per step cell (e.g. 0.25 for a 16th at ppq 192). */
+  beatsPerStep(): number {
+    return this.stepDurationTicks() / this.ppq;
+  }
+
+  private getSchedulerClip(): ClipSource<StepPlay> {
+    if (!this.schedulerClip) {
+      // eslint-disable-next-line @typescript-eslint/no-this-alias
+      const pattern = this;
+      this.schedulerClip = {
+        get lengthBeats() {
+          return pattern.slotCount() * pattern.beatsPerStep();
+        },
+        loop: true,
+        query(fromBeat, toBeat) {
+          const steps = pattern.deriveStepsForPlayback();
+          const perStep = pattern.beatsPerStep();
+          const events: ScheduledEvent<StepPlay>[] = [];
+          for (let index = 0; index < steps.length; index++) {
+            const beat = index * perStep;
+            if (beat >= fromBeat && beat < toBeat) {
+              const step = steps[index];
+              events.push({
+                beat,
+                // Reuse the existing trigger path so step.play / reverse / gate /
+                // pitch all behave identically to the Tone route.
+                data: (time: number) =>
+                  pattern.sequencer.onSequenceEvent(time, step),
+              });
+            }
+          }
+          return events;
+        },
+      };
+    }
+    return this.schedulerClip;
+  }
+
+  private usesScheduler(): boolean {
+    return (
+      this.engine.useScheduler &&
+      !!this.engine.scheduler &&
+      this.mode === 'steps'
+    );
+  }
+
   private hasAutomation() {
     const a = this.automation;
     return !!(a.volume?.length || a.detune?.length || a.playbackRate?.length);
@@ -670,6 +726,13 @@ export class Pattern extends EngineBase<
   }
 
   start(time?: TransportTime) {
+    // Custom scheduler path: registering the clip IS "playing" — the scheduler
+    // plays it according to its own transport, so skip Tone's Sequence.
+    if (this.usesScheduler()) {
+      this.engine.scheduler?.add(this.getSchedulerClip());
+      return;
+    }
+
     // When launching while the transport is already running, start at its
     // current position — never at 0 (the past), which makes Tone schedule
     // events behind the last scheduled tick and throw "the time must be greater
@@ -735,6 +798,9 @@ export class Pattern extends EngineBase<
   }
 
   stop(time?: TransportTime) {
+    if (this.schedulerClip) {
+      this.engine.scheduler?.remove(this.schedulerClip);
+    }
     this.sequence?.stop(time);
     this.part?.stop(time);
   }
@@ -780,6 +846,9 @@ export class Pattern extends EngineBase<
 
   dispose() {
     this.removeAllListeners();
+    if (this.schedulerClip) {
+      this.engine.scheduler?.remove(this.schedulerClip);
+    }
     this.sequence?.dispose();
     this.part?.dispose();
   }
