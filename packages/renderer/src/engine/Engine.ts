@@ -1,6 +1,7 @@
 /* eslint-disable max-classes-per-file */
 import { batch } from 'solid-js';
 import {
+  Context,
   Gain,
   getContext,
   Limiter,
@@ -14,6 +15,11 @@ import type { ToneAudioBuffer } from 'tone';
 import type { Transport } from 'tone/build/esm/core/clock/Transport';
 import type { Time, TransportTime } from 'tone/build/esm/core/type/Units';
 import type { SidePanelTab } from '../panels/SidePanel';
+import {
+  AudioContextClock,
+  Scheduler,
+  Transport as SchedulerTransport,
+} from '../scheduler';
 import { EngineBase } from './EngineBase';
 import { Metronome } from './Metronome';
 import { MidiInput } from './MidiInput';
@@ -147,6 +153,28 @@ export class Engine extends EngineBase<EngineEvents> {
 
   drawInterval = 0;
 
+  // Tone's audio context drives a Web Worker (the "Ticker") that posts a tick
+  // every `updateInterval` seconds — *always*, regardless of whether the
+  // transport is running. At the default 0.05s (20 Hz) that worker (and the
+  // per-tick main-thread work it wakes) is the bulk of the app's idle CPU, even
+  // when stopped. We don't need that resolution while nothing is playing, so we
+  // slow the worker right down when stopped and restore a responsive rate on
+  // play (keeping the draw loop / metronome smooth during playback). The win
+  // applies to both the Tone and custom-scheduler playback paths.
+  private static readonly IDLE_UPDATE_INTERVAL = 0.5; // 2 Hz while stopped
+  private static readonly ACTIVE_UPDATE_INTERVAL = 0.05; // Tone's default, 20 Hz
+
+  // --- Experimental custom scheduler (behind the `megarack.scheduler` flag) ---
+  // When enabled, step-pattern playback is driven by our own lookahead scheduler
+  // instead of Tone's Sequence, so the two can be A/B'd for CPU. Each scheduled
+  // event carries a `(time) => void` play-callback, so the engine stays
+  // decoupled from the pattern's data shape.
+  readonly useScheduler =
+    typeof localStorage !== 'undefined' &&
+    localStorage.getItem('megarack.scheduler') === '1';
+  scheduler?: Scheduler<(time: number) => void>;
+  schedulerTransport?: SchedulerTransport;
+
   static normalizeData = (
     parsedData: DeepPartial<SerializedEngine>,
   ): SerializedEngine => {
@@ -217,6 +245,41 @@ export class Engine extends EngineBase<EngineEvents> {
     // Route the click into the master bus (pre-FX) so it respects master volume
     // and registers on the master meter.
     this.metronome = new Metronome(this.transport, this.gain);
+
+    if (this.useScheduler) {
+      // Share the audio clock with Tone so the custom scheduler and Tone's
+      // transport (still used for metronome / draw / count-in) stay in lockstep.
+      const clock = new AudioContextClock(this.transport.context);
+      this.schedulerTransport = new SchedulerTransport(
+        clock,
+        this.transport.bpm.value,
+      );
+      this.scheduler = new Scheduler(clock, this.schedulerTransport, {
+        lookahead: 0.1,
+      });
+      this.scheduler.onSchedule((event, time) => event.data(time));
+    }
+
+    // Boot stopped, so start the context worker in its low-power idle mode.
+    this.setContextResponsive(false);
+  }
+
+  // Slow / restore Tone's always-on context worker (see IDLE_UPDATE_INTERVAL).
+  // Never touched on the offline render context — there `updateInterval` is the
+  // render block size, and changing it mid-render would corrupt the output.
+  private setContextResponsive(responsive: boolean) {
+    const context = this.transport.context;
+    // OfflineContext extends Context, so exclude it first.
+    if (context instanceof OfflineContext || !(context instanceof Context)) {
+      return;
+    }
+    try {
+      context.updateInterval = responsive
+        ? Engine.ACTIVE_UPDATE_INTERVAL
+        : Engine.IDLE_UPDATE_INTERVAL;
+    } catch {
+      // A context without a settable ticker — nothing to throttle.
+    }
   }
 
   // Toggle the live click track. Not serialized, so it's a pure monitoring
@@ -449,6 +512,9 @@ export class Engine extends EngineBase<EngineEvents> {
           break;
         case 'bpm':
           this.transport.bpm.value = entry[1] ?? 120;
+          if (this.schedulerTransport) {
+            this.schedulerTransport.bpm = entry[1] ?? 120;
+          }
           break;
         case 'swing':
           this.transport.swing = entry[1] ?? 0;
@@ -559,6 +625,10 @@ export class Engine extends EngineBase<EngineEvents> {
     // Ignore a second press while a count-in is already counting in.
     if (this.pendingCountIn) return;
 
+    // Wake the context worker to a responsive rate for smooth draw/metronome
+    // before anything is scheduled.
+    this.setContextResponsive(true);
+
     this.transport.clear(this.drawInterval);
 
     // 20 Hz is smooth enough for the position readout / playheads and halves the
@@ -575,13 +645,21 @@ export class Engine extends EngineBase<EngineEvents> {
     // A count-in only applies to a plain "play from here" (no explicit start
     // time): play N bars of lead-in clicks on the audio clock, then start the
     // transport on the next downbeat. Programmatic starts pass a time and skip it.
+    let startAudioTime: number;
     if (time === undefined && this.metronome.countInBars > 0) {
       const startAt = this.transport.context.now() + 0.1;
       const playbackAt = startAt + this.metronome.playCountIn(startAt);
       this.pendingCountIn = true;
       this.transport.start(playbackAt, offset);
+      startAudioTime = playbackAt;
     } else {
       this.transport.start(time, offset);
+      startAudioTime = this.transport.context.now();
+    }
+
+    if (this.scheduler && this.schedulerTransport) {
+      this.schedulerTransport.bpm = this.transport.bpm.value;
+      this.scheduler.start(0, startAudioTime);
     }
   }
 
@@ -592,6 +670,9 @@ export class Engine extends EngineBase<EngineEvents> {
       this.metronome.cancelCountIn();
     }
     this.transport.stop();
+    this.scheduler?.stop();
+    // Back to low-power idle: the worker doesn't need to spin while stopped.
+    this.setContextResponsive(false);
   }
 
   // The transport time at which a launch (cueing a pattern, or adding a track

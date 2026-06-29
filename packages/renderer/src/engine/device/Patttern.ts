@@ -2,12 +2,16 @@ import type { Automation, Note } from 'solid-pianoroll';
 import { automationValueAtTicks } from 'solid-pianoroll';
 import { Part, Sequence, Time } from 'tone';
 import type { TransportTime } from 'tone/build/esm/core/type/Units';
+import type { ClipSource, ScheduledEvent } from '../../scheduler';
 import type { Engine } from '../Engine';
 import { EngineBase } from '../EngineBase';
 import type { PropertyUpdateEvents } from '../helpers';
 import { entries, randomColor } from '../helpers';
 import type { DeepPartial, subdivisionTypes } from '../types';
 import type { SequencerDevice } from './Sequencer';
+
+/** Event payload for the custom scheduler: a "play this step at `time`" thunk. */
+type StepPlay = (time: number) => void;
 
 export type FollowupActionBase = {
   linked: boolean;
@@ -112,6 +116,21 @@ const stepLengthTicks = (
   const factor =
     subdivisionType === 't' ? 2 / 3 : subdivisionType === 'n.' ? 3 / 2 : 1;
   return Math.max(1, Math.round(base * factor));
+};
+
+// The swing offset, in beats, for an event at musical `beat` under Tone's
+// transport swing at its 16th-note subdivision. Events that fall *inside* an
+// 8th-note swing pair (the off-16ths) are nudged later; the pair boundaries
+// (downbeats / 8th-note positions) stay put. `swing` is 0–1 where 1 nudges the
+// off-16th by 1/6 of a beat (Tone shifts by swingTicks * 2/3). Pure + ppq
+// independent so the custom scheduler can reproduce Tone's feel exactly.
+export const swingOffsetBeats = (beat: number, swing: number): number => {
+  if (!swing) return 0;
+  const PAIR = 0.5; // an 8th note, in beats — the 16n swing pair
+  const within = ((beat % PAIR) + PAIR) % PAIR;
+  if (within < 1e-9 || within > PAIR - 1e-9) return 0; // on a pair boundary
+  const amount = Math.sin((within / PAIR) * Math.PI) * swing;
+  return amount / 6;
 };
 
 // Project a note onto a step-grid cell (the quantized view the step sequencer
@@ -428,6 +447,141 @@ export class Pattern extends EngineBase<
     return steps;
   }
 
+  // The played step for a piano-roll note: transposition (cents), gate (note
+  // length in seconds at the current tempo), velocity, and automation curves
+  // folded in at the note's start. Shared by the Tone Part and the custom
+  // scheduler so both render the note identically.
+  private noteToPlaybackStep(note: Note): Step {
+    const pitchCents =
+      (note.midi - PIANO_ROLL_ROOT_MIDI) * 100 + (note.detune ?? 0);
+    const bpm = this.engine.transport.bpm.value || 120;
+    const gateSeconds =
+      note.durationTicks > 0
+        ? (note.durationTicks / (this.ppq || 192)) * (60 / bpm)
+        : 0;
+    const a = this.automation;
+    return {
+      play: true,
+      volume:
+        velocityToGain(note.velocity) *
+        automationValueAtTicks(a.volume, note.ticks, 1),
+      playbackRate:
+        (note.playbackRate ?? 1) *
+        automationValueAtTicks(a.playbackRate, note.ticks, 1),
+      pitch: pitchCents + automationValueAtTicks(a.detune, note.ticks, 0),
+      reverse: note.reverse ?? false,
+      gateSeconds,
+    };
+  }
+
+  // --- Custom scheduler integration (behind engine.useScheduler) ---------
+  // A clip is just live data: it answers "which events start in [from, to)?" and
+  // the scheduler reads it fresh every tick, so edits during playback need no
+  // rescheduling. Handles both step and piano-roll modes; the underlying
+  // trigger path (onSequenceEvent) is the same one Tone uses.
+  private schedulerClip?: ClipSource<StepPlay>;
+
+  /** Beats per step cell (e.g. 0.25 for a 16th at ppq 192). */
+  beatsPerStep(): number {
+    return this.stepDurationTicks() / this.ppq;
+  }
+
+  // Swing time offset (seconds) for an event at musical `beat`, matching Tone's
+  // transport swing at its 16th-note subdivision (see `swingOffsetBeats`),
+  // converted to seconds at the current tempo. Applied to both step and roll
+  // events so the custom scheduler swings exactly like Tone's transport does.
+  swingOffsetSeconds(beat: number): number {
+    const beats = swingOffsetBeats(beat, this.engine.transport.swing);
+    if (!beats) return 0;
+    const bpm = this.engine.transport.bpm.value || 120;
+    return beats * (60 / bpm);
+  }
+
+  private getSchedulerClip(): ClipSource<StepPlay> {
+    if (!this.schedulerClip) {
+      // eslint-disable-next-line @typescript-eslint/no-this-alias
+      const pattern = this;
+      this.schedulerClip = {
+        get lengthBeats() {
+          return pattern.mode === 'pianoroll'
+            ? pattern.duration / (pattern.ppq || 192)
+            : pattern.slotCount() * pattern.beatsPerStep();
+        },
+        loop: true,
+        query(fromBeat, toBeat) {
+          const events: ScheduledEvent<StepPlay>[] = [];
+          if (pattern.mode === 'pianoroll') {
+            const ppq = pattern.ppq || 192;
+            for (const note of pattern.notes) {
+              const beat = note.ticks / ppq;
+              if (beat >= fromBeat && beat < toBeat) {
+                events.push({
+                  beat,
+                  data: (time: number) =>
+                    pattern.sequencer.onSequenceEvent(
+                      time + pattern.swingOffsetSeconds(beat),
+                      pattern.noteToPlaybackStep(note),
+                    ),
+                });
+              }
+            }
+          } else {
+            const steps = pattern.deriveStepsForPlayback();
+            const perStep = pattern.beatsPerStep();
+            for (let index = 0; index < steps.length; index++) {
+              const beat = index * perStep;
+              if (beat >= fromBeat && beat < toBeat) {
+                const step = steps[index];
+                events.push({
+                  beat,
+                  data: (time: number) =>
+                    pattern.sequencer.onSequenceEvent(
+                      time + pattern.swingOffsetSeconds(beat),
+                      step,
+                    ),
+                });
+              }
+            }
+          }
+          return events;
+        },
+      };
+    }
+    return this.schedulerClip;
+  }
+
+  private usesScheduler(): boolean {
+    return this.engine.useScheduler && !!this.engine.scheduler;
+  }
+
+  // Scheduler add/remove ops deferred to a launch-grid boundary (scheduler mode
+  // only). Tracked so a hard stop / dispose can cancel any that haven't fired.
+  private deferredSchedulerOps: number[] = [];
+
+  // Run a scheduler op (register / unregister the clip) at transport `time`,
+  // using Tone's still-running transport as the launch-quantization clock so a
+  // pattern launched mid-bar starts/stops on the grid instead of immediately.
+  // Falls back to running it now if the boundary is already in the past (Tone
+  // rejects scheduling behind the last tick).
+  private deferSchedulerOp(time: TransportTime, op: () => void) {
+    try {
+      const id = this.engine.transport.scheduleOnce(() => {
+        this.deferredSchedulerOps = this.deferredSchedulerOps.filter(
+          (pending) => pending !== id,
+        );
+        op();
+      }, time);
+      this.deferredSchedulerOps.push(id);
+    } catch {
+      op();
+    }
+  }
+
+  private clearDeferredSchedulerOps() {
+    this.deferredSchedulerOps.forEach((id) => this.engine.transport.clear(id));
+    this.deferredSchedulerOps = [];
+  }
+
   private hasAutomation() {
     const a = this.automation;
     return !!(a.volume?.length || a.detune?.length || a.playbackRate?.length);
@@ -595,33 +749,7 @@ export class Pattern extends EngineBase<
     if (this.part) return this.part;
 
     const part = new Part<{ time: string; note: Note }>((time, value) => {
-      const { note } = value;
-      const semitones = note.midi - PIANO_ROLL_ROOT_MIDI;
-      // Transposition in cents: the note's pitch (midi vs root) plus any fine
-      // per-note detune. The slice transposes via `pitch`; `playbackRate` is an
-      // independent per-note speed.
-      const pitchCents = semitones * 100 + (note.detune ?? 0);
-      // Note length in seconds at the current tempo, so the slice releases
-      // when the note ends.
-      const bpm = this.engine.transport.bpm.value;
-      const gateSeconds =
-        note.durationTicks > 0
-          ? (note.durationTicks / (this.ppq || 192)) * (60 / bpm)
-          : 0;
-      // Fold in the automation curves, sampled at the note's start.
-      const a = this.automation;
-      this.sequencer.onSequenceEvent(time, {
-        play: true,
-        volume:
-          velocityToGain(note.velocity) *
-          automationValueAtTicks(a.volume, note.ticks, 1),
-        playbackRate:
-          (note.playbackRate ?? 1) *
-          automationValueAtTicks(a.playbackRate, note.ticks, 1),
-        pitch: pitchCents + automationValueAtTicks(a.detune, note.ticks, 0),
-        reverse: note.reverse ?? false,
-        gateSeconds,
-      });
+      this.sequencer.onSequenceEvent(time, this.noteToPlaybackStep(value.note));
     }, []);
 
     part.loop = true;
@@ -670,6 +798,20 @@ export class Pattern extends EngineBase<
   }
 
   start(time?: TransportTime) {
+    // Custom scheduler path: registering the clip IS "playing" — the scheduler
+    // plays it according to its own transport, so skip Tone's Sequence. With no
+    // time it arms immediately (fresh play); with a launch boundary the add is
+    // quantized to that boundary so pattern switching stays on the grid.
+    if (this.usesScheduler()) {
+      const clip = this.getSchedulerClip();
+      if (time === undefined) {
+        this.engine.scheduler?.add(clip);
+      } else {
+        this.deferSchedulerOp(time, () => this.engine.scheduler?.add(clip));
+      }
+      return;
+    }
+
     // When launching while the transport is already running, start at its
     // current position — never at 0 (the past), which makes Tone schedule
     // events behind the last scheduled tick and throw "the time must be greater
@@ -735,6 +877,18 @@ export class Pattern extends EngineBase<
   }
 
   stop(time?: TransportTime) {
+    if (this.schedulerClip) {
+      const clip = this.schedulerClip;
+      if (time === undefined) {
+        // Hard stop: cancel any pending quantized launches and remove now.
+        this.clearDeferredSchedulerOps();
+        this.engine.scheduler?.remove(clip);
+      } else {
+        // Quantize the stop to the launch boundary (e.g. a follow-up action or
+        // switching away from this pattern while playing).
+        this.deferSchedulerOp(time, () => this.engine.scheduler?.remove(clip));
+      }
+    }
     this.sequence?.stop(time);
     this.part?.stop(time);
   }
@@ -780,6 +934,10 @@ export class Pattern extends EngineBase<
 
   dispose() {
     this.removeAllListeners();
+    if (this.schedulerClip) {
+      this.clearDeferredSchedulerOps();
+      this.engine.scheduler?.remove(this.schedulerClip);
+    }
     this.sequence?.dispose();
     this.part?.dispose();
   }

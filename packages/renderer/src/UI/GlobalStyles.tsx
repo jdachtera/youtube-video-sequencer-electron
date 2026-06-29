@@ -62,9 +62,18 @@ const Styles = css`
     stroke: red;
   }
   #root {
-    width: 100%;
-    height: 100%;
     display: flex;
+    /* Global UI density. The skeuomorphic rack is drawn at large fixed sizes;
+       scaling the whole app down a touch fits far more on screen. Tunable via
+       the --ui-scale custom property (set from localStorage in App); defaults
+       to 1 here so there's no flash before the script runs.
+
+       zoom shrinks the box as well as the content, so size the root by the
+       inverse scale (100vw/100vh over the scale) — after the zoom it renders
+       back to exactly the viewport and still fills the window. */
+    width: calc(100vw / var(--ui-scale, 1));
+    height: calc(100vh / var(--ui-scale, 1));
+    zoom: var(--ui-scale, 1);
   }
 
   *[hidden] {
