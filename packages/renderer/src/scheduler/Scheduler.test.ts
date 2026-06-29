@@ -169,6 +169,72 @@ describe('Scheduler', () => {
     });
   });
 
+  describe('accuracy & robustness', () => {
+    it('never drifts or drops a loop-boundary event over a long run', () => {
+      const { clock, scheduler, fired } = setup(120); // 0.5s/beat
+      scheduler.add(fourOnTheFloor()); // 4-beat loop, a hit on every beat
+      scheduler.start();
+      clock.advance(600); // ~1200 beats = ~300 loops
+
+      const counts = fired.reduce<Record<string, number>>((acc, f) => {
+        acc[f.data] = (acc[f.data] ?? 0) + 1;
+        return acc;
+      }, {});
+      // No drift: every beat fires ~300 times (the lookahead may include one
+      // extra of the earliest beats at the very end — hence the ±1 band).
+      for (const beat of ['b0', 'b1', 'b2', 'b3']) {
+        expect(counts[beat]).toBeGreaterThanOrEqual(300);
+        expect(counts[beat]).toBeLessThanOrEqual(301);
+      }
+      // The loop-boundary hit (b0, most at risk from float error) is never
+      // dropped relative to the others.
+      expect(counts.b0).toBeGreaterThanOrEqual(counts.b3);
+      // No duplicates: every scheduled time is strictly later than the last.
+      for (let i = 1; i < fired.length; i++) {
+        expect(fired[i].time).toBeGreaterThan(fired[i - 1].time);
+      }
+      // Still locked to the 0.5s beat grid at the end (no accumulated drift).
+      const last = fired[fired.length - 1];
+      expect(last.time).toBeCloseTo(Math.round(last.time / 0.5) * 0.5, 6);
+    });
+
+    it('fires every event even when ticks are slower than the lookahead', () => {
+      // intervalMs (200) > lookahead*1000 (100): each tick must cover the whole
+      // gap since the last, never leaving a hole.
+      const slow = setup(120, { lookahead: 0.1, intervalMs: 200 });
+      slow.scheduler.add(fourOnTheFloor());
+      slow.scheduler.start();
+      slow.clock.advance(4);
+
+      const fast = setup(120, { lookahead: 0.1, intervalMs: 25 });
+      fast.scheduler.add(fourOnTheFloor());
+      fast.scheduler.start();
+      fast.clock.advance(4);
+
+      // Same events, same times, regardless of tick rate — compared up to 3s so
+      // the differing final partial lookahead window doesn't matter.
+      const upTo3 = (fired: Fired[]) => at(fired).filter((e) => e.time <= 3);
+      expect(upTo3(slow.fired)).toEqual(upTo3(fast.fired));
+      expect(upTo3(slow.fired).length).toBeGreaterThan(0);
+    });
+
+    it('schedules multiple clips independently and supports add/remove mid-run', () => {
+      const { clock, scheduler, fired } = setup(120);
+      const a = new ArrayClip<string>(4, true, [{ beat: 0, data: 'A' }]);
+      const b = new ArrayClip<string>(4, true, [{ beat: 2, data: 'B' }]);
+      scheduler.add(a);
+      scheduler.add(b);
+      scheduler.start();
+      clock.advance(2.05); // bar 1: A@0, B@1, A@2
+      scheduler.remove(b); // drop B partway through
+      clock.advance(2); // bar 2: only A
+
+      const datas = fired.map((f) => f.data);
+      expect(datas.filter((d) => d === 'B').length).toBe(1); // only the first B
+      expect(datas.filter((d) => d === 'A').length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
   it('reflects live edits to a clip on the next window (no reschedule)', () => {
     const { clock, scheduler, fired } = setup(120);
     const clip = fourOnTheFloor();

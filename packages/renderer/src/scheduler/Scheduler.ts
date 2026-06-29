@@ -28,6 +28,11 @@ export interface SchedulerOptions {
  * region (segments) and each clip's own `loop`/`lengthBeats`.
  */
 export class Scheduler<T = unknown> {
+  // Beat tolerance for boundary comparisons. Far below audible (1e-9 beat ≈ a
+  // few nanoseconds at any sane tempo) but well above float64 rounding error
+  // accumulated in the beat math, so loop-boundary events are never dropped.
+  private static readonly EPSILON: Beats = 1e-9;
+
   private readonly lookahead: Seconds;
   private readonly intervalMs: number;
   private readonly sources = new Set<ClipSource<T>>();
@@ -122,11 +127,23 @@ export class Scheduler<T = unknown> {
       this.handler?.(event, this.transport.timeAt(rawBeat), source);
     };
 
+    const EPS = Scheduler.EPSILON;
     if (source.loop && source.lengthBeats > 0) {
       const length = source.lengthBeats;
       let musical = musicalFrom;
-      while (musical < musicalTo) {
-        const local = musical % length;
+      while (musical < musicalTo - EPS) {
+        let local = musical % length;
+        // Float math accumulates ~1e-12 error over long runs, so `local` can
+        // come back as a tiny positive instead of a clean 0 at the loop start —
+        // which would drop the event sitting exactly on beat 0. Snap it.
+        if (local < EPS) {
+          local = 0;
+        } else if (local > length - EPS) {
+          // Effectively at the boundary from the other side: skip the sliver to
+          // the next loop start rather than emit a zero-width chunk.
+          musical += length - local;
+          continue;
+        }
         const chunk = Math.min(musicalTo - musical, length - local);
         for (const event of source.query(local, local + chunk)) {
           emit(musical + (event.beat - local), event);
@@ -135,7 +152,9 @@ export class Scheduler<T = unknown> {
       }
     } else {
       for (const event of source.query(musicalFrom, musicalTo)) {
-        if (event.beat >= musicalFrom && event.beat < musicalTo) {
+        // Inclusive lower bound (with tolerance) so an event exactly on the
+        // window/segment start is never lost to rounding.
+        if (event.beat >= musicalFrom - EPS && event.beat < musicalTo) {
           emit(event.beat, event);
         }
       }
