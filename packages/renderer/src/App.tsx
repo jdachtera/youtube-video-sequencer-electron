@@ -31,6 +31,18 @@ declare const __BUILD_COMMIT__: string;
 
 const engine = new Engine(Transport);
 
+// Global UI density. The skeuomorphic rack is drawn at large fixed sizes, so by
+// default we scale the whole app down a little (consumed by #root's `zoom` in
+// GlobalStyles). Tunable via `localStorage.megarack.uiScale` for users who want
+// it bigger or smaller; clamped to a sane range.
+const DEFAULT_UI_SCALE = 0.85;
+const storedUiScale = Number(localStorage.getItem('megarack.uiScale'));
+const uiScale =
+  Number.isFinite(storedUiScale) && storedUiScale > 0
+    ? Math.min(1.5, Math.max(0.5, storedUiScale))
+    : DEFAULT_UI_SCALE;
+document.documentElement.style.setProperty('--ui-scale', String(uiScale));
+
 // Test hook: expose the engine to the headless audio harness
 // (scripts/audiotest.mjs) so it can drive an offline render and assert the
 // output isn't silent.

@@ -65,6 +65,11 @@ const Styles = css`
     width: 100%;
     height: 100%;
     display: flex;
+    /* Global UI density. The skeuomorphic rack is drawn at large fixed sizes;
+       scaling the whole app down a touch fits far more on screen. Tunable via
+       the --ui-scale custom property (set from localStorage in App); defaults
+       to 1 here so there's no flash before the script runs. */
+    zoom: var(--ui-scale, 1);
   }
 
   *[hidden] {
