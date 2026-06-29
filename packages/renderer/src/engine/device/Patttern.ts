@@ -118,6 +118,21 @@ const stepLengthTicks = (
   return Math.max(1, Math.round(base * factor));
 };
 
+// The swing offset, in beats, for an event at musical `beat` under Tone's
+// transport swing at its 16th-note subdivision. Events that fall *inside* an
+// 8th-note swing pair (the off-16ths) are nudged later; the pair boundaries
+// (downbeats / 8th-note positions) stay put. `swing` is 0–1 where 1 nudges the
+// off-16th by 1/6 of a beat (Tone shifts by swingTicks * 2/3). Pure + ppq
+// independent so the custom scheduler can reproduce Tone's feel exactly.
+export const swingOffsetBeats = (beat: number, swing: number): number => {
+  if (!swing) return 0;
+  const PAIR = 0.5; // an 8th note, in beats — the 16n swing pair
+  const within = ((beat % PAIR) + PAIR) % PAIR;
+  if (within < 1e-9 || within > PAIR - 1e-9) return 0; // on a pair boundary
+  const amount = Math.sin((within / PAIR) * Math.PI) * swing;
+  return amount / 6;
+};
+
 // Project a note onto a step-grid cell (the quantized view the step sequencer
 // renders). Inverse of stepToNote.
 const noteToStep = (note: Note, ppq: number, bpm: number): Step => {
@@ -471,6 +486,17 @@ export class Pattern extends EngineBase<
     return this.stepDurationTicks() / this.ppq;
   }
 
+  // Swing time offset (seconds) for an event at musical `beat`, matching Tone's
+  // transport swing at its 16th-note subdivision (see `swingOffsetBeats`),
+  // converted to seconds at the current tempo. Applied to both step and roll
+  // events so the custom scheduler swings exactly like Tone's transport does.
+  swingOffsetSeconds(beat: number): number {
+    const beats = swingOffsetBeats(beat, this.engine.transport.swing);
+    if (!beats) return 0;
+    const bpm = this.engine.transport.bpm.value || 120;
+    return beats * (60 / bpm);
+  }
+
   private getSchedulerClip(): ClipSource<StepPlay> {
     if (!this.schedulerClip) {
       // eslint-disable-next-line @typescript-eslint/no-this-alias
@@ -493,7 +519,7 @@ export class Pattern extends EngineBase<
                   beat,
                   data: (time: number) =>
                     pattern.sequencer.onSequenceEvent(
-                      time,
+                      time + pattern.swingOffsetSeconds(beat),
                       pattern.noteToPlaybackStep(note),
                     ),
                 });
@@ -509,7 +535,10 @@ export class Pattern extends EngineBase<
                 events.push({
                   beat,
                   data: (time: number) =>
-                    pattern.sequencer.onSequenceEvent(time, step),
+                    pattern.sequencer.onSequenceEvent(
+                      time + pattern.swingOffsetSeconds(beat),
+                      step,
+                    ),
                 });
               }
             }
@@ -523,6 +552,34 @@ export class Pattern extends EngineBase<
 
   private usesScheduler(): boolean {
     return this.engine.useScheduler && !!this.engine.scheduler;
+  }
+
+  // Scheduler add/remove ops deferred to a launch-grid boundary (scheduler mode
+  // only). Tracked so a hard stop / dispose can cancel any that haven't fired.
+  private deferredSchedulerOps: number[] = [];
+
+  // Run a scheduler op (register / unregister the clip) at transport `time`,
+  // using Tone's still-running transport as the launch-quantization clock so a
+  // pattern launched mid-bar starts/stops on the grid instead of immediately.
+  // Falls back to running it now if the boundary is already in the past (Tone
+  // rejects scheduling behind the last tick).
+  private deferSchedulerOp(time: TransportTime, op: () => void) {
+    try {
+      const id = this.engine.transport.scheduleOnce(() => {
+        this.deferredSchedulerOps = this.deferredSchedulerOps.filter(
+          (pending) => pending !== id,
+        );
+        op();
+      }, time);
+      this.deferredSchedulerOps.push(id);
+    } catch {
+      op();
+    }
+  }
+
+  private clearDeferredSchedulerOps() {
+    this.deferredSchedulerOps.forEach((id) => this.engine.transport.clear(id));
+    this.deferredSchedulerOps = [];
   }
 
   private hasAutomation() {
@@ -742,9 +799,16 @@ export class Pattern extends EngineBase<
 
   start(time?: TransportTime) {
     // Custom scheduler path: registering the clip IS "playing" — the scheduler
-    // plays it according to its own transport, so skip Tone's Sequence.
+    // plays it according to its own transport, so skip Tone's Sequence. With no
+    // time it arms immediately (fresh play); with a launch boundary the add is
+    // quantized to that boundary so pattern switching stays on the grid.
     if (this.usesScheduler()) {
-      this.engine.scheduler?.add(this.getSchedulerClip());
+      const clip = this.getSchedulerClip();
+      if (time === undefined) {
+        this.engine.scheduler?.add(clip);
+      } else {
+        this.deferSchedulerOp(time, () => this.engine.scheduler?.add(clip));
+      }
       return;
     }
 
@@ -814,7 +878,16 @@ export class Pattern extends EngineBase<
 
   stop(time?: TransportTime) {
     if (this.schedulerClip) {
-      this.engine.scheduler?.remove(this.schedulerClip);
+      const clip = this.schedulerClip;
+      if (time === undefined) {
+        // Hard stop: cancel any pending quantized launches and remove now.
+        this.clearDeferredSchedulerOps();
+        this.engine.scheduler?.remove(clip);
+      } else {
+        // Quantize the stop to the launch boundary (e.g. a follow-up action or
+        // switching away from this pattern while playing).
+        this.deferSchedulerOp(time, () => this.engine.scheduler?.remove(clip));
+      }
     }
     this.sequence?.stop(time);
     this.part?.stop(time);
@@ -862,6 +935,7 @@ export class Pattern extends EngineBase<
   dispose() {
     this.removeAllListeners();
     if (this.schedulerClip) {
+      this.clearDeferredSchedulerOps();
       this.engine.scheduler?.remove(this.schedulerClip);
     }
     this.sequence?.dispose();

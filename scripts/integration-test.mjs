@@ -886,12 +886,62 @@ const schedulerRun = await win.evaluate(async () => {
     e.stop();
     stepSeq?.off('sequenceEvent', onStep);
     rollSeq?.off('sequenceEvent', onRoll);
+
+    // --- swing parity: the custom scheduler must swing like Tone's transport.
+    // The off-16th (beat 0.25) is nudged later; the downbeat (beat 0) is not,
+    // and with swing off nothing moves. Reads e.transport.swing end-to-end. ---
+    let swing = null;
+    const stepPattern = stepSeq?.getPattern?.();
+    if (stepPattern) {
+      e.set({ swing: 0 });
+      const offNoSwing = stepPattern.swingOffsetSeconds(0.25);
+      e.set({ swing: 0.6 });
+      swing = {
+        offNoSwing,
+        downbeat: stepPattern.swingOffsetSeconds(0),
+        offBeat: stepPattern.swingOffsetSeconds(0.25),
+      };
+      e.set({ swing: 0 });
+    }
+
+    // --- quantized launch: cueing a 2nd pattern mid-playback must defer the
+    // swap to the launch boundary (not start immediately) and then actually
+    // take effect — playback continues on the cued pattern. ---
+    let launch = null;
+    if (stepSeq && stepPattern) {
+      try {
+        stepSeq.createPattern({ ...stepPattern.serialize(), name: 'B' });
+        let events = 0;
+        const onAny = () => (events += 1);
+        e.setLaunchQuantization('4n'); // a 0.5s boundary at 120bpm
+        e.start();
+        await sleep(100);
+        const before = stepSeq.currentPatternIndex;
+        stepSeq.on('sequenceEvent', onAny);
+        stepSeq.cuePattern(1, e.launchTime());
+        const cuedImmediately = stepSeq.currentPatternIndex;
+        await sleep(1200); // well past the 4n boundary
+        stepSeq.off('sequenceEvent', onAny);
+        launch = {
+          before,
+          cuedImmediately, // still the old pattern right after the cue
+          after: stepSeq.currentPatternIndex, // advanced once the boundary hit
+          events,
+        };
+        e.stop();
+      } catch (err) {
+        launch = { error: String((err && err.message) || err) };
+      }
+    }
+
     return {
       useScheduler: e.useScheduler,
       hasScheduler: !!e.scheduler,
       stepEvents,
       rollEvents,
       playingDuring,
+      swing,
+      launch,
     };
   } catch (err) {
     return { error: String((err && err.message) || err) };
@@ -1112,6 +1162,24 @@ check(
     schedulerRun.stepEvents > 0 &&
     schedulerRun.rollEvents > 0,
   `useScheduler=${schedulerRun.useScheduler} hasScheduler=${schedulerRun.hasScheduler} step=${schedulerRun.stepEvents} roll=${schedulerRun.rollEvents} playing=${schedulerRun.playingDuring}`,
+);
+check(
+  'custom scheduler: swing nudges the off-16th, not the downbeat',
+  !!schedulerRun.swing &&
+    schedulerRun.swing.offNoSwing === 0 &&
+    schedulerRun.swing.downbeat === 0 &&
+    schedulerRun.swing.offBeat > 0,
+  `offNoSwing=${schedulerRun.swing?.offNoSwing} downbeat=${schedulerRun.swing?.downbeat} offBeat=${schedulerRun.swing?.offBeat?.toExponential?.(2)}`,
+);
+check(
+  'custom scheduler: launching a pattern is quantized to the grid boundary',
+  !!schedulerRun.launch &&
+    !schedulerRun.launch.error &&
+    schedulerRun.launch.before === 0 &&
+    schedulerRun.launch.cuedImmediately === 0 && // not switched on the spot
+    schedulerRun.launch.after === 1 && // switched once the boundary hit
+    schedulerRun.launch.events > 0, // and playback continued
+  `before=${schedulerRun.launch?.before} immediate=${schedulerRun.launch?.cuedImmediately} after=${schedulerRun.launch?.after} events=${schedulerRun.launch?.events} err=${schedulerRun.launch?.error}`,
 );
 
 const failed = results.filter((r) => !r.pass);

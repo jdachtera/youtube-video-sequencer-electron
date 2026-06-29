@@ -4,6 +4,7 @@ import {
   normalizeStepData,
   pianoRollLoopLengthTicks,
   Pattern,
+  swingOffsetBeats,
 } from './Patttern';
 
 describe('normalizeStepData', () => {
@@ -119,5 +120,41 @@ describe('pianoRollLoopLengthTicks', () => {
 
   it('respects a custom ppq', () => {
     expect(pianoRollLoopLengthTicks([], 480)).toBe(480 * 4);
+  });
+});
+
+describe('swingOffsetBeats', () => {
+  it('is zero with no swing', () => {
+    expect(swingOffsetBeats(0.25, 0)).toBe(0);
+    expect(swingOffsetBeats(0.75, 0)).toBe(0);
+  });
+
+  it('leaves the pair boundaries (downbeats / 8th positions) untouched', () => {
+    for (const beat of [0, 0.5, 1, 1.5, 2]) {
+      expect(swingOffsetBeats(beat, 1)).toBe(0);
+    }
+  });
+
+  it('nudges the off-16ths later by 1/6 beat at swing = 1', () => {
+    // Off-16ths sit at the pair midpoint (progress 0.5 -> sin = 1).
+    expect(swingOffsetBeats(0.25, 1)).toBeCloseTo(1 / 6, 9);
+    expect(swingOffsetBeats(0.75, 1)).toBeCloseTo(1 / 6, 9);
+    expect(swingOffsetBeats(1.25, 1)).toBeCloseTo(1 / 6, 9);
+  });
+
+  it('scales linearly with the swing amount', () => {
+    expect(swingOffsetBeats(0.25, 0.5)).toBeCloseTo(1 / 12, 9);
+  });
+
+  it('never shifts an event past the next pair boundary', () => {
+    // The most an off-16th can move is 1/6 beat, well short of the 0.25-beat
+    // gap to the next 8th — so swing never reorders events.
+    for (let beat = 0.05; beat < 4; beat += 0.05) {
+      expect(swingOffsetBeats(beat, 1)).toBeLessThan(0.25);
+    }
+  });
+
+  it('handles negative beats via a wrapped modulo', () => {
+    expect(swingOffsetBeats(-0.25, 1)).toBeCloseTo(1 / 6, 9);
   });
 });
