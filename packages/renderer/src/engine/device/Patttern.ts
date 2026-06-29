@@ -432,10 +432,38 @@ export class Pattern extends EngineBase<
     return steps;
   }
 
+  // The played step for a piano-roll note: transposition (cents), gate (note
+  // length in seconds at the current tempo), velocity, and automation curves
+  // folded in at the note's start. Shared by the Tone Part and the custom
+  // scheduler so both render the note identically.
+  private noteToPlaybackStep(note: Note): Step {
+    const pitchCents =
+      (note.midi - PIANO_ROLL_ROOT_MIDI) * 100 + (note.detune ?? 0);
+    const bpm = this.engine.transport.bpm.value || 120;
+    const gateSeconds =
+      note.durationTicks > 0
+        ? (note.durationTicks / (this.ppq || 192)) * (60 / bpm)
+        : 0;
+    const a = this.automation;
+    return {
+      play: true,
+      volume:
+        velocityToGain(note.velocity) *
+        automationValueAtTicks(a.volume, note.ticks, 1),
+      playbackRate:
+        (note.playbackRate ?? 1) *
+        automationValueAtTicks(a.playbackRate, note.ticks, 1),
+      pitch: pitchCents + automationValueAtTicks(a.detune, note.ticks, 0),
+      reverse: note.reverse ?? false,
+      gateSeconds,
+    };
+  }
+
   // --- Custom scheduler integration (behind engine.useScheduler) ---------
-  // A clip is just live data: it answers "which steps start in [from, to)?" and
+  // A clip is just live data: it answers "which events start in [from, to)?" and
   // the scheduler reads it fresh every tick, so edits during playback need no
-  // rescheduling. Only used in step mode for now (piano roll stays on Tone).
+  // rescheduling. Handles both step and piano-roll modes; the underlying
+  // trigger path (onSequenceEvent) is the same one Tone uses.
   private schedulerClip?: ClipSource<StepPlay>;
 
   /** Beats per step cell (e.g. 0.25 for a 16th at ppq 192). */
@@ -449,24 +477,41 @@ export class Pattern extends EngineBase<
       const pattern = this;
       this.schedulerClip = {
         get lengthBeats() {
-          return pattern.slotCount() * pattern.beatsPerStep();
+          return pattern.mode === 'pianoroll'
+            ? pattern.duration / (pattern.ppq || 192)
+            : pattern.slotCount() * pattern.beatsPerStep();
         },
         loop: true,
         query(fromBeat, toBeat) {
-          const steps = pattern.deriveStepsForPlayback();
-          const perStep = pattern.beatsPerStep();
           const events: ScheduledEvent<StepPlay>[] = [];
-          for (let index = 0; index < steps.length; index++) {
-            const beat = index * perStep;
-            if (beat >= fromBeat && beat < toBeat) {
-              const step = steps[index];
-              events.push({
-                beat,
-                // Reuse the existing trigger path so step.play / reverse / gate /
-                // pitch all behave identically to the Tone route.
-                data: (time: number) =>
-                  pattern.sequencer.onSequenceEvent(time, step),
-              });
+          if (pattern.mode === 'pianoroll') {
+            const ppq = pattern.ppq || 192;
+            for (const note of pattern.notes) {
+              const beat = note.ticks / ppq;
+              if (beat >= fromBeat && beat < toBeat) {
+                events.push({
+                  beat,
+                  data: (time: number) =>
+                    pattern.sequencer.onSequenceEvent(
+                      time,
+                      pattern.noteToPlaybackStep(note),
+                    ),
+                });
+              }
+            }
+          } else {
+            const steps = pattern.deriveStepsForPlayback();
+            const perStep = pattern.beatsPerStep();
+            for (let index = 0; index < steps.length; index++) {
+              const beat = index * perStep;
+              if (beat >= fromBeat && beat < toBeat) {
+                const step = steps[index];
+                events.push({
+                  beat,
+                  data: (time: number) =>
+                    pattern.sequencer.onSequenceEvent(time, step),
+                });
+              }
             }
           }
           return events;
@@ -477,11 +522,7 @@ export class Pattern extends EngineBase<
   }
 
   private usesScheduler(): boolean {
-    return (
-      this.engine.useScheduler &&
-      !!this.engine.scheduler &&
-      this.mode === 'steps'
-    );
+    return this.engine.useScheduler && !!this.engine.scheduler;
   }
 
   private hasAutomation() {
@@ -651,33 +692,7 @@ export class Pattern extends EngineBase<
     if (this.part) return this.part;
 
     const part = new Part<{ time: string; note: Note }>((time, value) => {
-      const { note } = value;
-      const semitones = note.midi - PIANO_ROLL_ROOT_MIDI;
-      // Transposition in cents: the note's pitch (midi vs root) plus any fine
-      // per-note detune. The slice transposes via `pitch`; `playbackRate` is an
-      // independent per-note speed.
-      const pitchCents = semitones * 100 + (note.detune ?? 0);
-      // Note length in seconds at the current tempo, so the slice releases
-      // when the note ends.
-      const bpm = this.engine.transport.bpm.value;
-      const gateSeconds =
-        note.durationTicks > 0
-          ? (note.durationTicks / (this.ppq || 192)) * (60 / bpm)
-          : 0;
-      // Fold in the automation curves, sampled at the note's start.
-      const a = this.automation;
-      this.sequencer.onSequenceEvent(time, {
-        play: true,
-        volume:
-          velocityToGain(note.velocity) *
-          automationValueAtTicks(a.volume, note.ticks, 1),
-        playbackRate:
-          (note.playbackRate ?? 1) *
-          automationValueAtTicks(a.playbackRate, note.ticks, 1),
-        pitch: pitchCents + automationValueAtTicks(a.detune, note.ticks, 0),
-        reverse: note.reverse ?? false,
-        gateSeconds,
-      });
+      this.sequencer.onSequenceEvent(time, this.noteToPlaybackStep(value.note));
     }, []);
 
     part.loop = true;

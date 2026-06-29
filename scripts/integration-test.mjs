@@ -866,19 +866,31 @@ const schedulerRun = await win.evaluate(async () => {
   }
   const e = w.__engine;
   try {
-    const seq = e.tracks[0].chain.devices.find((d) => d.name === 'Sequencer');
-    let events = 0;
-    const onEvent = () => (events += 1);
-    seq?.on('sequenceEvent', onEvent);
+    // Track 0 is a step pattern, track 1 a piano roll — both should be driven
+    // by the custom scheduler.
+    const stepSeq = e.tracks[0].chain.devices.find(
+      (d) => d.name === 'Sequencer',
+    );
+    const rollSeq = e.tracks[1].chain.devices.find(
+      (d) => d.name === 'Sequencer',
+    );
+    let stepEvents = 0;
+    let rollEvents = 0;
+    const onStep = () => (stepEvents += 1);
+    const onRoll = () => (rollEvents += 1);
+    stepSeq?.on('sequenceEvent', onStep);
+    rollSeq?.on('sequenceEvent', onRoll);
     e.start();
     await sleep(800);
     const playingDuring = e.transport.state === 'started';
     e.stop();
-    seq?.off('sequenceEvent', onEvent);
+    stepSeq?.off('sequenceEvent', onStep);
+    rollSeq?.off('sequenceEvent', onRoll);
     return {
       useScheduler: e.useScheduler,
       hasScheduler: !!e.scheduler,
-      events,
+      stepEvents,
+      rollEvents,
       playingDuring,
     };
   } catch (err) {
@@ -1094,11 +1106,12 @@ check(
   `state=${countIn.stateDuringCountIn} startedDuringLeadIn=${countIn.startedDuringLeadIn}`,
 );
 check(
-  'custom scheduler flag drives step playback (fires sequence events)',
+  'custom scheduler flag drives step + piano-roll playback',
   schedulerRun.useScheduler &&
     schedulerRun.hasScheduler &&
-    schedulerRun.events > 0,
-  `useScheduler=${schedulerRun.useScheduler} hasScheduler=${schedulerRun.hasScheduler} events=${schedulerRun.events} playing=${schedulerRun.playingDuring}`,
+    schedulerRun.stepEvents > 0 &&
+    schedulerRun.rollEvents > 0,
+  `useScheduler=${schedulerRun.useScheduler} hasScheduler=${schedulerRun.hasScheduler} step=${schedulerRun.stepEvents} roll=${schedulerRun.rollEvents} playing=${schedulerRun.playingDuring}`,
 );
 
 const failed = results.filter((r) => !r.pass);
