@@ -106,8 +106,11 @@ export function App() {
             background-color: #555;
             box-shadow: inset 0 0 2px 1px #222;
             border-radius: 5px;
-            width: 100vw;
-            height: 100vh;
+            /* Fill #root, which is itself sized to the viewport (compensated for
+               the global --ui-scale zoom in GlobalStyles). Using 100% rather
+               than 100vw/vh so the zoom doesn't leave a gap. */
+            width: 100%;
+            height: 100%;
             position: relative;
           `}
         >
