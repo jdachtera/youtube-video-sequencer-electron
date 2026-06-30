@@ -2,6 +2,7 @@
 import { css } from '@emotion/css';
 import { createSignal, onMount, onCleanup, createEffect, Show } from 'solid-js';
 import { Waveform, Regions } from 'solid-waveform';
+import type { Region } from 'solid-waveform';
 import { Transport } from 'tone';
 import { AkaiButton } from '../UI/AkaiButton';
 import { LCDFrame, LCDLine } from '../UI/LCD';
@@ -38,6 +39,32 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
   };
+
+  // Dragging a region edge fires onUpdateRegion on every pointer frame. Coalesce
+  // those to at most one apply per animation frame so the reactive cascade
+  // (store reconcile + slice buffer reslice) runs once per frame rather than
+  // once per pointer event. Keyed by region id so simultaneous edits don't
+  // clobber each other; the latest value for each region wins.
+  let pendingRegionUpdates = new Map<string, Region>();
+  let regionUpdateFrame: number | undefined;
+  const flushRegionUpdates = () => {
+    regionUpdateFrame = undefined;
+    const updates = pendingRegionUpdates;
+    pendingRegionUpdates = new Map();
+    updates.forEach((region) =>
+      props.sampler.findSlice(region.id)?.set(region),
+    );
+  };
+  const queueRegionUpdate = (region: Region) => {
+    pendingRegionUpdates.set(region.id, region);
+    if (regionUpdateFrame === undefined) {
+      regionUpdateFrame = requestAnimationFrame(flushRegionUpdates);
+    }
+  };
+  onCleanup(() => {
+    if (regionUpdateFrame !== undefined)
+      cancelAnimationFrame(regionUpdateFrame);
+  });
 
   const [chopCount, setChopCount] = createSignal(8);
 
@@ -245,9 +272,7 @@ export const SamplerView = (props: { sampler: SamplerDevice }) => {
                     Slice.normalizeData({ ...region, url: props.sampler.url }),
                   )
                 }
-                onUpdateRegion={(region) => {
-                  props.sampler.findSlice(region.id)?.set(region);
-                }}
+                onUpdateRegion={queueRegionUpdate}
                 onClickRegion={(region) => {
                   props.sampler.findSlice(region.id)?.play();
                 }}

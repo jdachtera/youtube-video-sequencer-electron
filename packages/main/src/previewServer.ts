@@ -6,6 +6,7 @@ import { createServer } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { request as httpsRequest } from 'node:https';
 import { join } from 'node:path';
+import { extractVideoId, getInnerTube } from './youtubeApi';
 import { ensureBinary } from './youtubeDownload';
 
 /**
@@ -31,6 +32,27 @@ let serverPort = 0;
 
 const previewCacheDir = (): string =>
   join(app.getPath('userData'), 'preview-cache');
+
+/**
+ * Resolve a progressive (combined audio+video) stream URL through youtubei.js,
+ * reusing the warm Innertube session — no process spawn, so it's near-instant
+ * when it succeeds. Modern YouTube often exposes only adaptive (split) formats
+ * or withholds the stream behind SABR/bot checks; in those cases `chooseFormat`
+ * throws and we return null so the caller falls back to yt-dlp.
+ */
+const resolveProgressiveUrlViaInnertube = async (
+  url: string,
+): Promise<string | null> => {
+  try {
+    const innertube = await getInnerTube();
+    const info = await innertube.getInfo(extractVideoId(url));
+    const format = info.chooseFormat({ type: 'video+audio', quality: 'best' });
+    const directUrl = await format.decipher(innertube.session.player);
+    return directUrl?.startsWith('http') ? directUrl : null;
+  } catch {
+    return null;
+  }
+};
 
 /** Resolve a single progressive (combined audio+video) stream URL, or null. */
 const resolveProgressiveUrl = (
@@ -201,16 +223,24 @@ export const registerPreviewServer = (): void => {
   startServer();
 
   ipcMain.handle('yt:preview', async (_event, url: string) => {
-    const binary = await ensureBinary();
-
     // 1. Progressive stream — proxy with Range support (cache the resolved URL).
     const cached = resolvedUrls.get(url);
     let directUrl =
       cached && Date.now() - cached.at < RESOLVED_TTL ? cached.directUrl : null;
+
+    // Try the JS path first: it reuses the warm Innertube session and avoids a
+    // cold yt-dlp spawn entirely when YouTube still serves a progressive format.
     if (!directUrl) {
-      directUrl = await resolveProgressiveUrl(binary, url);
-      if (directUrl) resolvedUrls.set(url, { directUrl, at: Date.now() });
+      directUrl = await resolveProgressiveUrlViaInnertube(url);
     }
+
+    // Fall back to yt-dlp only when the JS path came up empty — no need to
+    // download the ~10 MB binary when Innertube already resolved a stream.
+    if (!directUrl) {
+      const binary = await ensureBinary();
+      directUrl = await resolveProgressiveUrl(binary, url);
+    }
+    if (directUrl) resolvedUrls.set(url, { directUrl, at: Date.now() });
 
     const token = randomUUID();
 
@@ -220,6 +250,7 @@ export const registerPreviewServer = (): void => {
     }
 
     // 2. Fallback — download + merge with ffmpeg, then serve the cached file.
+    const binary = await ensureBinary();
     const dir = previewCacheDir();
     mkdirSync(dir, { recursive: true });
     const filePath = join(

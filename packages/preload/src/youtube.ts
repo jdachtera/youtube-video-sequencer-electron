@@ -1,5 +1,6 @@
 import { Innertube, Log } from 'youtubei.js';
 import { search } from '@jdachtera/youtube-search-without-api-key';
+import type { YoutubeSearchResult } from './exposedVars';
 
 // youtubei.js is chatty about YouTube's ever-changing response shapes (e.g.
 // "Unable to find matching run for attachment run"). Those are harmless parser
@@ -32,8 +33,19 @@ const extractVideoId = (url: string) => {
 };
 
 const yt = {
-  async search(term: string) {
-    return await search(term);
+  // The browser-only fallback (no Electron main process). Maps the scrape
+  // library's verbose result onto the slim shape the renderer consumes, matching
+  // what the main-process Innertube path returns over IPC.
+  async search(term: string): Promise<YoutubeSearchResult[]> {
+    const raw = await search(term);
+    return raw.map((item) => ({
+      id: item.id?.videoId ?? '',
+      url: item.url,
+      title: item.title,
+      description: item.description ?? '',
+      duration_raw: item.duration_raw ?? '',
+      snippet: { thumbnails: { url: item.snippet?.thumbnails?.url ?? '' } },
+    }));
   },
   getInfo: async (url: string): Promise<{ basic_info: { title: string } }> => {
     const innertube = await getInnerTube();

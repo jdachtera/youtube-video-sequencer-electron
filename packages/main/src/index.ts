@@ -5,8 +5,8 @@ import { registerHostApi } from './hostApi';
 import { registerImageProxy } from './imageProxy';
 import { restoreOrCreateWindow } from './mainWindow';
 import { registerPreviewServer } from './previewServer';
-import { registerYoutubeApi } from './youtubeApi';
-import { registerYoutubeDownload } from './youtubeDownload';
+import { getInnerTube, registerYoutubeApi } from './youtubeApi';
+import { ensureBinary, registerYoutubeDownload } from './youtubeDownload';
 
 /**
  * Expose the YouTube search/metadata, yt-dlp-backed audio download, seekable
@@ -61,6 +61,24 @@ app
   .then(installDefaultMenu)
   .then(restoreOrCreateWindow)
   .catch((e) => console.error('Failed create window:', e));
+
+/**
+ * Warm up the slow first-use costs in the background once the app is ready:
+ *  - the Innertube session (a config round-trip) so the first search/preview is
+ *    quick instead of paying setup on the first keystroke;
+ *  - the yt-dlp binary download so the first audio download / preview fallback
+ *    isn't also waiting on a ~10 MB fetch.
+ * Both are best-effort; failures (e.g. offline) are retried lazily on demand.
+ */
+const warmUpYoutube = () => {
+  // Both are best-effort; failures (e.g. offline) are retried lazily on demand.
+  getInnerTube().catch(() => undefined);
+  ensureBinary().catch(() => undefined);
+};
+app
+  .whenReady()
+  .then(warmUpYoutube)
+  .catch(() => undefined);
 
 /**
  * Install Vue.js or some other devtools in development mode only

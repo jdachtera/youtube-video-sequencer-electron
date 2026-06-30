@@ -1,11 +1,22 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ipcRenderer } from 'electron';
-// Type-only: lets us type the search bridge without bundling youtubei.js into
-// the (now sandboxed) preload — search/metadata run in the main process.
-import type { search as searchYoutube } from '@jdachtera/youtube-search-without-api-key';
 
 export type ExposedVars = typeof exposedVars;
+
+/**
+ * Search result shape the renderer consumes. Mirrors the main-process
+ * `YoutubeSearchResult` (packages/main/src/youtubeApi.ts); the two are matched
+ * structurally across the (untyped) IPC boundary.
+ */
+export interface YoutubeSearchResult {
+  id: string;
+  url: string;
+  title: string;
+  description: string;
+  duration_raw: string;
+  snippet: { thumbnails: { url: string } };
+}
 
 /**
  * A serializable native-menu item the renderer sends to the shell over IPC
@@ -84,7 +95,7 @@ const exposedVars = {
   yt: {
     // Search + metadata run in the main process (youtubei.js); the preload
     // only forwards over IPC so it needs no Node modules.
-    search: (term: string): ReturnType<typeof searchYoutube> =>
+    search: (term: string): Promise<YoutubeSearchResult[]> =>
       ipcRenderer.invoke('yt:search', term),
     getInfo: (url: string): Promise<{ basic_info: { title: string } }> =>
       ipcRenderer.invoke('yt:getInfo', url),

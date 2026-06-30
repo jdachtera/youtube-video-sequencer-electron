@@ -225,7 +225,12 @@ export class Slice extends Device<SliceEvents> {
     this.player.buffer = await this.loadBufferFromSampler();
 
     this.emit('load');
-  }, 10);
+    // Re-slicing copies the slice's PCM out of the sampler buffer — cheap for a
+    // short slice but real work for a long one. Dragging a region edge fires
+    // start/end updates every pointer frame (~60 Hz), so coalesce them: the
+    // visual region tracks the cursor live (just CSS), while the actual reslice
+    // lands once the drag settles. A short window keeps it feeling responsive.
+  }, 80);
 
   createPlayer() {
     if (this.player) {
